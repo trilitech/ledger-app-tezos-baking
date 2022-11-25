@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "os.h"
 
+#ifdef HAVE_BAGL
 void io_seproxyhal_display(const bagl_element_t *element);
 
 void io_seproxyhal_display(const bagl_element_t *element) {
@@ -13,6 +14,7 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 void ui_refresh(void) {
     ux_stack_display(0);
 }
+#endif // HAVE_BAGL
 
 // CALLED BY THE SDK
 unsigned char io_event(unsigned char channel);
@@ -23,12 +25,16 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
 
     // can't have more than one tag in the reply, not supported yet.
     switch (G_io_seproxyhal_spi_buffer[0]) {
+#ifdef HAVE_NBGL
         case SEPROXYHAL_TAG_FINGER_EVENT:
             UX_FINGER_EVENT(G_io_seproxyhal_spi_buffer);
             break;
+#endif  // HAVE_NBGL
 
         case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
+#ifdef HAVE_BAGL
             UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
+#endif  // HAVE_BAGL
             break;
 
         case SEPROXYHAL_TAG_STATUS_EVENT:
@@ -43,7 +49,12 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
             break;
 
         case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
+#ifdef HAVE_BAGL
             UX_DISPLAYED_EVENT({});
+#endif  // HAVE_BAGL
+#ifdef HAVE_NBGL
+            UX_DEFAULT_EVENT();
+#endif // HAVE_NBGL
             break;
 
         case SEPROXYHAL_TAG_TICKER_EVENT:
@@ -68,6 +79,9 @@ void ui_init(void) {
 #ifdef HAVE_BAGL
         UX_INIT();
 #endif  // HAVE_BAGL
+#ifdef HAVE_NBGL
+        nbgl_objInit();
+#endif  // HAVE_NBGL
 }
 
 void require_pin(void) {

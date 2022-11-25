@@ -145,7 +145,6 @@ extern unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 extern nvram_data const N_data_real;
 #define N_data (*(volatile nvram_data *) PIC(&N_data_real))
 
-void calculate_baking_idle_screens_data(void);
 void update_baking_idle_screens(void);
 high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
                                                nvram_data volatile *const ram);
@@ -153,6 +152,7 @@ high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
 // Properly updates NVRAM data to prevent any clobbering of data.
 // 'out_param' defines the name of a pointer to the nvram_data struct
 // that 'body' can change to apply updates.
+#ifdef HAVE_BAGL                                                                        
 #define UPDATE_NVRAM(out_name, body)                                                    \
     ({                                                                                  \
         nvram_data *const out_name = &global.apdu.baking_auth.new_data;                 \
@@ -163,4 +163,16 @@ high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
         nvm_write((void *) &N_data, &global.apdu.baking_auth.new_data, sizeof(N_data)); \
         update_baking_idle_screens();                                                   \
     })
+#else // HAVE_BAGL                                                                        
+#define UPDATE_NVRAM(out_name, body)                                                    \
+    ({                                                                                  \
+        nvram_data *const out_name = &global.apdu.baking_auth.new_data;                 \
+        memcpy(&global.apdu.baking_auth.new_data,                                       \
+               (nvram_data const *const) & N_data,                                      \
+               sizeof(global.apdu.baking_auth.new_data));                               \
+        body;                                                                           \
+        nvm_write((void *) &N_data, &global.apdu.baking_auth.new_data, sizeof(N_data)); \
+    })
+#endif // HAVE_BAGL                                                                     
+
 #endif

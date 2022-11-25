@@ -8,7 +8,14 @@
 #include <string.h>
 
 #define NO_CONTRACT_STRING      "None"
+
+#ifdef HAVE_BAGL
 #define NO_CONTRACT_NAME_STRING "Custom Delegate: please verify the address"
+#endif
+
+#ifdef HAVE_NBGL
+#define NO_CONTRACT_NAME_STRING "Custom Delegate:\nplease verify the address"
+#endif
 
 #define TEZOS_HASH_CHECKSUM_SIZE 4
 
