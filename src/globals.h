@@ -10,6 +10,9 @@
 // Notably this does *not* include UI state.
 void clear_apdu_globals(void);
 
+void copy_chain(char *out, size_t out_size, void *data);
+void copy_key(char *out, size_t out_size, void *data);
+void copy_hwm(char *out, size_t out_size, void *data);
 // Zeros out all application-specific globals and SDK-specific UI/exchange buffers.
 void init_globals(void);
 
