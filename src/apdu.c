@@ -22,17 +22,20 @@ size_t provide_pubkey(uint8_t *const io_buffer, cx_ecfp_public_key_t const *cons
     return finalize_successful_send(tx);
 }
 
-size_t handle_apdu_error(uint8_t __attribute__((unused)) instruction) {
+size_t handle_apdu_error(uint8_t __attribute__((unused)) instruction, 
+                         volatile uint32_t* __attribute__((unused)) flags) {
     THROW(EXC_INVALID_INS);
 }
 
-size_t handle_apdu_version(uint8_t __attribute__((unused)) instruction) {
+size_t handle_apdu_version(uint8_t __attribute__((unused)) instruction, 
+                           volatile uint32_t* __attribute__((unused)) flags) {
     memcpy(G_io_apdu_buffer, &version, sizeof(version_t));
     size_t tx = sizeof(version_t);
     return finalize_successful_send(tx);
 }
 
-size_t handle_apdu_git(uint8_t __attribute__((unused)) instruction) {
+size_t handle_apdu_git(uint8_t __attribute__((unused)) instruction,
+                       volatile uint32_t* __attribute__((unused)) flags) {
     static const char commit[] = COMMIT;
     memcpy(G_io_apdu_buffer, commit, sizeof(commit));
     size_t tx = sizeof(commit);
@@ -44,6 +47,7 @@ size_t handle_apdu_git(uint8_t __attribute__((unused)) instruction) {
 __attribute__((noreturn)) void main_loop(apdu_handler const *const handlers,
                                          size_t const handlers_size) {
     volatile size_t rx = io_exchange(CHANNEL_APDU, 0);
+    volatile uint32_t flags = 0;
     while (true) {
         BEGIN_TRY {
             TRY {
@@ -71,8 +75,9 @@ __attribute__((noreturn)) void main_loop(apdu_handler const *const handlers,
                 apdu_handler const cb =
                     instruction >= handlers_size ? handle_apdu_error : handlers[instruction];
 
-                size_t const tx = cb(instruction);
-                rx = io_exchange(CHANNEL_APDU, tx);
+                size_t const tx = cb(instruction, &flags);
+                rx = io_exchange(CHANNEL_APDU | flags, tx);
+                flags = 0;
             }
             CATCH(ASYNC_EXCEPTION) {
                 rx = io_exchange(CHANNEL_APDU | IO_ASYNCH_REPLY, 0);

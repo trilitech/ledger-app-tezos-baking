@@ -47,7 +47,7 @@ typedef enum {
 } baking_type_t;
 
 // Return number of bytes to transmit (tx)
-typedef size_t (*apdu_handler)(uint8_t instruction);
+typedef size_t (*apdu_handler)(uint8_t instruction, volatile uint32_t* flags);
 
 typedef uint32_t level_t;
 typedef uint32_t round_t;

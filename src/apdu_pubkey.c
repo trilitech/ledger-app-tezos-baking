@@ -41,7 +41,7 @@ char const *const *get_baking_prompts() {
 }
 #endif
 
-size_t handle_apdu_get_public_key(uint8_t instruction) {
+size_t handle_apdu_get_public_key(uint8_t instruction, volatile uint32_t* flags) {
     uint8_t *dataBuffer = G_io_apdu_buffer + OFFSET_CDATA;
 
     if (G_io_apdu_buffer[OFFSET_P1] != 0) THROW(EXC_WRONG_PARAM);
@@ -88,5 +88,7 @@ size_t handle_apdu_get_public_key(uint8_t instruction) {
         }
 #endif
         prompt_address(bake, cb, delay_reject);
+        *flags = IO_ASYNCH_REPLY;
+        return 0;
     }
 }

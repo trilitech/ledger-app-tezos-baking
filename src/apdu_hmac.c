@@ -63,7 +63,7 @@ static inline size_t hmac(uint8_t *const out,
                           out_size);
 }
 
-size_t handle_apdu_hmac(__attribute__((unused)) uint8_t instruction) {
+size_t handle_apdu_hmac(__attribute__((unused)) uint8_t instruction, __attribute__((unused)) volatile uint32_t* flags) {
     if (G_io_apdu_buffer[OFFSET_P1] != 0) THROW(EXC_WRONG_PARAM);
 
     uint8_t const *const buff = &G_io_apdu_buffer[OFFSET_CDATA];

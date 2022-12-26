@@ -141,7 +141,7 @@ static bool parse_allowed_operation_packet(struct parsed_operation_group *const 
 
 #ifdef BAKING_APP  // ----------------------------------------------------------
 
-size_t baking_sign_complete(bool const send_hash) {
+size_t baking_sign_complete(bool const send_hash, volatile uint32_t* flags) {
     switch (G.magic_byte) {
         case MAGIC_BYTE_TENDERBAKE_BLOCK:
         case MAGIC_BYTE_TENDERBAKE_PREENDORSEMENT:
@@ -163,6 +163,8 @@ size_t baking_sign_complete(bool const send_hash) {
                 COMPARE(&G.maybe_ops.v.operation.destination, &G.maybe_ops.v.signing) == 0) {
                 ui_callback_t const ok_c = send_hash ? sign_with_hash_ok : sign_without_hash_ok;
                 prompt_register_delegate(ok_c, sign_reject);
+                *flags = IO_ASYNCH_REPLY;
+                return 0;
             }
             THROW(EXC_SECURITY);
             break;
@@ -204,7 +206,8 @@ static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const b
 
 static size_t handle_apdu(bool const enable_hashing,
                           bool const enable_parsing,
-                          uint8_t const instruction) {
+                          uint8_t const instruction,
+                          volatile uint32_t* flags) {
     uint8_t *const buff = &G_io_apdu_buffer[OFFSET_CDATA];
     uint8_t const p1 = G_io_apdu_buffer[OFFSET_P1];
     uint8_t const buff_size = G_io_apdu_buffer[OFFSET_LC];
@@ -309,28 +312,28 @@ static size_t handle_apdu(bool const enable_hashing,
 
         return
 #ifdef BAKING_APP
-            baking_sign_complete(instruction == INS_SIGN_WITH_HASH);
+            baking_sign_complete(instruction == INS_SIGN_WITH_HASH, flags);
 #else
-            wallet_sign_complete(instruction, G.magic_byte);
+            wallet_sign_complete(instruction, G.magic_byte, flags);
 #endif
     } else {
         return finalize_successful_send(0);
     }
 }
 
-size_t handle_apdu_sign(uint8_t instruction) {
+size_t handle_apdu_sign(uint8_t instruction, volatile uint32_t* flags) {
     bool const enable_hashing = instruction != INS_SIGN_UNSAFE;
     bool const enable_parsing = enable_hashing;
-    return handle_apdu(enable_hashing, enable_parsing, instruction);
+    return handle_apdu(enable_hashing, enable_parsing, instruction, flags);
 }
 
-size_t handle_apdu_sign_with_hash(uint8_t instruction) {
+size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t* flags) {
     bool const enable_hashing = true;
     bool const enable_parsing = true;
-    return handle_apdu(enable_hashing, enable_parsing, instruction);
+    return handle_apdu(enable_hashing, enable_parsing, instruction, flags);
 }
 
-static int perform_signature(bool const on_hash, bool const send_hash) {
+int perform_signature(bool const on_hash, bool const send_hash) {
 #ifdef BAKING_APP
     write_high_water_mark(&G.parsed_baking_data);
 #else

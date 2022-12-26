@@ -67,7 +67,7 @@ static void continue_light_callback(void) {
 }
 
 
-size_t handle_apdu_reset(__attribute__((unused)) uint8_t instruction, uint32_t* flags) {
+size_t handle_apdu_reset(__attribute__((unused)) uint8_t instruction, volatile uint32_t* flags) {
     uint8_t *dataBuffer = G_io_apdu_buffer + OFFSET_CDATA;
     uint32_t dataLength = G_io_apdu_buffer[OFFSET_LC];
 

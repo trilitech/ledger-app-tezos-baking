@@ -218,7 +218,8 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
     }
 }
 
-size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte) {
+size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile uint32_t* flags) {
+    (void) flags;
     char *ops;
     if (magic_byte == MAGIC_BYTE_UNSAFE_OP3) {
         ops = "Michelson";

@@ -28,7 +28,7 @@ size_t send_word_big_endian(size_t tx, uint32_t word) {
     return tx + i;
 }
 
-size_t handle_apdu_all_hwm(__attribute__((unused)) uint8_t instruction) {
+size_t handle_apdu_all_hwm(__attribute__((unused)) uint8_t instruction, __attribute__((unused)) volatile uint32_t* flags) {
     size_t tx = 0;
     tx = send_word_big_endian(tx, N_data.hwm.main.highest_level);
     int has_a_chain_migrated =
@@ -40,7 +40,7 @@ size_t handle_apdu_all_hwm(__attribute__((unused)) uint8_t instruction) {
     return finalize_successful_send(tx);
 }
 
-size_t handle_apdu_main_hwm(__attribute__((unused)) uint8_t instruction) {
+size_t handle_apdu_main_hwm(__attribute__((unused)) uint8_t instruction, __attribute__((unused)) volatile uint32_t* flags) {
     size_t tx = 0;
     tx = send_word_big_endian(tx, N_data.hwm.main.highest_level);
     if (N_data.hwm.main.migrated_to_tenderbake)
@@ -48,7 +48,7 @@ size_t handle_apdu_main_hwm(__attribute__((unused)) uint8_t instruction) {
     return finalize_successful_send(tx);
 }
 
-size_t handle_apdu_query_auth_key(__attribute__((unused)) uint8_t instruction) {
+size_t handle_apdu_query_auth_key(__attribute__((unused)) uint8_t instruction, __attribute__((unused)) volatile uint32_t* flags) {
     uint8_t const length = N_data.baking_key.bip32_path.length;
 
     size_t tx = 0;
@@ -61,7 +61,7 @@ size_t handle_apdu_query_auth_key(__attribute__((unused)) uint8_t instruction) {
     return finalize_successful_send(tx);
 }
 
-size_t handle_apdu_query_auth_key_with_curve(__attribute__((unused)) uint8_t instruction) {
+size_t handle_apdu_query_auth_key_with_curve(__attribute__((unused)) uint8_t instruction, __attribute__((unused)) volatile uint32_t* flags) {
     uint8_t const length = N_data.baking_key.bip32_path.length;
 
     size_t tx = 0;
@@ -74,7 +74,7 @@ size_t handle_apdu_query_auth_key_with_curve(__attribute__((unused)) uint8_t ins
     return finalize_successful_send(tx);
 }
 
-size_t handle_apdu_deauthorize(__attribute__((unused)) uint8_t instruction) {
+size_t handle_apdu_deauthorize(__attribute__((unused)) uint8_t instruction, __attribute__((unused)) volatile uint32_t* flags) {
     if (G_io_apdu_buffer[OFFSET_P1] != 0) THROW(EXC_WRONG_PARAM);
     if (G_io_apdu_buffer[OFFSET_LC] != 0) THROW(EXC_PARSE_ERROR);
     UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });

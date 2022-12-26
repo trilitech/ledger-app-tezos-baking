@@ -7,7 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-size_t handle_apdu_setup(uint8_t instruction);
+size_t handle_apdu_setup(uint8_t instruction, volatile uint32_t* flags);
 
 struct setup_wire {
     uint32_t main_chain_id;

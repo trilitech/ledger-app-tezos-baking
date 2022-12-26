@@ -2,7 +2,7 @@
 
 #include "apdu.h"
 
-size_t handle_apdu_get_public_key(uint8_t instruction);
+size_t handle_apdu_get_public_key(uint8_t instruction, volatile uint32_t* flags);
 
 void prompt_address(
 #ifndef BAKING_APP
