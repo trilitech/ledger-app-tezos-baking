@@ -4,7 +4,7 @@
 
 size_t handle_apdu_get_public_key(uint8_t instruction);
 
-__attribute__((noreturn)) void prompt_address(
+void prompt_address(
 #ifndef BAKING_APP
     __attribute__((unused))
 #endif

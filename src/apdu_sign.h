@@ -7,8 +7,8 @@ size_t handle_apdu_sign_with_hash(uint8_t instruction);
 
 #ifdef BAKING_APP  // ----------------------------------------------------------
 
-__attribute__((noreturn)) void prompt_register_delegate(ui_callback_t const ok_cb,
-                                                        ui_callback_t const cxl_cb);
+void prompt_register_delegate(ui_callback_t const ok_cb,
+                              ui_callback_t const cxl_cb);
 
 #else  // ifdef BAKING_APP -----------------------------------------------------
 bool prompt_transaction(struct parsed_operation_group const *const ops,

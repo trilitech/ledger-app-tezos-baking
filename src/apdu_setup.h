@@ -18,6 +18,6 @@ struct setup_wire {
     struct bip32_path_wire bip32_path;
 } __attribute__((packed));
 
-__attribute__((noreturn)) void prompt_setup(ui_callback_t const ok_cb,
-                                            ui_callback_t const cxl_cb);
+void prompt_setup(ui_callback_t const ok_cb,
+                  ui_callback_t const cxl_cb);
 #endif  // #ifdef BAKING_APP

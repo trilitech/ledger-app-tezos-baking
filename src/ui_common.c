@@ -74,7 +74,7 @@ void require_pin(void) {
     os_global_pin_invalidate();
 }
 
-__attribute__((noreturn)) bool exit_app(void) {
+bool exit_app(void) {
 #ifdef BAKING_APP
     require_pin();
 #endif

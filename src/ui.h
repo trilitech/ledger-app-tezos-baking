@@ -11,10 +11,10 @@ void ui_initial_screen(void);
 void ui_init(void);
 void ui_refresh(void);
 
-__attribute__((noreturn)) bool exit_app(
+bool exit_app(
     void);  // Might want to send it arguments to use as callback
 
-__attribute__((noreturn)) void ux_confirm_screen(ui_callback_t ok_c, ui_callback_t cxl_c);
+void ux_confirm_screen(ui_callback_t ok_c, ui_callback_t cxl_c);
 
 void ux_idle_screen(ui_callback_t ok_c, ui_callback_t cxl_c);
 
