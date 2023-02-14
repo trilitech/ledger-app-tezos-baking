@@ -171,13 +171,15 @@ delete:
 # import generic rules from the sdk
 include $(BOLOS_SDK)/Makefile.rules
 
-#add dependency on custom makefile filename
-dep/%.d: %.c Makefile
-
 listvariants:
 	@echo VARIANTS APP tezos_wallet tezos_baking
+
+# Define DEP_DIR to keep compatibility with old SDK
+ifeq ($(DEP_DIR),)
+	DEP_DIR := dep
+endif
 
 # Generate delegates from baker list
 src/delegates.h: tools/gen-delegates.sh tools/BakersRegistryCoreUnfilteredData.json
 	bash ./tools/gen-delegates.sh ./tools/BakersRegistryCoreUnfilteredData.json
-dep/to_string.d: src/delegates.h
+$(DEP_DIR)/to_string.d: src/delegates.h
