@@ -40,5 +40,6 @@ __attribute__((noreturn)) void prompt_address(
 #endif
 
     ux_confirm_screen(ok_cb, cxl_cb);
+    __builtin_unreachable();
 }
 #endif // HAVE_BAGL

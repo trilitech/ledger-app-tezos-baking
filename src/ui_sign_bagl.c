@@ -22,6 +22,9 @@
 
 #define B2B_BLOCKBYTES 128
 
+static inline void clear_data(void) {
+    memset(&G, 0, sizeof(G));
+}
 
 static bool sign_without_hash_ok(void) {
     delayed_send(perform_signature(true, false));
@@ -101,6 +104,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
                              ops->operation.proposal.protocol_hash);
 
             ux_confirm_screen(ok, cxl);
+            __builtin_unreachable();
         }
 
         case OPERATION_TAG_BALLOT: {
@@ -129,6 +133,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
                              &ops->operation.ballot.voting_period);
 
             ux_confirm_screen(ok, cxl);
+            __builtin_unreachable();
         }
 
         case OPERATION_TAG_ATHENS_ORIGINATION:
@@ -161,6 +166,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
                              &ops->total_storage_limit);
 
             ux_confirm_screen(ok, cxl);
+            __builtin_unreachable();
         }
         case OPERATION_TAG_ATHENS_DELEGATION:
         case OPERATION_TAG_BABYLON_DELEGATION: {
@@ -188,6 +194,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
                              &ops->total_storage_limit);
 
             ux_confirm_screen(ok, cxl);
+            __builtin_unreachable();
         }
 
         case OPERATION_TAG_ATHENS_TRANSACTION:
@@ -203,6 +210,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
                              &ops->total_storage_limit);
 
             ux_confirm_screen(ok, cxl);
+            __builtin_unreachable();
         }
         case OPERATION_TAG_NONE: {
             init_screen_stack();
@@ -214,6 +222,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
                              &ops->total_storage_limit);
 
             ux_confirm_screen(ok, cxl);
+            __builtin_unreachable();
         }
     }
 }
@@ -253,6 +262,7 @@ size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile ui
                     goto unsafe;
                 }
 
+                __attribute__((fallthrough));
             case MAGIC_BYTE_UNSAFE_OP2:
             case MAGIC_BYTE_UNSAFE_OP3:
                 goto unsafe;
@@ -267,6 +277,7 @@ size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile ui
         push_ui_callback("Sign Hash", buffer_to_base58, &G.message_data_as_buffer);
         ux_confirm_screen(ok_c, sign_reject);
     }
+    return 0;
 }
 
 #endif  // ifdef BAKING_APP ----------------------------------------------------

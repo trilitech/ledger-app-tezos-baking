@@ -71,6 +71,7 @@ static inline void clear_data(void) {
     memset(&G, 0, sizeof(G));
 }
 
+#ifdef BAKING_APP
 static bool sign_without_hash_ok(void) {
     delayed_send(perform_signature(true, false));
     return true;
@@ -86,6 +87,7 @@ static bool sign_reject(void) {
     delay_reject();
     return true;  // Return to idle
 }
+#endif
 
 static bool is_operation_allowed(enum operation_tag tag) {
     switch (tag) {
@@ -225,7 +227,7 @@ static size_t handle_apdu(bool const enable_hashing,
         case P1_HASH_ONLY_NEXT:
             // This is a debugging Easter egg
             G.hash_only = true;
-            // FALL THROUGH
+            __attribute__((fallthrough));
 #endif
         case P1_NEXT:
             if (global.path_with_curve.bip32_path.length == 0) THROW(EXC_WRONG_LENGTH_FOR_INS);

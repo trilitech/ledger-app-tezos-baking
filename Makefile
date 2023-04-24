@@ -142,9 +142,9 @@ endif
 CC       := $(CLANGPATH)clang
 
 ifeq ($(APP),tezos_wallet)
-CFLAGS   += -O3 -Os -Wall -Wextra
+CFLAGS   += -O3 -Os -Wall -Wextra -Wno-incompatible-pointer-types-discards-qualifiers
 else ifeq ($(APP),tezos_baking)
-CFLAGS   += -DBAKING_APP -O3 -Os -Wall -Wextra
+CFLAGS   += -DBAKING_APP -O3 -Os -Wall -Wextra -Wno-incompatible-pointer-types-discards-qualifiers
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
 $(error Unsupported APP - use tezos_wallet, tezos_baking)

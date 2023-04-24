@@ -38,9 +38,9 @@ size_t read_bip32_path(bip32_path_t *const out, uint8_t const *const in, size_t 
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     if (out->length == 0 || out->length > NUM_ELEMENTS(out->components)) THROW(EXC_WRONG_VALUES);
 
-    for (size_t i = 0; i < out->length; i++) {
-        out->components[i] =
-            CONSUME_UNALIGNED_BIG_ENDIAN(ix, uint32_t, &buf_as_bip32->components[i]);
+    for (size_t j = 0; j < out->length; j++) {
+        out->components[j] =
+            CONSUME_UNALIGNED_BIG_ENDIAN(ix, uint32_t, &buf_as_bip32->components[j]);
     }
 
     return ix;
@@ -103,7 +103,7 @@ int crypto_init_public_key(derivation_type_t const derivation_type,
 
     // If we're using the old curve, make sure to adjust accordingly.
     if (cx_curve == CX_CURVE_Ed25519) {
-        cx_edward_compress_point(CX_CURVE_Ed25519, public_key->W, public_key->W_len);
+        cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, public_key->W, public_key->W_len);
         public_key->W_len = 33;
     }
 

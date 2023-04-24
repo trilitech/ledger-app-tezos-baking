@@ -11,7 +11,7 @@ void ui_initial_screen(void);
 void ui_init(void);
 void ui_refresh(void);
 
-bool exit_app(
+void exit_app(
     void);  // Might want to send it arguments to use as callback
 
 void ux_confirm_screen(ui_callback_t ok_c, ui_callback_t cxl_c);

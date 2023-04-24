@@ -30,7 +30,7 @@ int handle_get_printable_amount(get_printable_amount_parameters_t* params) {
     }
 
     // Append the ticker at the end of the amount.
-    strcat(params->printable_amount, TICKER_WITH_SPACE);
+    strlcat(params->printable_amount, TICKER_WITH_SPACE, sizeof(params->printable_amount));
 
     return 1;
 }

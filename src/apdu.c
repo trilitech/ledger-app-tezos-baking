@@ -94,7 +94,7 @@ __attribute__((noreturn)) void main_loop(apdu_handler const *const handlers,
                 switch (sw) {
                     default:
                         sw = 0x6800 | (e & 0x7FF);
-                        // FALL THROUGH
+                        __attribute__((fallthrough));
                     case 0x6000 ... 0x6FFF:
                     case 0x9000 ... 0x9FFF: {
                         PRINTF("Line number: %d", sw & 0x0FFF);
