@@ -58,9 +58,11 @@ __attribute__((section(".boot"))) int main(arg0) {
                 }
                 CATCH(EXCEPTION_IO_RESET) {
                     // reset IO and UX
+                    CLOSE_TRY;
                     continue;
                 }
                 CATCH_OTHER(e) {
+                    CLOSE_TRY;
                     break;
                 }
                 FINALLY {
