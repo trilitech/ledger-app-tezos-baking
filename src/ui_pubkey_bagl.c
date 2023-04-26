@@ -42,4 +42,4 @@ __attribute__((noreturn)) void prompt_address(
     ux_confirm_screen(ok_cb, cxl_cb);
     __builtin_unreachable();
 }
-#endif // HAVE_BAGL
+#endif  // HAVE_BAGL

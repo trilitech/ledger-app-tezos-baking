@@ -39,7 +39,7 @@
 #define INS_HMAC                      0x0E
 #define INS_SIGN_WITH_HASH            0x0F
 
-__attribute__((noreturn)) void main_loop(apdu_handler const *const handlers,
+__attribute__((noreturn)) void main_loop(apdu_handler const* const handlers,
                                          size_t const handlers_size);
 
 static inline size_t finalize_successful_send(size_t tx) {
@@ -69,7 +69,7 @@ static inline void require_permissioned_comm(void) {
     }
 }
 
-size_t provide_pubkey(uint8_t *const io_buffer, cx_ecfp_public_key_t const *const pubkey);
+size_t provide_pubkey(uint8_t* const io_buffer, cx_ecfp_public_key_t const* const pubkey);
 
 size_t handle_apdu_error(uint8_t instruction, volatile uint32_t* flags);
 size_t handle_apdu_version(uint8_t instruction, volatile uint32_t* flags);

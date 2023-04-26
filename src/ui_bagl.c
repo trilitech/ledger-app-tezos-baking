@@ -32,7 +32,7 @@ void update_baking_idle_screens(void) {
     calculate_baking_idle_screens_data();
     ui_refresh();
 }
-#endif // BAKING_APP
+#endif  // BAKING_APP
 
 // User MUST call `init_screen_stack()` before the first call to this function.
 void push_ui_callback(char *title, string_generation_callback cb, void *data) {
@@ -258,4 +258,4 @@ void ux_idle_screen(ui_callback_t ok_c, ui_callback_t cxl_c) {
     ux_prepare_display(ok_c, cxl_c);
     ux_flow_init(0, ux_idle_flow, NULL);
 }
-#endif // HAVE_BAGL
+#endif  // HAVE_BAGL

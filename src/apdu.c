@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <string.h>
 
-size_t provide_pubkey(uint8_t *const io_buffer, cx_ecfp_public_key_t const *const pubkey) {
+size_t provide_pubkey(uint8_t* const io_buffer, cx_ecfp_public_key_t const* const pubkey) {
     check_null(io_buffer);
     check_null(pubkey);
     size_t tx = 0;
@@ -22,12 +22,12 @@ size_t provide_pubkey(uint8_t *const io_buffer, cx_ecfp_public_key_t const *cons
     return finalize_successful_send(tx);
 }
 
-size_t handle_apdu_error(uint8_t __attribute__((unused)) instruction, 
+size_t handle_apdu_error(uint8_t __attribute__((unused)) instruction,
                          volatile uint32_t* __attribute__((unused)) flags) {
     THROW(EXC_INVALID_INS);
 }
 
-size_t handle_apdu_version(uint8_t __attribute__((unused)) instruction, 
+size_t handle_apdu_version(uint8_t __attribute__((unused)) instruction,
                            volatile uint32_t* __attribute__((unused)) flags) {
     memcpy(G_io_apdu_buffer, &version, sizeof(version_t));
     size_t tx = sizeof(version_t);
@@ -44,7 +44,7 @@ size_t handle_apdu_git(uint8_t __attribute__((unused)) instruction,
 
 #define CLA 0x80
 
-__attribute__((noreturn)) void main_loop(apdu_handler const *const handlers,
+__attribute__((noreturn)) void main_loop(apdu_handler const* const handlers,
                                          size_t const handlers_size) {
     volatile size_t rx = io_exchange(CHANNEL_APDU, 0);
     volatile uint32_t flags = 0;

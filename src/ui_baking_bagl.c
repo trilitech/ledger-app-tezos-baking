@@ -23,4 +23,4 @@ void ui_baking_reset(__attribute__((unused)) volatile uint32_t* flags) {
 }
 
 #endif  // #ifdef BAKING_APP
-#endif //HAVE_BAGL
+#endif  // HAVE_BAGL

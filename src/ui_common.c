@@ -14,7 +14,7 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 void ui_refresh(void) {
     ux_stack_display(0);
 }
-#endif // HAVE_BAGL
+#endif  // HAVE_BAGL
 
 // CALLED BY THE SDK
 unsigned char io_event(unsigned char channel);
@@ -54,15 +54,15 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
 #endif  // HAVE_BAGL
 #ifdef HAVE_NBGL
             UX_DEFAULT_EVENT();
-#endif // HAVE_NBGL
+#endif  // HAVE_NBGL
             break;
 
         case SEPROXYHAL_TAG_TICKER_EVENT:
-#if defined (HAVE_BAGL) && defined (BAKING_APP)  
+#if defined(HAVE_BAGL) && defined(BAKING_APP)
             // Disable ticker event handling to prevent screen saver from starting.
 #else
             UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
-#endif // HAVE_BAGL
+#endif  // HAVE_BAGL
             break;
     }
 
@@ -76,10 +76,10 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
 }
 void ui_init(void) {
 #ifdef HAVE_BAGL
-        UX_INIT();
+    UX_INIT();
 #endif  // HAVE_BAGL
 #ifdef HAVE_NBGL
-        nbgl_objInit();
+    nbgl_objInit();
 #endif  // HAVE_NBGL
 }
 

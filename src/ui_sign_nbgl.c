@@ -49,8 +49,7 @@ static void approve_callback(void) {
 static void confirmation_callback(bool confirm) {
     if (confirm) {
         approve_callback();
-    }
-    else {
+    } else {
         cancel_callback();
     }
 }
@@ -60,21 +59,26 @@ static void continue_light_callback(void) {
     transactionContext.infoLongPress.longPressText = "Approve";
     transactionContext.infoLongPress.tuneId = TUNE_TAP_CASUAL;
 
-    nbgl_useCaseStaticReviewLight(&transactionContext.tagValueList, &transactionContext.infoLongPress, "Cancel", confirmation_callback);
+    nbgl_useCaseStaticReviewLight(&transactionContext.tagValueList,
+                                  &transactionContext.infoLongPress,
+                                  "Cancel",
+                                  confirmation_callback);
 }
-
 
 #ifdef BAKING_APP  // ----------------------------------------------------------
 
-void prompt_register_delegate(ui_callback_t const ok_cb,
-                              ui_callback_t const cxl_cb) {
+void prompt_register_delegate(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     if (!G.maybe_ops.is_valid) THROW(EXC_MEMORY_ERROR);
 
     transactionContext.ok_cb = ok_cb;
     transactionContext.cxl_cb = cxl_cb;
 
-    bip32_path_with_curve_to_pkh_string(transactionContext.buffer[0], sizeof(transactionContext.buffer[0]), &global.path_with_curve);
-    microtez_to_string_indirect(transactionContext.buffer[1], sizeof(transactionContext.buffer[1]), &G.maybe_ops.v.total_fee);
+    bip32_path_with_curve_to_pkh_string(transactionContext.buffer[0],
+                                        sizeof(transactionContext.buffer[0]),
+                                        &global.path_with_curve);
+    microtez_to_string_indirect(transactionContext.buffer[1],
+                                sizeof(transactionContext.buffer[1]),
+                                &G.maybe_ops.v.total_fee);
 
     transactionContext.tagValuePair[0].item = "Address";
     transactionContext.tagValuePair[0].value = transactionContext.buffer[0];
@@ -90,7 +94,12 @@ void prompt_register_delegate(ui_callback_t const ok_cb,
     transactionContext.confirmed_status = "DELEGATE\nCONFIRMED";
     transactionContext.cancelled_status = "Delegate registration\ncancelled";
 
-    nbgl_useCaseReviewStart(&C_tezos, "Register delegate", NULL, "Cancel", continue_light_callback, cancel_callback);
+    nbgl_useCaseReviewStart(&C_tezos,
+                            "Register delegate",
+                            NULL,
+                            "Cancel",
+                            continue_light_callback,
+                            cancel_callback);
 }
 
 #else  // ifdef BAKING_APP -----------------------------------------------------
@@ -168,13 +177,18 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             PARSE_ERROR();
 
         case OPERATION_TAG_PROPOSAL: {
-
             transactionContext.ok_cb = ok;
             transactionContext.cxl_cb = cxl;
 
-            parsed_contract_to_string(transactionContext.buffer[0], sizeof(transactionContext.buffer[0]), &ops->operation.source);
-            number_to_string_indirect32(transactionContext.buffer[1], sizeof(transactionContext.buffer[1]), &ops->operation.proposal.voting_period);
-            protocol_hash_to_string(transactionContext.buffer[2], sizeof(transactionContext.buffer[2]), ops->operation.proposal.protocol_hash);
+            parsed_contract_to_string(transactionContext.buffer[0],
+                                      sizeof(transactionContext.buffer[0]),
+                                      &ops->operation.source);
+            number_to_string_indirect32(transactionContext.buffer[1],
+                                        sizeof(transactionContext.buffer[1]),
+                                        &ops->operation.proposal.voting_period);
+            protocol_hash_to_string(transactionContext.buffer[2],
+                                    sizeof(transactionContext.buffer[2]),
+                                    ops->operation.proposal.protocol_hash);
 
             transactionContext.tagValuePair[0].item = "Source";
             transactionContext.tagValuePair[0].value = transactionContext.buffer[0];
@@ -193,7 +207,12 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.confirmed_status = "PROPOSAL\nCONFIRMED";
             transactionContext.cancelled_status = "Proposal\ncancelled";
 
-            nbgl_useCaseReviewStart(&C_tezos, "Review proposal", NULL, "Cancel", continue_light_callback, cancel_callback);
+            nbgl_useCaseReviewStart(&C_tezos,
+                                    "Review proposal",
+                                    NULL,
+                                    "Cancel",
+                                    continue_light_callback,
+                                    cancel_callback);
             break;
         }
 
@@ -215,9 +234,15 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.ok_cb = ok;
             transactionContext.cxl_cb = cxl;
 
-            parsed_contract_to_string(transactionContext.buffer[0], sizeof(transactionContext.buffer[0]), &ops->operation.source);
-            protocol_hash_to_string(transactionContext.buffer[1], sizeof(transactionContext.buffer[1]), ops->operation.ballot.protocol_hash);
-            number_to_string_indirect32(transactionContext.buffer[2], sizeof(transactionContext.buffer[2]), &ops->operation.ballot.voting_period);
+            parsed_contract_to_string(transactionContext.buffer[0],
+                                      sizeof(transactionContext.buffer[0]),
+                                      &ops->operation.source);
+            protocol_hash_to_string(transactionContext.buffer[1],
+                                    sizeof(transactionContext.buffer[1]),
+                                    ops->operation.ballot.protocol_hash);
+            number_to_string_indirect32(transactionContext.buffer[2],
+                                        sizeof(transactionContext.buffer[2]),
+                                        &ops->operation.ballot.voting_period);
 
             transactionContext.tagValuePair[0].item = "Vote";
             transactionContext.tagValuePair[0].value = vote;
@@ -239,7 +264,12 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.confirmed_status = "VOTE\nCONFIRMED";
             transactionContext.cancelled_status = "Vote\ncancelled";
 
-            nbgl_useCaseReviewStart(&C_tezos, "Review vote", NULL, "Cancel", continue_light_callback, cancel_callback);
+            nbgl_useCaseReviewStart(&C_tezos,
+                                    "Review vote",
+                                    NULL,
+                                    "Cancel",
+                                    continue_light_callback,
+                                    cancel_callback);
             break;
         }
 
@@ -250,10 +280,18 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.ok_cb = ok;
             transactionContext.cxl_cb = cxl;
 
-            microtez_to_string_indirect(transactionContext.buffer[0], sizeof(transactionContext.buffer[0]), &ops->operation.amount);
-            microtez_to_string_indirect(transactionContext.buffer[1], sizeof(transactionContext.buffer[1]), &ops->total_fee);
-            parsed_contract_to_string(transactionContext.buffer[2], sizeof(transactionContext.buffer[2]), &ops->operation.source);
-            parsed_contract_to_string(transactionContext.buffer[3], sizeof(transactionContext.buffer[3]), &ops->operation.destination);
+            microtez_to_string_indirect(transactionContext.buffer[0],
+                                        sizeof(transactionContext.buffer[0]),
+                                        &ops->operation.amount);
+            microtez_to_string_indirect(transactionContext.buffer[1],
+                                        sizeof(transactionContext.buffer[1]),
+                                        &ops->total_fee);
+            parsed_contract_to_string(transactionContext.buffer[2],
+                                      sizeof(transactionContext.buffer[2]),
+                                      &ops->operation.source);
+            parsed_contract_to_string(transactionContext.buffer[3],
+                                      sizeof(transactionContext.buffer[3]),
+                                      &ops->operation.destination);
 
             transactionContext.tagValuePair[0].item = "Amount";
             transactionContext.tagValuePair[0].value = transactionContext.buffer[0];
@@ -274,19 +312,25 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
                 ops->operation.delegate.signature_type != SIGNATURE_TYPE_UNSET;
             if (delegatable && has_delegate) {
                 transactionContext.tagValuePair[4].item = "Delegate";
-                parsed_contract_to_string(transactionContext.buffer[4], sizeof(transactionContext.buffer[4]), &ops->operation.delegate);
+                parsed_contract_to_string(transactionContext.buffer[4],
+                                          sizeof(transactionContext.buffer[4]),
+                                          &ops->operation.delegate);
             } else if (delegatable && !has_delegate) {
                 transactionContext.tagValuePair[4].item = "Delegate";
                 transactionContext.tagValuePair[4].value = "Any";
             } else if (!delegatable && has_delegate) {
                 transactionContext.tagValuePair[4].item = "Fixed Delegate";
-                parsed_contract_to_string(transactionContext.buffer[4], sizeof(transactionContext.buffer[4]), &ops->operation.delegate);
+                parsed_contract_to_string(transactionContext.buffer[4],
+                                          sizeof(transactionContext.buffer[4]),
+                                          &ops->operation.delegate);
             } else if (!delegatable && !has_delegate) {
                 transactionContext.tagValuePair[4].item = "Delegation Disabled";
                 transactionContext.tagValuePair[4].value = "No delegation";
             }
 
-            number_to_string_indirect64(transactionContext.buffer[5], sizeof(transactionContext.buffer[5]), &ops->total_storage_limit);
+            number_to_string_indirect64(transactionContext.buffer[5],
+                                        sizeof(transactionContext.buffer[5]),
+                                        &ops->total_storage_limit);
 
             transactionContext.tagValuePair[5].item = "Storage Limit";
             transactionContext.tagValuePair[5].value = transactionContext.buffer[5];
@@ -299,7 +343,12 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.confirmed_status = "ORIGINATION\nCONFIRMED";
             transactionContext.cancelled_status = "Origination\ncancelled";
 
-            nbgl_useCaseReviewStart(&C_tezos, "Review origination", NULL, "Cancel", continue_light_callback, cancel_callback);
+            nbgl_useCaseReviewStart(&C_tezos,
+                                    "Review origination",
+                                    NULL,
+                                    "Cancel",
+                                    continue_light_callback,
+                                    cancel_callback);
             break;
         }
         case OPERATION_TAG_ATHENS_DELEGATION:
@@ -324,11 +373,21 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.ok_cb = ok;
             transactionContext.cxl_cb = cxl;
 
-            microtez_to_string_indirect(transactionContext.buffer[0], sizeof(transactionContext.buffer[0]), &ops->total_fee);
-            parsed_contract_to_string(transactionContext.buffer[1], sizeof(transactionContext.buffer[1]), &ops->operation.source);
-            parsed_contract_to_string(transactionContext.buffer[2], sizeof(transactionContext.buffer[2]), &ops->operation.destination);
-            lookup_parsed_contract_name(transactionContext.buffer[3], sizeof(transactionContext.buffer[3]), &ops->operation.destination);
-            number_to_string_indirect64(transactionContext.buffer[4], sizeof(transactionContext.buffer[4]), &ops->total_storage_limit);
+            microtez_to_string_indirect(transactionContext.buffer[0],
+                                        sizeof(transactionContext.buffer[0]),
+                                        &ops->total_fee);
+            parsed_contract_to_string(transactionContext.buffer[1],
+                                      sizeof(transactionContext.buffer[1]),
+                                      &ops->operation.source);
+            parsed_contract_to_string(transactionContext.buffer[2],
+                                      sizeof(transactionContext.buffer[2]),
+                                      &ops->operation.destination);
+            lookup_parsed_contract_name(transactionContext.buffer[3],
+                                        sizeof(transactionContext.buffer[3]),
+                                        &ops->operation.destination);
+            number_to_string_indirect64(transactionContext.buffer[4],
+                                        sizeof(transactionContext.buffer[4]),
+                                        &ops->total_storage_limit);
 
             transactionContext.tagValuePair[0].item = "Fee";
             transactionContext.tagValuePair[0].value = transactionContext.buffer[0];
@@ -349,21 +408,35 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
 
             transactionContext.infoLongPress.text = type_msg;
 
-            nbgl_useCaseReviewStart(&C_tezos, type_msg, NULL, "Cancel", continue_light_callback, cancel_callback);
+            nbgl_useCaseReviewStart(&C_tezos,
+                                    type_msg,
+                                    NULL,
+                                    "Cancel",
+                                    continue_light_callback,
+                                    cancel_callback);
             break;
         }
 
         case OPERATION_TAG_ATHENS_TRANSACTION:
         case OPERATION_TAG_BABYLON_TRANSACTION: {
-
             transactionContext.ok_cb = ok;
             transactionContext.cxl_cb = cxl;
 
-            microtez_to_string_indirect(transactionContext.buffer[0], sizeof(transactionContext.buffer[0]), &ops->operation.amount);
-            microtez_to_string_indirect(transactionContext.buffer[1], sizeof(transactionContext.buffer[1]), &ops->total_fee);
-            parsed_contract_to_string(transactionContext.buffer[2], sizeof(transactionContext.buffer[2]), &ops->operation.source);
-            parsed_contract_to_string(transactionContext.buffer[3], sizeof(transactionContext.buffer[3]), &ops->operation.destination);
-            number_to_string_indirect64(transactionContext.buffer[4], sizeof(transactionContext.buffer[4]), &ops->total_storage_limit);
+            microtez_to_string_indirect(transactionContext.buffer[0],
+                                        sizeof(transactionContext.buffer[0]),
+                                        &ops->operation.amount);
+            microtez_to_string_indirect(transactionContext.buffer[1],
+                                        sizeof(transactionContext.buffer[1]),
+                                        &ops->total_fee);
+            parsed_contract_to_string(transactionContext.buffer[2],
+                                      sizeof(transactionContext.buffer[2]),
+                                      &ops->operation.source);
+            parsed_contract_to_string(transactionContext.buffer[3],
+                                      sizeof(transactionContext.buffer[3]),
+                                      &ops->operation.destination);
+            number_to_string_indirect64(transactionContext.buffer[4],
+                                        sizeof(transactionContext.buffer[4]),
+                                        &ops->total_storage_limit);
 
             transactionContext.tagValuePair[0].item = "Amount";
             transactionContext.tagValuePair[0].value = transactionContext.buffer[0];
@@ -388,18 +461,27 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.confirmed_status = "TRANSACTION\nSIGNED";
             transactionContext.cancelled_status = "Transaction\nrejected";
 
-            nbgl_useCaseReviewStart(&C_tezos, "Review Transaction", NULL, "Cancel", continue_callback, prompt_cancel);
+            nbgl_useCaseReviewStart(&C_tezos,
+                                    "Review Transaction",
+                                    NULL,
+                                    "Cancel",
+                                    continue_callback,
+                                    prompt_cancel);
             break;
         }
         case OPERATION_TAG_NONE: {
-
             transactionContext.ok_cb = ok;
             transactionContext.cxl_cb = cxl;
 
-            parsed_contract_to_string(transactionContext.buffer[0], sizeof(transactionContext.buffer[0]), &ops->operation.source);
-            microtez_to_string_indirect(transactionContext.buffer[1], sizeof(transactionContext.buffer[1]), &ops->total_fee);
-            number_to_string_indirect64(transactionContext.buffer[2], sizeof(transactionContext.buffer[2]), &ops->total_storage_limit);
-
+            parsed_contract_to_string(transactionContext.buffer[0],
+                                      sizeof(transactionContext.buffer[0]),
+                                      &ops->operation.source);
+            microtez_to_string_indirect(transactionContext.buffer[1],
+                                        sizeof(transactionContext.buffer[1]),
+                                        &ops->total_fee);
+            number_to_string_indirect64(transactionContext.buffer[2],
+                                        sizeof(transactionContext.buffer[2]),
+                                        &ops->total_storage_limit);
 
             transactionContext.tagValuePair[0].item = "Key";
             transactionContext.tagValuePair[0].value = transactionContext.buffer[0];
@@ -418,14 +500,19 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.confirmed_status = "KEY REVELATION\nCONFIRMED";
             transactionContext.cancelled_status = "Key revelation\nrejected";
 
-            nbgl_useCaseReviewStart(&C_tezos, "Reveal key to\nBlockchain", NULL, "Cancel", continue_light_callback, cancel_callback);
+            nbgl_useCaseReviewStart(&C_tezos,
+                                    "Reveal key to\nBlockchain",
+                                    NULL,
+                                    "Cancel",
+                                    continue_light_callback,
+                                    cancel_callback);
             break;
         }
     }
     return 0;
 }
 
-size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile uint32_t* flags) {
+size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile uint32_t *flags) {
     char *ops;
     if (magic_byte == MAGIC_BYTE_UNSAFE_OP3) {
         ops = "Michelson";
@@ -438,7 +525,9 @@ size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile ui
         G.message_data_as_buffer.size = sizeof(G.message_data);
         G.message_data_as_buffer.length = G.message_data_length;
 
-        buffer_to_base58(transactionContext.buffer[0], sizeof(transactionContext.buffer[0]), &G.message_data_as_buffer);
+        buffer_to_base58(transactionContext.buffer[0],
+                         sizeof(transactionContext.buffer[0]),
+                         &G.message_data_as_buffer);
 
         transactionContext.tagValuePair[0].item = "Sign Hash";
         transactionContext.tagValuePair[0].value = transactionContext.buffer[0];
@@ -450,7 +539,12 @@ size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile ui
 
         transactionContext.infoLongPress.text = "Confirm";
 
-        nbgl_useCaseReviewStart(&C_tezos, "Review pre-hashed", ops, "Cancel", continue_light_callback, cancel_callback);
+        nbgl_useCaseReviewStart(&C_tezos,
+                                "Review pre-hashed",
+                                ops,
+                                "Cancel",
+                                continue_light_callback,
+                                cancel_callback);
         *flags = IO_ASYNCH_REPLY;
         return 0;
     } else {
@@ -464,9 +558,9 @@ size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile ui
                 PARSE_ERROR();
             case MAGIC_BYTE_UNSAFE_OP:
                 if (!G.maybe_ops.is_valid || prompt_transaction(&G.maybe_ops.v,
-                                                                 &global.path_with_curve,
-                                                                 ok_c,
-                                                                 sign_reject)) {
+                                                                &global.path_with_curve,
+                                                                ok_c,
+                                                                sign_reject)) {
                     goto unsafe;
                 }
                 *flags = IO_ASYNCH_REPLY;
@@ -494,8 +588,9 @@ size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile ui
             transactionContext.cancelled_status = "Pre-hashed operation\nrejected";
         }
 
-
-        buffer_to_base58(transactionContext.buffer[0], sizeof(transactionContext.buffer[0]), &G.message_data_as_buffer);
+        buffer_to_base58(transactionContext.buffer[0],
+                         sizeof(transactionContext.buffer[0]),
+                         &G.message_data_as_buffer);
 
         transactionContext.tagValuePair[0].item = "Sign Hash";
         transactionContext.tagValuePair[0].value = transactionContext.buffer[0];
@@ -506,7 +601,12 @@ size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile ui
         transactionContext.ok_cb = ok_c;
         transactionContext.cxl_cb = sign_reject;
 
-        nbgl_useCaseReviewStart(&C_tezos, ops, NULL, "Cancel", continue_light_callback, cancel_callback);
+        nbgl_useCaseReviewStart(&C_tezos,
+                                ops,
+                                NULL,
+                                "Cancel",
+                                continue_light_callback,
+                                cancel_callback);
 
         *flags = IO_ASYNCH_REPLY;
         return 0;
@@ -514,4 +614,4 @@ size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile ui
 }
 
 #endif  // ifdef BAKING_APP ----------------------------------------------------
-#endif // HAVE_NBGL
+#endif  // HAVE_NBGL

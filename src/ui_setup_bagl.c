@@ -14,8 +14,7 @@
 
 #define G global.apdu.u.setup
 
-__attribute__((noreturn)) void prompt_setup(ui_callback_t const ok_cb,
-                                            ui_callback_t const cxl_cb) {
+__attribute__((noreturn)) void prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     init_screen_stack();
     push_ui_callback("Setup", copy_string, "Baking?");
     push_ui_callback("Address", bip32_path_with_curve_to_pkh_string, &global.path_with_curve);
@@ -28,4 +27,4 @@ __attribute__((noreturn)) void prompt_setup(ui_callback_t const ok_cb,
 }
 
 #endif  // #ifdef BAKING_APP
-#endif // HAVE_BAGL
+#endif  // HAVE_BAGL

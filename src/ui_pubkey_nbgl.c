@@ -38,8 +38,7 @@ static void approve_callback(void) {
 static void confirmation_callback(bool confirm) {
     if (confirm) {
         approve_callback();
-    }
-    else {
+    } else {
         cancel_callback();
     }
 }
@@ -75,4 +74,4 @@ void prompt_address(
 #endif
     nbgl_useCaseReviewStart(&C_tezos, text, NULL, "Cancel", verify_address, cancel_callback);
 }
-#endif // HAVE_NBGL
+#endif  // HAVE_NBGL

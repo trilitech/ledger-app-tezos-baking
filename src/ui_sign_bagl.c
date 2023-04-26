@@ -59,7 +59,6 @@ static bool sign_reject(void) {
     return true;  // Return to idle
 }
 
-
 static bool sign_unsafe_ok(void) {
     delayed_send(perform_signature(false, false));
     return true;
@@ -229,7 +228,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
     }
 }
 
-size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile uint32_t* flags) {
+size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile uint32_t *flags) {
     (void) flags;
     char *ops;
     if (magic_byte == MAGIC_BYTE_UNSAFE_OP3) {
@@ -283,4 +282,4 @@ size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile ui
 }
 
 #endif  // ifdef BAKING_APP ----------------------------------------------------
-#endif // HAVE_BAGL
+#endif  // HAVE_BAGL

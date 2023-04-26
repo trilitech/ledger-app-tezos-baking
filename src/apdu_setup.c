@@ -46,7 +46,7 @@ static bool ok(void) {
     return true;
 }
 
-size_t handle_apdu_setup(__attribute__((unused)) uint8_t instruction, volatile uint32_t* flags) {
+size_t handle_apdu_setup(__attribute__((unused)) uint8_t instruction, volatile uint32_t *flags) {
     if (G_io_apdu_buffer[OFFSET_P1] != 0) THROW(EXC_WRONG_PARAM);
 
     uint32_t const buff_size = G_io_apdu_buffer[OFFSET_LC];

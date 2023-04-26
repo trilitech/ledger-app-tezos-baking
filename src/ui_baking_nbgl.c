@@ -29,8 +29,7 @@ static void confirmation_callback(bool confirm) {
     if (confirm) {
         reset_ok();
         nbgl_useCaseStatus("RESET\nCONFIRMED", true, ui_initial_screen);
-    }
-    else {
+    } else {
         delay_reject();
         nbgl_useCaseStatus("Reset cancelled", false, ui_initial_screen);
     }
@@ -48,7 +47,10 @@ static void continue_light_callback(void) {
     transactionContext.infoLongPress.tuneId = TUNE_TAP_CASUAL;
     transactionContext.infoLongPress.text = "Confirm HWM reset";
 
-    nbgl_useCaseStaticReviewLight(&transactionContext.tagValueList, &transactionContext.infoLongPress, "Cancel", confirmation_callback);
+    nbgl_useCaseStaticReviewLight(&transactionContext.tagValueList,
+                                  &transactionContext.infoLongPress,
+                                  "Cancel",
+                                  confirmation_callback);
 }
 
 void ui_baking_reset(volatile uint32_t* flags) {
@@ -61,9 +63,14 @@ void ui_baking_reset(volatile uint32_t* flags) {
 
     transactionContext.tagValueList.nbPairs = 1;
 
-    nbgl_useCaseReviewStart(&C_tezos, "Reset HWM", NULL, "Cancel", continue_light_callback, cancel_callback);
+    nbgl_useCaseReviewStart(&C_tezos,
+                            "Reset HWM",
+                            NULL,
+                            "Cancel",
+                            continue_light_callback,
+                            cancel_callback);
     *flags = IO_ASYNCH_REPLY;
 }
 
 #endif  // #ifdef BAKING_APP
-#endif // HAVE_NBGL
+#endif  // HAVE_NBGL

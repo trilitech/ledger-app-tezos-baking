@@ -20,7 +20,6 @@
 static const char* const infoTypes[] = {"Version", "Developer", "Copyright"};
 static const char* const infoContents[] = {VERSION, "Ledger", "(c) 2023 Ledger"};
 
-
 void ui_initial_screen(void) {
     ux_idle_screen(NULL, NULL);
 }
@@ -66,7 +65,13 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
 }
 
 void ui_menu_about_baking(void) {
-    nbgl_useCaseSettings("Tezos baking", 0, 2, false, ui_initial_screen, navigation_cb_baking, NULL);
+    nbgl_useCaseSettings("Tezos baking",
+                         0,
+                         2,
+                         false,
+                         ui_initial_screen,
+                         navigation_cb_baking,
+                         NULL);
 }
 
 #else
@@ -84,7 +89,13 @@ static bool navigation_cb_wallet(uint8_t page, nbgl_pageContent_t* content) {
 }
 
 void ui_menu_about_wallet(void) {
-    nbgl_useCaseSettings("Tezos wallet", 0, 1, false, ui_initial_screen, navigation_cb_wallet, NULL);
+    nbgl_useCaseSettings("Tezos wallet",
+                         0,
+                         1,
+                         false,
+                         ui_initial_screen,
+                         navigation_cb_wallet,
+                         NULL);
 }
 
 #endif
@@ -100,4 +111,4 @@ void ux_idle_screen(ui_callback_t ok_c, ui_callback_t cxl_c) {
 #endif
 }
 
-#endif // HAVE_NBGL
+#endif  // HAVE_NBGL

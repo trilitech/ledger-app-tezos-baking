@@ -7,7 +7,7 @@
 
 #include <string.h>
 
-#define NO_CONTRACT_STRING      "None"
+#define NO_CONTRACT_STRING "None"
 
 #ifdef HAVE_BAGL
 #define NO_CONTRACT_NAME_STRING "Custom Delegate: please verify the address"
@@ -206,7 +206,7 @@ void chain_id_to_string(char *const buff, size_t const buff_size, chain_id_t con
 #define STRCPY_OR_THROW(buff, size, x, exc) \
     ({                                      \
         if (size < sizeof(x)) THROW(exc);   \
-        strlcpy(buff, x, size);     \
+        strlcpy(buff, x, size);             \
     })
 
 void chain_id_to_string_with_aliases(char *const out,
