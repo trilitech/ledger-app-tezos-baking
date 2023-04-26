@@ -22,6 +22,23 @@
 
 #define B2B_BLOCKBYTES 128
 
+#ifdef BAKING_APP  // ----------------------------------------------------------
+
+__attribute__((noreturn)) void prompt_register_delegate(ui_callback_t const ok_cb,
+                                                        ui_callback_t const cxl_cb) {
+    if (!G.maybe_ops.is_valid) THROW(EXC_MEMORY_ERROR);
+
+    init_screen_stack();
+    push_ui_callback("Register", copy_string, "as delegate?");
+    push_ui_callback("Address", bip32_path_with_curve_to_pkh_string, &global.path_with_curve);
+    push_ui_callback("Fee", microtez_to_string_indirect, &G.maybe_ops.v.total_fee);
+
+    ux_confirm_screen(ok_cb, cxl_cb);
+    __builtin_unreachable();
+}
+
+#else  // ifdef BAKING_APP -----------------------------------------------------
+
 static inline void clear_data(void) {
     memset(&G, 0, sizeof(G));
 }
@@ -42,21 +59,6 @@ static bool sign_reject(void) {
     return true;  // Return to idle
 }
 
-#ifdef BAKING_APP  // ----------------------------------------------------------
-
-__attribute__((noreturn)) void prompt_register_delegate(ui_callback_t const ok_cb,
-                                                        ui_callback_t const cxl_cb) {
-    if (!G.maybe_ops.is_valid) THROW(EXC_MEMORY_ERROR);
-
-    init_screen_stack();
-    push_ui_callback("Register", copy_string, "as delegate?");
-    push_ui_callback("Address", bip32_path_with_curve_to_pkh_string, &global.path_with_curve);
-    push_ui_callback("Fee", microtez_to_string_indirect, &G.maybe_ops.v.total_fee);
-
-    ux_confirm_screen(ok_cb, cxl_cb);
-}
-
-#else  // ifdef BAKING_APP -----------------------------------------------------
 
 static bool sign_unsafe_ok(void) {
     delayed_send(perform_signature(false, false));

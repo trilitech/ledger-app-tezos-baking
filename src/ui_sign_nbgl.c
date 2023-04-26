@@ -40,21 +40,6 @@ typedef struct {
 
 static TransactionContext_t transactionContext;
 
-static bool sign_without_hash_ok(void) {
-    delayed_send(perform_signature(true, false));
-    return true;
-}
-
-static bool sign_with_hash_ok(void) {
-    delayed_send(perform_signature(true, true));
-    return true;
-}
-
-static bool sign_reject(void) {
-    delay_reject();
-    return true;  // Return to idle
-}
-
 static void cancel_callback(void) {
     nbgl_useCaseStatus(transactionContext.cancelled_status, false, ui_initial_screen);
     transactionContext.cxl_cb();
@@ -72,32 +57,6 @@ static void confirmation_callback(bool confirm) {
     else {
         cancel_callback();
     }
-}
-
-static void prompt_confirmation_callback(bool confirm) {
-    if (confirm) {
-        approve_callback();
-    }
-    else {
-        prompt_cancel();
-    }
-}
-static void prompt_cancel(void) {
-    nbgl_useCaseConfirm("Reject transaction?",
-                        "",
-                        "Yes, Reject",
-                        "Go back to transaction",
-                        cancel_callback);
-}
-
-static void continue_callback(void) {
-    transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
-
-    transactionContext.infoLongPress.icon = &C_tezos;
-    transactionContext.infoLongPress.longPressText = "Hold to sign";
-    transactionContext.infoLongPress.tuneId = TUNE_TAP_CASUAL;
-
-    nbgl_useCaseStaticReview(&transactionContext.tagValueList, &transactionContext.infoLongPress, "Cancel", prompt_confirmation_callback);
 }
 
 static void continue_light_callback(void) {
@@ -140,6 +99,47 @@ void prompt_register_delegate(ui_callback_t const ok_cb,
 }
 
 #else  // ifdef BAKING_APP -----------------------------------------------------
+static void prompt_cancel(void) {
+    nbgl_useCaseConfirm("Reject transaction?",
+                        NULL,
+                        "Yes, Reject",
+                        "Go back to transaction",
+                        cancel_callback);
+}
+
+static void prompt_confirmation_callback(bool confirm) {
+    if (confirm) {
+        approve_callback();
+    } else {
+        prompt_cancel();
+    }
+}
+
+static void continue_callback(void) {
+    transactionContext.infoLongPress.icon = &C_tezos;
+    transactionContext.infoLongPress.longPressText = "Hold to sign";
+    transactionContext.infoLongPress.tuneId = TUNE_TAP_CASUAL;
+
+    nbgl_useCaseStaticReview(&transactionContext.tagValueList,
+                             &transactionContext.infoLongPress,
+                             "Cancel",
+                             prompt_confirmation_callback);
+}
+
+static bool sign_without_hash_ok(void) {
+    delayed_send(perform_signature(true, false));
+    return true;
+}
+
+static bool sign_with_hash_ok(void) {
+    delayed_send(perform_signature(true, true));
+    return true;
+}
+
+static bool sign_reject(void) {
+    delay_reject();
+    return true;  // Return to idle
+}
 
 static bool sign_unsafe_ok(void) {
     delayed_send(perform_signature(false, false));

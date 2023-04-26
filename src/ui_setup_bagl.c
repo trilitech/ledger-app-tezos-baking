@@ -24,6 +24,7 @@ __attribute__((noreturn)) void prompt_setup(ui_callback_t const ok_cb,
     push_ui_callback("Test Chain HWM", number_to_string_indirect32, &G.hwm.test);
 
     ux_confirm_screen(ok_cb, cxl_cb);
+    __builtin_unreachable();
 }
 
 #endif  // #ifdef BAKING_APP
