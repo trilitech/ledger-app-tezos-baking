@@ -23,18 +23,14 @@
 
 #define PARSE_ERROR() THROW(EXC_PARSE_ERROR)
 
-
-static void continue_callback(void);
-static void prompt_cancel(void);
-
 typedef struct {
     ui_callback_t ok_cb;
     ui_callback_t cxl_cb;
     nbgl_layoutTagValue_t tagValuePair[6];
     nbgl_layoutTagValueList_t tagValueList;
     nbgl_pageInfoLongPress_t infoLongPress;
-    char* confirmed_status;
-    char* cancelled_status;
+    const char* confirmed_status;
+    const char* cancelled_status;
     char buffer[6][MAX_LENGTH];
 } TransactionContext_t;
 
@@ -60,8 +56,6 @@ static void confirmation_callback(bool confirm) {
 }
 
 static void continue_light_callback(void) {
-    transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
-
     transactionContext.infoLongPress.icon = &C_tezos;
     transactionContext.infoLongPress.longPressText = "Approve";
     transactionContext.infoLongPress.tuneId = TUNE_TAP_CASUAL;
@@ -89,6 +83,7 @@ void prompt_register_delegate(ui_callback_t const ok_cb,
     transactionContext.tagValuePair[1].value = transactionContext.buffer[1];
 
     transactionContext.tagValueList.nbPairs = 2;
+    transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
 
     transactionContext.infoLongPress.text = "Confirm delegate\nregistration";
 
@@ -191,6 +186,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.tagValuePair[2].value = transactionContext.buffer[2];
 
             transactionContext.tagValueList.nbPairs = 3;
+            transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
 
             transactionContext.infoLongPress.text = "Confirm proposal";
 
@@ -236,6 +232,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.tagValuePair[3].value = transactionContext.buffer[2];
 
             transactionContext.tagValueList.nbPairs = 4;
+            transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
 
             transactionContext.infoLongPress.text = "Confirm vote";
 
@@ -295,6 +292,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.tagValuePair[5].value = transactionContext.buffer[5];
 
             transactionContext.tagValueList.nbPairs = 6;
+            transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
 
             transactionContext.infoLongPress.text = "Confirm origination";
 
@@ -347,6 +345,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.tagValuePair[4].item = "Storage limit";
             transactionContext.tagValuePair[4].value = transactionContext.buffer[4];
             transactionContext.tagValueList.nbPairs = 5;
+            transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
 
             transactionContext.infoLongPress.text = type_msg;
 
@@ -382,6 +381,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.tagValuePair[4].value = transactionContext.buffer[4];
 
             transactionContext.tagValueList.nbPairs = 5;
+            transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
 
             transactionContext.infoLongPress.text = "Sign transaction to\nsend Tezos?";
 
@@ -411,6 +411,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.tagValuePair[2].value = transactionContext.buffer[2];
 
             transactionContext.tagValueList.nbPairs = 3;
+            transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
 
             transactionContext.infoLongPress.text = "Confirm key revelation";
 
@@ -442,6 +443,7 @@ size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile ui
         transactionContext.tagValuePair[0].item = "Sign Hash";
         transactionContext.tagValuePair[0].value = transactionContext.buffer[0];
         transactionContext.tagValueList.nbPairs = 1;
+        transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
 
         transactionContext.ok_cb = sign_unsafe_ok;
         transactionContext.cxl_cb = sign_reject;
@@ -499,6 +501,7 @@ size_t wallet_sign_complete(uint8_t instruction, uint8_t magic_byte, volatile ui
         transactionContext.tagValuePair[0].value = transactionContext.buffer[0];
 
         transactionContext.tagValueList.nbPairs = 1;
+        transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
 
         transactionContext.ok_cb = ok_c;
         transactionContext.cxl_cb = sign_reject;

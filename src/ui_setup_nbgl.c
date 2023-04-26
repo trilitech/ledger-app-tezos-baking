@@ -44,8 +44,6 @@ static void cancel_callback(void) {
 }
 
 static void continue_light_callback(void) {
-    transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
-
     transactionContext.infoLongPress.icon = &C_tezos;
     transactionContext.infoLongPress.longPressText = "Approve";
     transactionContext.infoLongPress.tuneId = TUNE_TAP_CASUAL;
@@ -79,10 +77,17 @@ void prompt_setup(ui_callback_t const ok_cb,
     transactionContext.tagValuePair[3].value = transactionContext.buffer[3];
 
     transactionContext.tagValueList.nbPairs = 4;
+    transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
+
 
     transactionContext.infoLongPress.text = "Confirm baking setup";
 
-    nbgl_useCaseReviewStart(&C_tezos, "Setup baking", "", "Cancel", continue_light_callback, cancel_callback);
+    nbgl_useCaseReviewStart(&C_tezos,
+                            "Setup baking",
+                            NULL,
+                            "Cancel",
+                            continue_light_callback,
+                            cancel_callback);
 }
 
 #endif  // #ifdef BAKING_APP

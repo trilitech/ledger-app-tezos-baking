@@ -13,6 +13,15 @@
 
 #define G global.apdu.u.setup
 
+struct setup_wire {
+    uint32_t main_chain_id;
+    struct {
+        uint32_t main;
+        uint32_t test;
+    } hwm;
+    struct bip32_path_wire bip32_path;
+} __attribute__((packed));
+
 static bool ok(void) {
     UPDATE_NVRAM(ram, {
         copy_bip32_path_with_curve(&ram->baking_key, &global.path_with_curve);

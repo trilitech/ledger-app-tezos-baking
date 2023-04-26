@@ -21,7 +21,6 @@ typedef struct {
     char buffer[sizeof(cx_ecfp_public_key_t)];
     ui_callback_t ok_cb;
     ui_callback_t cxl_cb;
-    nbgl_pageInfoLongPress_t infoLongPress;
 } TransactionContext_t;
 
 static TransactionContext_t transactionContext;
@@ -60,13 +59,11 @@ void prompt_address(
     transactionContext.ok_cb = ok_cb;
     transactionContext.cxl_cb = cxl_cb;
 
-    transactionContext.infoLongPress.icon = &C_tezos;
-    transactionContext.infoLongPress.longPressText = "Approve";
-    transactionContext.infoLongPress.tuneId = TUNE_TAP_CASUAL;
+    bip32_path_with_curve_to_pkh_string(transactionContext.buffer,
+                                        sizeof(transactionContext.buffer),
+                                        &global.path_with_curve);
 
-    bip32_path_with_curve_to_pkh_string(transactionContext.buffer, sizeof(transactionContext.buffer), &global.path_with_curve);
-    
-    char* text;
+    const char* text;
 #ifdef BAKING_APP
     if (baking) {
         text = "Authorize Tezos\nBaking address";
@@ -76,6 +73,6 @@ void prompt_address(
 #ifdef BAKING_APP
     }
 #endif
-    nbgl_useCaseReviewStart(&C_tezos, text, "", "Cancel", verify_address, cancel_callback);
+    nbgl_useCaseReviewStart(&C_tezos, text, NULL, "Cancel", verify_address, cancel_callback);
 }
 #endif // HAVE_NBGL
