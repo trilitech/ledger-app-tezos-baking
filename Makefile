@@ -25,7 +25,7 @@ GIT_DESCRIBE ?= $(shell git describe --tags --abbrev=8 --always --long --dirty 2
 VERSION_TAG ?= $(shell echo "$(GIT_DESCRIBE)" | cut -f1 -d-)
 APPVERSION_M=2
 APPVERSION_N=3
-APPVERSION_P=2
+APPVERSION_P=3
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # Only warn about version tags if specified/inferred
@@ -46,6 +46,8 @@ endif
 
 ifeq ($(TARGET_NAME),TARGET_NANOS)
 ICONNAME=icons/nano-s-tezos.gif
+else ifeq ($(TARGET_NAME),TARGET_STAX)
+ICONNAME=icons/stax_tezos.gif
 else
 ICONNAME=icons/nano-x-tezos.gif
 endif
@@ -66,14 +68,14 @@ show-app:
 ############
 
 DEFINES   += OS_IO_SEPROXYHAL
-DEFINES   += HAVE_BAGL HAVE_SPRINTF HAVE_UX_FLOW
+DEFINES   += HAVE_SPRINTF
 DEFINES   += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=6 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
 DEFINES   += HAVE_LEGACY_PID
 DEFINES   += VERSION=\"$(APPVERSION)\" APPVERSION_M=$(APPVERSION_M)
 DEFINES   += COMMIT=\"$(COMMIT)\" APPVERSION_N=$(APPVERSION_N) APPVERSION_P=$(APPVERSION_P)
 # DEFINES   += _Static_assert\(...\)=
 
-ifeq ($(TARGET_NAME),TARGET_NANOX)
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX))
 DEFINES   += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
 DEFINES   += HAVE_BLE_APDU # basic ledger apdu transport over BLE
 
@@ -84,13 +86,23 @@ ifeq ($(TARGET_NAME),TARGET_NANOS)
 DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=128
 else
 DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=300
-DEFINES   += HAVE_GLO096
-DEFINES   += HAVE_BAGL BAGL_WIDTH=128 BAGL_HEIGHT=64
-DEFINES   += HAVE_BAGL_ELLIPSIS # long label truncation feature
-DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
-DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
-DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
 endif
+
+ifeq ($(TARGET_NAME),TARGET_STAX)
+    DEFINES += NBGL_QRCODE
+else
+    DEFINES += HAVE_BAGL HAVE_UX_FLOW
+    ifneq ($(TARGET_NAME),TARGET_NANOS)
+        DEFINES   += HAVE_GLO096
+        DEFINES   += BAGL_WIDTH=128 BAGL_HEIGHT=64
+        DEFINES   += HAVE_BAGL_ELLIPSIS # long label truncation feature
+        DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
+        DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
+        DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
+    endif
+endif
+
+DEFINES   += UNUSED\(x\)=\(void\)x
 
 # Enabling debug PRINTF
 DEBUG ?= 0
@@ -130,9 +142,9 @@ endif
 CC       := $(CLANGPATH)clang
 
 ifeq ($(APP),tezos_wallet)
-CFLAGS   += -O3 -Os -Wall -Wextra
+CFLAGS   += -O3 -Os -Wall -Wextra -Wno-incompatible-pointer-types-discards-qualifiers
 else ifeq ($(APP),tezos_baking)
-CFLAGS   += -DBAKING_APP -O3 -Os -Wall -Wextra
+CFLAGS   += -DBAKING_APP -O3 -Os -Wall -Wextra -Wno-incompatible-pointer-types-discards-qualifiers
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
 $(error Unsupported APP - use tezos_wallet, tezos_baking)
@@ -150,7 +162,11 @@ include $(BOLOS_SDK)/Makefile.glyphs
 
 ### computed variables
 APP_SOURCE_PATH  += src
-SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_ux
+SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl
+
+ifneq ($(TARGET_NAME),TARGET_STAX)
+SDK_SOURCE_PATH += lib_ux
+endif
 
 ### U2F support (wallet app only)
 ifeq ($(APP), tezos_wallet)

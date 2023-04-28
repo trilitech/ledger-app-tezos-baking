@@ -7,8 +7,15 @@
 
 #include <string.h>
 
-#define NO_CONTRACT_STRING      "None"
+#define NO_CONTRACT_STRING "None"
+
+#ifdef HAVE_BAGL
 #define NO_CONTRACT_NAME_STRING "Custom Delegate: please verify the address"
+#endif
+
+#ifdef HAVE_NBGL
+#define NO_CONTRACT_NAME_STRING "Custom Delegate:\nplease verify the address"
+#endif
 
 #define TEZOS_HASH_CHECKSUM_SIZE 4
 
@@ -30,7 +37,7 @@ void parsed_contract_to_string(char *const buff,
         memcpy(buff, contract->hash_ptr, HASH_SIZE_B58);
     } else if (contract->originated == 0 && contract->signature_type == SIGNATURE_TYPE_UNSET) {
         if (buff_size < sizeof(NO_CONTRACT_STRING)) THROW(EXC_WRONG_LENGTH);
-        strcpy(buff, NO_CONTRACT_STRING);
+        strlcpy(buff, NO_CONTRACT_STRING, buff_size);
     } else {
         signature_type_t const signature_type =
             contract->originated != 0 ? SIGNATURE_TYPE_UNSET : contract->signature_type;
@@ -46,15 +53,15 @@ void lookup_parsed_contract_name(char *const buff,
     for (uint16_t i = 0; i < sizeof(named_delegates) / sizeof(named_delegate_t); i++) {
         if (memcmp(named_delegates[i].bakerAccount, buff, HASH_SIZE_B58) == 0) {
             // Found a matching baker, display it.
-            const char *name = (const char *) pic((unsigned int) named_delegates[i].bakerName);
+            const char *name = (const char *) pic(named_delegates[i].bakerName);
             if (buff_size <= strlen(name)) THROW(EXC_WRONG_LENGTH);
-            strcpy(buff, name);
+            strlcpy(buff, name, buff_size);
             return;
         }
     }
 
     if (buff_size <= strlen(NO_CONTRACT_NAME_STRING)) THROW(EXC_WRONG_LENGTH);
-    strcpy(buff, NO_CONTRACT_NAME_STRING);
+    strlcpy(buff, NO_CONTRACT_NAME_STRING, buff_size);
 }
 
 void pubkey_to_pkh_string(char *const out,
@@ -199,7 +206,7 @@ void chain_id_to_string(char *const buff, size_t const buff_size, chain_id_t con
 #define STRCPY_OR_THROW(buff, size, x, exc) \
     ({                                      \
         if (size < sizeof(x)) THROW(exc);   \
-        strcpy(buff, x);                    \
+        strlcpy(buff, x, size);             \
     })
 
 void chain_id_to_string_with_aliases(char *const out,
@@ -331,7 +338,7 @@ void copy_string(char *const dest, size_t const buff_size, char const *const src
     char const *const src_in = (char const *) PIC(src);
     // I don't care that we will loop through the string twice, latency is not an issue
     if (strlen(src_in) >= buff_size) THROW(EXC_WRONG_LENGTH);
-    strcpy(dest, src_in);
+    strlcpy(dest, src_in, buff_size);
 }
 
 void bin_to_hex(char *const out,

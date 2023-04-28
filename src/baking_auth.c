@@ -192,11 +192,11 @@ bool parse_consensus_operation(parsed_baking_data_t *const out,
         case 20:  // tenderbake preendorsement
         case 21:  // tenderbake endorsement
             if (length < sizeof(struct tenderbake_consensus_op_wire)) return false;
-            struct tenderbake_consensus_op_wire const *const op = data;
+            struct tenderbake_consensus_op_wire const *const tb_op = data;
             out->is_tenderbake = true;
-            out->level = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &op->level);
-            out->round = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &op->round);
-            if (op->tag == 20) {
+            out->level = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &tb_op->level);
+            out->round = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &tb_op->round);
+            if (tb_op->tag == 20) {
                 out->type = BAKING_TYPE_TENDERBAKE_PREENDORSEMENT;
             } else {
                 out->type = BAKING_TYPE_TENDERBAKE_ENDORSEMENT;

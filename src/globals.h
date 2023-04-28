@@ -10,6 +10,9 @@
 // Notably this does *not* include UI state.
 void clear_apdu_globals(void);
 
+void copy_chain(char *out, size_t out_size, void *data);
+void copy_key(char *out, size_t out_size, void *data);
+void copy_hwm(char *out, size_t out_size, void *data);
 // Zeros out all application-specific globals and SDK-specific UI/exchange buffers.
 void init_globals(void);
 
@@ -142,7 +145,6 @@ extern unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 extern nvram_data const N_data_real;
 #define N_data (*(volatile nvram_data *) PIC(&N_data_real))
 
-void calculate_baking_idle_screens_data(void);
 void update_baking_idle_screens(void);
 high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
                                                nvram_data volatile *const ram);

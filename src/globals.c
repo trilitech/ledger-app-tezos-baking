@@ -87,17 +87,4 @@ void copy_hwm(char *out, size_t out_size, void *data) {
     }
 }
 
-void calculate_baking_idle_screens_data(void) {
-    push_ui_callback("Tezos Baking", copy_string, VERSION);
-    push_ui_callback("Chain", copy_chain, &N_data.main_chain_id);
-    push_ui_callback("Public Key Hash", copy_key, &N_data.baking_key);
-    push_ui_callback("High Watermark", copy_hwm, &N_data.hwm.main);
-}
-
-void update_baking_idle_screens(void) {
-    init_screen_stack();
-    calculate_baking_idle_screens_data();
-    ui_refresh();
-}
-
 #endif  // #ifdef BAKING_APP

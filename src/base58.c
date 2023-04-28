@@ -13,6 +13,8 @@
 
 #include "base58.h"
 
+#define MAX_ENC_INPUT_SIZE 120
+
 static const char b58digits_ordered[] =
     "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
@@ -21,12 +23,15 @@ bool b58enc(/* out */ char *b58, /* in/out */ size_t *b58sz, const void *data, s
     int carry;
     size_t i, j, high, zcount = 0;
     size_t size;
+    uint8_t buf[MAX_ENC_INPUT_SIZE * 138 / 100 + 1] = {0};
 
     while (zcount < binsz && !bin[zcount]) ++zcount;
 
     size = (binsz - zcount) * 138 / 100 + 1;
-    uint8_t buf[size];
-    memset(buf, 0, size);
+
+    if (size > MAX_ENC_INPUT_SIZE) {
+        return false;
+    }
 
     for (i = zcount, high = size - 1; i < binsz; ++i, high = j) {
         for (carry = bin[i], j = size - 1; ((int) j >= 0) && ((j > high) || carry); --j) {

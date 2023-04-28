@@ -38,9 +38,9 @@ size_t read_bip32_path(bip32_path_t *const out, uint8_t const *const in, size_t 
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     if (out->length == 0 || out->length > NUM_ELEMENTS(out->components)) THROW(EXC_WRONG_VALUES);
 
-    for (size_t i = 0; i < out->length; i++) {
-        out->components[i] =
-            CONSUME_UNALIGNED_BIG_ENDIAN(ix, uint32_t, &buf_as_bip32->components[i]);
+    for (size_t j = 0; j < out->length; j++) {
+        out->components[j] =
+            CONSUME_UNALIGNED_BIG_ENDIAN(ix, uint32_t, &buf_as_bip32->components[j]);
     }
 
     return ix;
@@ -95,6 +95,7 @@ int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
 int crypto_init_public_key(derivation_type_t const derivation_type,
                            cx_ecfp_private_key_t *private_key,
                            cx_ecfp_public_key_t *public_key) {
+    int error = 0;
     cx_curve_t const cx_curve =
         signature_type_to_cx_curve(derivation_type_to_signature_type(derivation_type));
 
@@ -103,11 +104,12 @@ int crypto_init_public_key(derivation_type_t const derivation_type,
 
     // If we're using the old curve, make sure to adjust accordingly.
     if (cx_curve == CX_CURVE_Ed25519) {
-        cx_edward_compress_point(CX_CURVE_Ed25519, public_key->W, public_key->W_len);
+        error =
+            cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, public_key->W, public_key->W_len);
         public_key->W_len = 33;
     }
 
-    return 0;
+    return error;
 }
 
 // The caller should not forget to bzero out the `key_pair` as it contains sensitive information.

@@ -1,6 +1,7 @@
 #include "os_io_seproxyhal.h"
 #include "swap_lib_calls.h"
 #include "ux.h"
+#include "globals.h"
 
 bool copy_transaction_parameters(const create_transaction_parameters_t* params) {
     // first copy parameters to stack, and then to global data.
@@ -33,13 +34,11 @@ void handle_swap_sign_transaction(void) {
     USB_power(0);
     USB_power(1);
     PRINTF("USB power ON/OFF\n");
-#ifdef TARGET_NANOX
+#ifdef HAVE_BLE
     // grab the current plane mode setting
     G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
-#endif  // TARGET_NANOX
-#ifdef HAVE_BLE
     BLE_power(0, NULL);
-    BLE_power(1, "Nano X");
+    BLE_power(1, NULL);
 #endif  // HAVE_BLE
     app_main();
 }

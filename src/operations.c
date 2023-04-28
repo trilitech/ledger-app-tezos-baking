@@ -184,8 +184,8 @@ static inline bool michelson_read_length(uint8_t current_byte,
                       current_byte,
                       state,
                       sizeof(uint32_t));  // Using the line number we were called with.
-    uint32_t res = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &state->body.raw);
-    state->body.i32 = res;
+    uint32_t result = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &state->body.raw);
+    state->body.i32 = result;
     return false;
 }
 
@@ -199,8 +199,8 @@ static inline bool michelson_read_short(uint8_t current_byte,
                                         struct nexttype_subparser_state *state,
                                         uint32_t lineno) {
     CALL_SUBPARSER_LN(parse_next_type, lineno, current_byte, state, sizeof(uint16_t));
-    uint32_t res = READ_UNALIGNED_BIG_ENDIAN(uint16_t, &state->body.raw);
-    state->body.i16 = res;
+    uint32_t result = READ_UNALIGNED_BIG_ENDIAN(uint16_t, &state->body.raw);
+    state->body.i16 = result;
     return false;
 }
 
@@ -251,6 +251,8 @@ static inline bool michelson_read_address(uint8_t byte,
                             memcpy(&(state->signature_type),
                                    &(state->subsub_state.body),
                                    sizeof(state->signature_type));
+
+                            __attribute__((fallthrough));
 
                         case 3:
 
@@ -541,6 +543,7 @@ static inline bool parse_byte(uint8_t byte,
 
             // Deliberate epsilon-transition.
             state->op_step = STEP_OP_TYPE_DISPATCH;
+            __attribute__((fallthrough));
         default:
 
             switch (state->tag) {

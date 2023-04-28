@@ -41,35 +41,7 @@ char const *const *get_baking_prompts() {
 }
 #endif
 
-__attribute__((noreturn)) static void prompt_address(
-#ifndef BAKING_APP
-    __attribute__((unused))
-#endif
-    bool baking,
-    ui_callback_t ok_cb,
-    ui_callback_t cxl_cb) {
-    init_screen_stack();
-
-#ifdef BAKING_APP
-    if (baking) {
-        push_ui_callback("Authorize Baking", copy_string, "With Public Key?");
-        push_ui_callback("Public Key Hash",
-                         bip32_path_with_curve_to_pkh_string,
-                         &global.path_with_curve);
-    } else {
-#endif
-        push_ui_callback("Provide", copy_string, "Public Key");
-        push_ui_callback("Public Key Hash",
-                         bip32_path_with_curve_to_pkh_string,
-                         &global.path_with_curve);
-#ifdef BAKING_APP
-    }
-#endif
-
-    ux_confirm_screen(ok_cb, cxl_cb);
-}
-
-size_t handle_apdu_get_public_key(uint8_t instruction) {
+size_t handle_apdu_get_public_key(uint8_t instruction, volatile uint32_t *flags) {
     uint8_t *dataBuffer = G_io_apdu_buffer + OFFSET_CDATA;
 
     if (G_io_apdu_buffer[OFFSET_P1] != 0) THROW(EXC_WRONG_PARAM);
@@ -116,5 +88,7 @@ size_t handle_apdu_get_public_key(uint8_t instruction) {
         }
 #endif
         prompt_address(bake, cb, delay_reject);
+        *flags = IO_ASYNCH_REPLY;
+        return 0;
     }
 }
