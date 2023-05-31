@@ -19,6 +19,8 @@
 
 #define TEZOS_HASH_CHECKSUM_SIZE 4
 
+#define TICKER_WITH_SPACE " XTZ"
+
 void pkh_to_string(char *const buff,
                    size_t const buff_size,
                    signature_type_t const signature_type,
@@ -266,7 +268,7 @@ void microtez_to_string_indirect(char *const dest,
                                  uint64_t const *const number) {
     check_null(dest);
     check_null(number);
-    if (buff_size < MAX_INT_DIGITS + 1)
+    if (buff_size < MAX_INT_DIGITS + sizeof(TICKER_WITH_SPACE) + 1)
         THROW(EXC_WRONG_LENGTH);  // + terminating null + decimal point
     microtez_to_string(dest, *number);
 }
@@ -278,7 +280,8 @@ int microtez_to_string_indirect_no_throw(char *const dest,
     if (!dest || !number) {
         return (0);
     }
-    if (buff_size < MAX_INT_DIGITS + 1) {  // + terminating null + decimal point
+    if (buff_size <
+        MAX_INT_DIGITS + sizeof(TICKER_WITH_SPACE) + 1) {  // + terminating null + decimal point
         return (0);
     }
     // Can safely call `microtez_to_string` because we know dest is not NULL.
@@ -308,6 +311,10 @@ size_t microtez_to_string(char *const dest, uint64_t number) {
     uint64_t fractional = number % TEZ_SCALE;
     size_t off = number_to_string(dest, whole_tez);
     if (fractional == 0) {
+        // Append the ticker at the end of the amount.
+        memcpy(dest + off, TICKER_WITH_SPACE, sizeof(TICKER_WITH_SPACE));
+        off += sizeof(TICKER_WITH_SPACE);
+
         return off;
     }
     dest[off++] = '.';
@@ -328,7 +335,11 @@ size_t microtez_to_string(char *const dest, uint64_t number) {
     size_t length = end - start;
     memcpy(dest + off, start, length);
     off += length;
-    dest[off] = '\0';
+
+    // Append the ticker at the end of the amount.
+    memcpy(dest + off, TICKER_WITH_SPACE, sizeof(TICKER_WITH_SPACE));
+    off += sizeof(TICKER_WITH_SPACE);
+
     return off;
 }
 
