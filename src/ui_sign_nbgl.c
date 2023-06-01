@@ -359,7 +359,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
 
             char *type_msg;
             if (withdrawal) {
-                transactionContext.confirmed_status = "DELEGATION\nCONFIRMED";
+                transactionContext.confirmed_status = "DELEGATION\nWITHDRAWN";
                 transactionContext.cancelled_status = "Delegation withdrawal\ncancelled";
 
                 type_msg = "Withdraw Delegation";
