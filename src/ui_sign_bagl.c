@@ -186,7 +186,13 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
 
             push_ui_callback("Fee", microtez_to_string_indirect, &ops->total_fee);
             push_ui_callback("Source", parsed_contract_to_string, &ops->operation.source);
-            push_ui_callback("Delegate", parsed_contract_to_string, &ops->operation.destination);
+            if (withdrawal) {
+                push_ui_callback("Delegate",
+                                 parsed_contract_to_string,
+                                 &ops->operation.destination);
+            } else {
+                push_ui_callback("Operation", copy_string, "Withdraw delegation");
+            }
             push_ui_callback("Delegate Name",
                              lookup_parsed_contract_name,
                              &ops->operation.destination);

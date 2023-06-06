@@ -359,7 +359,7 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
 
             char *type_msg;
             if (withdrawal) {
-                transactionContext.confirmed_status = "DELEGATION\nCONFIRMED";
+                transactionContext.confirmed_status = "DELEGATION\nWITHDRAWN";
                 transactionContext.cancelled_status = "Delegation withdrawal\ncancelled";
 
                 type_msg = "Withdraw Delegation";
@@ -395,8 +395,13 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
             transactionContext.tagValuePair[1].item = "Source";
             transactionContext.tagValuePair[1].value = transactionContext.buffer[1];
 
-            transactionContext.tagValuePair[2].item = "Delegate";
-            transactionContext.tagValuePair[2].value = transactionContext.buffer[2];
+            if (withdrawal) {
+                transactionContext.tagValuePair[2].item = "Operation";
+                transactionContext.tagValuePair[2].value = "Withdraw delegation";
+            } else {
+                transactionContext.tagValuePair[2].item = "Delegate";
+                transactionContext.tagValuePair[2].value = transactionContext.buffer[2];
+            }
 
             transactionContext.tagValuePair[3].item = "Delegate Name";
             transactionContext.tagValuePair[3].value = transactionContext.buffer[3];
