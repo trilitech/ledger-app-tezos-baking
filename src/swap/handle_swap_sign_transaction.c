@@ -4,6 +4,10 @@
 #include "globals.h"
 #include "os.h"
 
+#ifdef HAVE_NBGL
+#include "nbgl_use_case.h"
+#endif
+
 bool copy_transaction_parameters(const create_transaction_parameters_t* params) {
     // first copy parameters to stack, and then to global data.
     // We need this "trick" as the input data position can overlap with other apps' globals
@@ -32,6 +36,10 @@ bool copy_transaction_parameters(const create_transaction_parameters_t* params) 
 void handle_swap_sign_transaction(void) {
     init_globals();
     called_from_swap = true;
+    UX_INIT();
+#ifdef HAVE_NBGL
+    nbgl_useCaseSpinner("Signing");
+#endif  // HAVE_BAGL
     io_seproxyhal_init();
     USB_power(0);
     USB_power(1);
