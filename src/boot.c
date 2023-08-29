@@ -5,6 +5,7 @@
 #include "cx.h"
 
 #include "swap/swap_lib_calls.h"
+#include "handle_swap_commands.h"
 
 #include "globals.h"
 
@@ -19,7 +20,7 @@ __attribute__((section(".boot"))) int main(arg0) {
 
     if (arg0 != 0) {
         // Called as library from another app
-        struct libargs_s *args = (struct libargs_s *) arg0;
+        libargs_t *args = (libargs_t *) arg0;
         if (args->id == 0x100) {
             library_main(args);
         } else {

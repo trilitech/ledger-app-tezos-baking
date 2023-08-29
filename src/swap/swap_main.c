@@ -1,7 +1,8 @@
 #include "swap_lib_calls.h"
 #include "os.h"
+#include "handle_swap_commands.h"
 
-static void library_main_helper(struct libargs_s *args) {
+static void library_main_helper(libargs_t *args) {
     check_api_level(CX_COMPAT_APILEVEL);
     PRINTF("Inside library \n");
     switch (args->command) {
@@ -24,7 +25,7 @@ static void library_main_helper(struct libargs_s *args) {
     }
 }
 
-void library_main(struct libargs_s *args) {
+void library_main(libargs_t *args) {
     bool end = false;
     /* This loop ensures that library_main_helper and os_lib_end are called
      * within a try context, even if an exception is thrown */

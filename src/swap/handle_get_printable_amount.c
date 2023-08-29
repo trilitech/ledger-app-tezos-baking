@@ -3,6 +3,7 @@
 #include "to_string.h"
 
 #include "swap_lib_calls.h"
+#include "swap_utils.h"
 
 /* return 0 on error, 1 otherwise */
 int handle_get_printable_amount(get_printable_amount_parameters_t* params) {

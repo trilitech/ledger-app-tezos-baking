@@ -1,8 +1,9 @@
 #include "os_io_seproxyhal.h"
-#include "swap_lib_calls.h"
 #include "ux.h"
 #include "globals.h"
 #include "os.h"
+#include "swap_lib_calls.h"
+#include "swap_utils.h"
 
 #ifdef HAVE_NBGL
 #include "nbgl_use_case.h"
