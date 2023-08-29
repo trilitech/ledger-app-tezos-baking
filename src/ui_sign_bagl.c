@@ -75,19 +75,17 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
     check_null(key);
 
     if (called_from_swap) {
-        if (is_safe_to_swap()) {
+        bool valid = is_safe_to_swap();
+        if (valid) {
             // We're called from swap and we've verified that the data is correct. Sign it.
             ok();
             // Clear all data.
             clear_data();
-            // Exit properly.
-            os_sched_exit(0);
         } else {
             // Send the error message back in response.
             cxl();
-            // Exit with error code.
-            os_sched_exit(1);
         }
+        finalize_exchange_sign_transaction(valid);
     }
 
     switch (ops->operation.tag) {

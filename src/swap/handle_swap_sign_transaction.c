@@ -9,6 +9,9 @@
 #include "nbgl_use_case.h"
 #endif
 
+// Save the BSS address where we will write the return value when finished
+static uint8_t* G_swap_sign_return_value_address;
+
 bool copy_transaction_parameters(const create_transaction_parameters_t* params) {
     // first copy parameters to stack, and then to global data.
     // We need this "trick" as the input data position can overlap with other apps' globals
@@ -28,7 +31,11 @@ bool copy_transaction_parameters(const create_transaction_parameters_t* params) 
         return false;
     }
 
+    // Full reset the global variables
     os_explicit_zero_BSS_segment();
+    // Keep the address at which we'll reply the signing status
+    G_swap_sign_return_value_address = &params->result;
+    // Commit the values read from exchange to the clean global space
     memcpy(&swap_values, &stack_data, sizeof(stack_data));
 
     return true;
@@ -52,4 +59,9 @@ void handle_swap_sign_transaction(void) {
     BLE_power(1, NULL);
 #endif  // HAVE_BLE
     app_main();
+}
+
+void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_success) {
+    *G_swap_sign_return_value_address = is_success;
+    os_lib_end();
 }
