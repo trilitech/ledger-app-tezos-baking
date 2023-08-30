@@ -25,7 +25,7 @@ GIT_DESCRIBE ?= $(shell git describe --tags --abbrev=8 --always --long --dirty 2
 VERSION_TAG ?= $(shell echo "$(GIT_DESCRIBE)" | cut -f1 -d-)
 APPVERSION_M=2
 APPVERSION_N=4
-APPVERSION_P=1
+APPVERSION_P=2
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # Only warn about version tags if specified/inferred
@@ -177,6 +177,13 @@ DEFINES   += USB_SEGMENT_SIZE=64
 
 DEFINES   += U2F_PROXY_MAGIC=\"XTZ\"
 DEFINES   += HAVE_IO_U2F HAVE_U2F
+endif
+
+### webusb support (wallet app only)
+ifeq ($(APP), tezos_wallet)
+  #WEBUSB_URL     = www.ledgerwallet.com
+  #DEFINES       += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
+  DEFINES   += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 endif
 
 load: all
