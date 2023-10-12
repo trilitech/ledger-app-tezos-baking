@@ -77,7 +77,7 @@ __attribute__((section(".boot"))) int main(arg0) {
 #ifdef BAKING_APP
 
     io_seproxyhal_power_off(
-#if defined API_LEVEL && API_LEVEL > 10
+#if defined API_LEVEL && (API_LEVEL == 0 || API_LEVEL > 10)
         false
 #endif
     );  // Should not be allowed dashboard access
