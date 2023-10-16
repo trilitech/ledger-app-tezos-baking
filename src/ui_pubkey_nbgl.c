@@ -48,9 +48,6 @@ static void verify_address(void) {
 }
 
 void prompt_address(
-#ifndef BAKING_APP
-    __attribute__((unused))
-#endif
     bool baking,
     ui_callback_t ok_cb,
     ui_callback_t cxl_cb) {
