@@ -32,8 +32,6 @@ __attribute__((noreturn)) void app_main(void) {
     global.handlers[APDU_INS(INS_QUERY_AUTH_KEY_WITH_CURVE)] =
         handle_apdu_query_auth_key_with_curve;
     global.handlers[APDU_INS(INS_HMAC)] = handle_apdu_hmac;
-#else
-    global.handlers[APDU_INS(INS_SIGN_UNSAFE)] = handle_apdu_sign;
 #endif
     main_loop(global.handlers, NUM_ELEMENTS(global.handlers));
 }

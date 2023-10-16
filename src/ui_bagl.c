@@ -232,8 +232,6 @@ void ui_initial_screen(void) {
     init_screen_stack();
 #ifdef BAKING_APP
     calculate_baking_idle_screens_data();
-#else
-    push_ui_callback("Tezos Wallet", copy_string, VERSION);
 #endif
 
     ux_idle_screen(NULL, NULL);

@@ -959,34 +959,4 @@ bool parse_operations(struct parsed_operation_group *const out,
     END_TRY;
     return true;
 }
-
-#else
-
-bool parse_operations_packet(struct parsed_operation_group *const out,
-                             uint8_t const *const data,
-                             size_t length,
-                             is_operation_allowed_t is_operation_allowed) {
-    BEGIN_TRY {
-        TRY {
-            size_t ix = 0;
-            while (ix < length) {
-                uint8_t byte = ((uint8_t *) data)[ix];
-                parse_byte(byte, &G.parse_state, out, is_operation_allowed);
-                PRINTF("Byte: %x - Next op_step state: %d\n", byte, G.parse_state.op_step);
-                ix++;
-            }
-        }
-        CATCH(EXC_PARSE_ERROR) {
-            return false;
-        }
-        CATCH_OTHER(e) {
-            THROW(e);
-        }
-        FINALLY {
-        }
-    }
-    END_TRY;
-    return true;
-}
-
 #endif

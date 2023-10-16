@@ -81,7 +81,5 @@ __attribute__((section(".boot"))) int main(arg0) {
         false
 #endif
     );  // Should not be allowed dashboard access
-#else
-    exit_app();
 #endif
 }
