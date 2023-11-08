@@ -3,7 +3,6 @@
 #include "handle_swap_commands.h"
 
 static void library_main_helper(libargs_t *args) {
-    check_api_level(CX_COMPAT_APILEVEL);
     PRINTF("Inside library \n");
     switch (args->command) {
         case CHECK_ADDRESS:
