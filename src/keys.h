@@ -9,10 +9,6 @@
 #include "os_cx.h"
 #include "types.h"
 
-#if CX_APILEVEL <= 8
-#error "CX_APILEVEL 8 and below is not supported"
-#endif
-
 struct bip32_path_wire {
     uint8_t length;
     uint32_t components[0];

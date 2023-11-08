@@ -103,8 +103,6 @@ else
     endif
 endif
 
-DEFINES   += UNUSED\(x\)=\(void\)x
-
 # Enabling debug PRINTF
 DEBUG ?= 0
 ifneq ($(DEBUG),0)
