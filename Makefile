@@ -199,4 +199,4 @@ endif
 # Generate delegates from baker list
 src/delegates.h: tools/gen-delegates.sh tools/BakersRegistryCoreUnfilteredData.json
 	bash ./tools/gen-delegates.sh ./tools/BakersRegistryCoreUnfilteredData.json
-$(DEP_DIR)/to_string.d $(DEP_DIR)/app/to_string.d: src/delegates.h
+$(DEP_DIR)/to_string.d $(DEP_DIR)/app/src/to_string.d: src/delegates.h
