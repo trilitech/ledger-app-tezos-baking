@@ -18,7 +18,7 @@ from utils import (
 TESTS_ROOT_DIR = Path(__file__).parent
 
 
-def test_reset_HMW(
+def test_reset_hwm(
         backend: BackendInterface,
         firmware: Firmware,
         navigator: Navigator,
@@ -43,7 +43,7 @@ def test_reset_HMW(
 
     response: Optional[RAPDU] = tez.get_async_response()
     assert response is not None
-    assert response.status == StatusCode.STATUS_OK
+    assert response.status == StatusCode.OK
 
 
 def test_authorize_baking(
@@ -69,7 +69,7 @@ def test_authorize_baking(
 
     response: Optional[RAPDU] = tez.get_async_response()
     assert response is not None
-    assert response.status == StatusCode.STATUS_OK
+    assert response.status == StatusCode.OK
 
 
 def test_get_public_key_baking(
@@ -95,7 +95,7 @@ def test_get_public_key_baking(
 
     response: Optional[RAPDU] = tez.get_async_response()
     assert response is not None
-    assert response.status == StatusCode.STATUS_OK
+    assert response.status == StatusCode.OK
 
 
 def test_setup_baking_address(
@@ -125,7 +125,7 @@ def test_setup_baking_address(
 
     response: Optional[RAPDU] = tez.get_async_response()
     assert response is not None
-    assert response.status == StatusCode.STATUS_OK
+    assert response.status == StatusCode.OK
 
 
 def test_get_public_key_silent(backend: BackendInterface) -> None:
@@ -138,7 +138,7 @@ def test_get_public_key_silent(backend: BackendInterface) -> None:
 
     response: Optional[RAPDU] = tez.get_async_response()
     assert response is not None
-    assert response.status == StatusCode.STATUS_OK
+    assert response.status == StatusCode.OK
 
 
 def test_get_public_key_prompt(
@@ -164,4 +164,4 @@ def test_get_public_key_prompt(
 
     response: Optional[RAPDU] = tez.get_async_response()
     assert response is not None
-    assert response.status == StatusCode.STATUS_OK
+    assert response.status == StatusCode.OK
