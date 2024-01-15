@@ -1,4 +1,4 @@
-"""Module gathering the baking app tests."""
+"""Module gathering the baking app instruction tests."""
 
 from typing import Optional
 from pathlib import Path
