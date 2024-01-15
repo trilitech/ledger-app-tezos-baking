@@ -1,5 +1,10 @@
+from typing import Optional
 from pathlib import Path
 
+from ragger.utils import RAPDU
+from ragger.backend import BackendInterface
+from ragger.firmware import Firmware
+from ragger.navigator import Navigator
 from apps.tezos import TezosClient, StatusCode
 from apps.tezos import TEZ_PACKED_DERIVATION_PATH
 from utils import get_nano_review_instructions, get_stax_review_instructions, get_stax_address_instructions
@@ -7,7 +12,11 @@ from utils import get_nano_review_instructions, get_stax_review_instructions, ge
 TESTS_ROOT_DIR = Path(__file__).parent
 
 
-def test_reset_HMW(test_name, backend, firmware, navigator):
+def test_reset_HMW(
+        backend: BackendInterface,
+        firmware: Firmware,
+        navigator: Navigator,
+        test_name: Path) -> None:
 
     tez = TezosClient(backend)
 
@@ -25,11 +34,16 @@ def test_reset_HMW(test_name, backend, firmware, navigator):
                                        test_name,
                                        instructions)
 
-    response: bytes = tez.get_async_response()
+    response: Optional[RAPDU] = tez.get_async_response()
+    assert response is not None
     assert (response.status == StatusCode.STATUS_OK)
 
 
-def test_authorize_baking(test_name, backend, firmware, navigator):
+def test_authorize_baking(
+        backend: BackendInterface,
+        firmware: Firmware,
+        navigator: Navigator,
+        test_name: Path) -> None:
 
     tez = TezosClient(backend)
 
@@ -45,11 +59,16 @@ def test_authorize_baking(test_name, backend, firmware, navigator):
                                        test_name,
                                        instructions)
 
-    response: bytes = tez.get_async_response()
+    response: Optional[RAPDU] = tez.get_async_response()
+    assert response is not None
     assert (response.status == StatusCode.STATUS_OK)
 
 
-def test_get_public_key_baking(test_name, backend, firmware, navigator):
+def test_get_public_key_baking(
+        backend: BackendInterface,
+        firmware: Firmware,
+        navigator: Navigator,
+        test_name: Path) -> None:
 
     tez = TezosClient(backend)
 
@@ -64,11 +83,16 @@ def test_get_public_key_baking(test_name, backend, firmware, navigator):
                                        test_name,
                                        instructions)
 
-    response: bytes = tez.get_async_response()
+    response: Optional[RAPDU] = tez.get_async_response()
+    assert response is not None
     assert (response.status == StatusCode.STATUS_OK)
 
 
-def test_setup_baking_address(test_name, backend, firmware, navigator):
+def test_setup_baking_address(
+        backend: BackendInterface,
+        firmware: Firmware,
+        navigator: Navigator,
+        test_name: Path) -> None:
 
     tez = TezosClient(backend)
 
@@ -88,22 +112,28 @@ def test_setup_baking_address(test_name, backend, firmware, navigator):
                                        test_name,
                                        instructions)
 
-    response: bytes = tez.get_async_response()
+    response: Optional[RAPDU] = tez.get_async_response()
+    assert response is not None
     assert (response.status == StatusCode.STATUS_OK)
 
 
-def test_get_public_key_silent(backend):
+def test_get_public_key_silent(backend: BackendInterface) -> None:
 
     tez = TezosClient(backend)
 
     with tez.get_public_key_silent(TEZ_PACKED_DERIVATION_PATH):
         pass
 
-    response: bytes = tez.get_async_response()
+    response: Optional[RAPDU] = tez.get_async_response()
+    assert response is not None
     assert (response.status == StatusCode.STATUS_OK)
 
 
-def test_get_public_key_prompt(test_name, backend, firmware, navigator):
+def test_get_public_key_prompt(
+        backend: BackendInterface,
+        firmware: Firmware,
+        navigator: Navigator,
+        test_name: Path) -> None:
 
     tez = TezosClient(backend)
 
@@ -119,5 +149,6 @@ def test_get_public_key_prompt(test_name, backend, firmware, navigator):
                                        test_name,
                                        instructions)
 
-    response: bytes = tez.get_async_response()
+    response: Optional[RAPDU] = tez.get_async_response()
+    assert response is not None
     assert (response.status == StatusCode.STATUS_OK)

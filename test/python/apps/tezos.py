@@ -1,8 +1,9 @@
-from typing import Generator
+from typing import Generator, Optional
 from enum import IntEnum
 from contextlib import contextmanager
 
-from ragger.backend.interface import BackendInterface, RAPDU
+from ragger.utils import RAPDU
+from ragger.backend import BackendInterface
 from ragger.bip import pack_derivation_path
 
 TEZ_PACKED_DERIVATION_PATH = pack_derivation_path("m/44'/1729'/0'/0'")
@@ -70,8 +71,8 @@ class StatusCode(IntEnum):
 class TezosClient:
     backend: BackendInterface
 
-    def __init__(self, backend):
-        self._client = backend
+    def __init__(self, backend) -> None:
+        self._client: BackendInterface = backend
 
     @contextmanager
     def authorize_baking(self, derivation_path: bytes) -> Generator[None, None, None]:
@@ -141,5 +142,5 @@ class TezosClient:
                                          MAGICBYTE.UNSAFE.to_bytes(1, byteorder='big') + data):
             yield
 
-    def get_async_response(self) -> RAPDU:
+    def get_async_response(self) -> Optional[RAPDU]:
         return self._client.last_async_response
