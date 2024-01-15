@@ -1,3 +1,5 @@
+"""Module providing a tezos client."""
+
 from typing import Generator, Optional
 from enum import IntEnum
 from contextlib import contextmanager
@@ -15,6 +17,8 @@ CMD_PART2 = "00cf49f66b9ea137e11818f2a78b4b6fc9895b4e50830ae58003c35000c0843d000
 
 
 class INS(IntEnum):
+    """Class representing instruction."""
+
     INS_VERSION = 0x00
     INS_GET_PUBLIC_KEY = 0x02
     INS_QUERY_AUTH_KEY = 0x07
@@ -34,12 +38,16 @@ class INS(IntEnum):
 
 
 class P1(IntEnum):
+    """Class representing the first APDU argument: the packet index."""
+
     FIRST = 0x00
     OTHER = 0x01
     LAST = 0x81
 
 
 class P2(IntEnum):
+    """Class representing the second APDU argument: the key signature type."""
+
     ED25519 = 0x00
     SECP256K1 = 0x01
     SECP256R1 = 0x02
@@ -47,6 +55,8 @@ class P2(IntEnum):
 
 
 class OPERATION_TAG(IntEnum):
+    """Class representing the operation tag."""
+
     OPERATION_TAG_PROPOSAL = 5
     OPERATION_TAG_BALLOT = 6
     OPERATION_TAG_BABYLON_REVEAL = 107
@@ -60,15 +70,21 @@ class OPERATION_TAG(IntEnum):
 
 
 class MAGICBYTE(IntEnum):
+    """Class representing the magic byte."""
+
     BLOCK = 0x01
     UNSAFE = 0x03
 
 
 class StatusCode(IntEnum):
+    """Class representing the status code."""
+
     STATUS_OK = 0x9000
 
 
 class TezosClient:
+    """Class representing the tezos app client."""
+
     backend: BackendInterface
 
     def __init__(self, backend) -> None:
@@ -76,6 +92,7 @@ class TezosClient:
 
     @contextmanager
     def authorize_baking(self, derivation_path: bytes) -> Generator[None, None, None]:
+        """Send the AUTHORIZE_BAKING instruction."""
         with self._client.exchange_async(CLA,
                                          INS.INS_AUTHORIZE_BAKING,
                                          P1.FIRST,
@@ -85,6 +102,7 @@ class TezosClient:
 
     @contextmanager
     def get_public_key_silent(self, derivation_path: bytes) -> Generator[None, None, None]:
+        """Send the GET_PUBLIC_KEY instruction."""
         with self._client.exchange_async(CLA,
                                          INS.INS_GET_PUBLIC_KEY,
                                          P1.FIRST,
@@ -94,6 +112,7 @@ class TezosClient:
 
     @contextmanager
     def get_public_key_prompt(self, derivation_path: bytes) -> Generator[None, None, None]:
+        """Send the PROMPT_PUBLIC_KEY instruction."""
         with self._client.exchange_async(CLA,
                                          INS.INS_PROMPT_PUBLIC_KEY,
                                          P1.FIRST,
@@ -103,6 +122,7 @@ class TezosClient:
 
     @contextmanager
     def reset_app_context(self, reset_level: int) -> Generator[None, None, None]:
+        """Send the RESET instruction."""
         with self._client.exchange_async(CLA,
                                          INS.INS_RESET,
                                          P1.LAST,
@@ -112,6 +132,7 @@ class TezosClient:
 
     @contextmanager
     def setup_baking_address(self, derivation_path: bytes, chain: int, main_hwm: int, test_hwm: int) -> Generator[None, None, None]:
+        """Send the SETUP instruction."""
 
         data: bytes = chain.to_bytes(4, byteorder='big') + main_hwm.to_bytes(
             4, byteorder='big') + test_hwm.to_bytes(4, byteorder='big') + derivation_path
@@ -125,6 +146,7 @@ class TezosClient:
 
     @contextmanager
     def sign_message(self, derivation_path: bytes, operation_tag: OPERATION_TAG) -> Generator[None, None, None]:
+        """Send the SIGN instruction."""
 
         self._client.exchange(CLA,
                               INS.INS_SIGN,
@@ -143,4 +165,5 @@ class TezosClient:
             yield
 
     def get_async_response(self) -> Optional[RAPDU]:
+        """Get an instruction response."""
         return self._client.last_async_response

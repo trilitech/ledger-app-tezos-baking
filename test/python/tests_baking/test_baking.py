@@ -1,3 +1,5 @@
+"""Module gathering the baking app tests."""
+
 from typing import Optional
 from pathlib import Path
 
@@ -17,6 +19,7 @@ def test_reset_HMW(
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
+    """Test the RESET instruction."""
 
     tez = TezosClient(backend)
 
@@ -44,6 +47,7 @@ def test_authorize_baking(
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
+    """Test the AUTHORIZE_BAKING instruction."""
 
     tez = TezosClient(backend)
 
@@ -69,6 +73,7 @@ def test_get_public_key_baking(
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
+    """Test the PROMPT_PUBLIC_KEY instruction."""
 
     tez = TezosClient(backend)
 
@@ -93,6 +98,7 @@ def test_setup_baking_address(
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
+    """Test the SETUP instruction."""
 
     tez = TezosClient(backend)
 
@@ -118,6 +124,7 @@ def test_setup_baking_address(
 
 
 def test_get_public_key_silent(backend: BackendInterface) -> None:
+    """Test the GET_PUBLIC_KEY instruction."""
 
     tez = TezosClient(backend)
 
@@ -134,6 +141,7 @@ def test_get_public_key_prompt(
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
+    """Test the PROMPT_PUBLIC_KEY instruction."""
 
     tez = TezosClient(backend)
 
