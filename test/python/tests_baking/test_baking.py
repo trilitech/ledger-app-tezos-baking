@@ -1,11 +1,8 @@
 from pathlib import Path
 
-from ragger.navigator import NavInsID, NavIns
 from apps.tezos import TezosClient, StatusCode
-from apps.tezos import TEZ_PACKED_DERIVATION_PATH, OPERATION_TAG
+from apps.tezos import TEZ_PACKED_DERIVATION_PATH
 from utils import get_nano_review_instructions, get_stax_review_instructions, get_stax_address_instructions
-
-import pytest
 
 TESTS_ROOT_DIR = Path(__file__).parent
 
@@ -95,7 +92,7 @@ def test_setup_baking_address(test_name, backend, firmware, navigator):
     assert (response.status == StatusCode.STATUS_OK)
 
 
-def test_get_public_key_silent(test_name, backend, firmware, navigator):
+def test_get_public_key_silent(backend):
 
     tez = TezosClient(backend)
 

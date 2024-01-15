@@ -1,9 +1,9 @@
-from typing import List, Generator
+from typing import Generator
 from enum import IntEnum
 from contextlib import contextmanager
 
 from ragger.backend.interface import BackendInterface, RAPDU
-from utils import pack_derivation_path
+from ragger.bip import pack_derivation_path
 
 TEZ_PACKED_DERIVATION_PATH = pack_derivation_path("m/44'/1729'/0'/0'")
 CLA = 0x80
@@ -46,15 +46,15 @@ class P2(IntEnum):
 
 
 class OPERATION_TAG(IntEnum):
-    OPERATION_TAG_PROPOSAL = 5,
-    OPERATION_TAG_BALLOT = 6,
-    OPERATION_TAG_BABYLON_REVEAL = 107,
-    OPERATION_TAG_BABYLON_TRANSACTION = 108,
-    OPERATION_TAG_BABYLON_ORIGINATION = 109,
-    OPERATION_TAG_BABYLON_DELEGATION = 110,
-    OPERATION_TAG_ATHENS_REVEAL = 7,
-    OPERATION_TAG_ATHENS_TRANSACTION = 8,
-    OPERATION_TAG_ATHENS_ORIGINATION = 9,
+    OPERATION_TAG_PROPOSAL = 5
+    OPERATION_TAG_BALLOT = 6
+    OPERATION_TAG_BABYLON_REVEAL = 107
+    OPERATION_TAG_BABYLON_TRANSACTION = 108
+    OPERATION_TAG_BABYLON_ORIGINATION = 109
+    OPERATION_TAG_BABYLON_DELEGATION = 110
+    OPERATION_TAG_ATHENS_REVEAL = 7
+    OPERATION_TAG_ATHENS_TRANSACTION = 8
+    OPERATION_TAG_ATHENS_ORIGINATION = 9
     OPERATION_TAG_ATHENS_DELEGATION = 10
 
 
