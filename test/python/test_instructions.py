@@ -7,9 +7,9 @@ from ragger.utils import RAPDU
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator
-from apps.tezos import TezosClient, StatusCode
-from apps.tezos import TEZ_PACKED_DERIVATION_PATH
-from utils import (
+from utils.client import TezosClient, StatusCode
+from utils.client import TEZ_PACKED_DERIVATION_PATH
+from utils.helper import (
     get_nano_review_instructions,
     get_stax_review_instructions,
     get_stax_address_instructions
