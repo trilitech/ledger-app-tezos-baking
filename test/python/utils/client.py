@@ -5,11 +5,8 @@ from enum import IntEnum
 
 from ragger.utils import RAPDU
 from ragger.backend import BackendInterface
-from ragger.bip import pack_derivation_path
 from ragger.error import ExceptionRAPDU
-from utils.account import SigScheme
-
-TEZ_PACKED_DERIVATION_PATH = pack_derivation_path("m/44'/1729'/0'/0'")
+from utils.account import Account, SigScheme
 
 CMD_PART1 = "17777d8de5596705f1cb35b0247b9605a7c93a7ed5c0caa454d4f4ff39eb411d"
 
@@ -112,26 +109,26 @@ class TezosClient:
 
         return rapdu.data
 
-    def authorize_baking(self, derivation_path: bytes) -> bytes:
+    def authorize_baking(self, account: Account) -> bytes:
         """Send the AUTHORIZE_BAKING instruction."""
         return self._exchange(
             ins=Ins.AUTHORIZE_BAKING,
-            sig_scheme=SigScheme.ED25519,
-            payload=derivation_path)
+            sig_scheme=account.sig_scheme,
+            payload=account.path)
 
-    def get_public_key_silent(self, derivation_path: bytes) -> bytes:
+    def get_public_key_silent(self, account: Account) -> bytes:
         """Send the GET_PUBLIC_KEY instruction."""
         return self._exchange(
             ins=Ins.GET_PUBLIC_KEY,
-            sig_scheme=SigScheme.ED25519,
-            payload=derivation_path)
+            sig_scheme=account.sig_scheme,
+            payload=account.path)
 
-    def get_public_key_prompt(self, derivation_path: bytes) -> bytes:
+    def get_public_key_prompt(self, account: Account) -> bytes:
         """Send the PROMPT_PUBLIC_KEY instruction."""
         return self._exchange(
             ins=Ins.PROMPT_PUBLIC_KEY,
-            sig_scheme=SigScheme.ED25519,
-            payload=derivation_path)
+            sig_scheme=account.sig_scheme,
+            payload=account.path)
 
     def reset_app_context(self, reset_level: int) -> bytes:
         """Send the RESET instruction."""
@@ -142,7 +139,7 @@ class TezosClient:
             payload=reset_level_raw)
 
     def setup_baking_address(self,
-                             derivation_path: bytes,
+                             account: Account,
                              chain: int,
                              main_hwm: int,
                              test_hwm: int) -> bytes:
@@ -152,15 +149,15 @@ class TezosClient:
         data += chain.to_bytes(4, byteorder='big')
         data += main_hwm.to_bytes(4, byteorder='big')
         data += test_hwm.to_bytes(4, byteorder='big')
-        data += derivation_path
+        data += account.path
 
         return self._exchange(
             ins=Ins.SETUP,
-            sig_scheme=SigScheme.ED25519,
+            sig_scheme=account.sig_scheme,
             payload=data)
 
     def sign_message(self,
-                     derivation_path: bytes,
+                     account: Account,
                      operation_tag: OperationTag) -> bytes:
         """Send the SIGN instruction."""
 
@@ -173,11 +170,11 @@ class TezosClient:
 
         self._exchange(
             ins=Ins.SIGN,
-            sig_scheme=SigScheme.ED25519,
-            payload=derivation_path)
+            sig_scheme=account.sig_scheme,
+            payload=account.path)
 
         return self._exchange(
             ins=Ins.SIGN,
             index=Index.LAST,
-            sig_scheme=SigScheme.ED25519,
+            sig_scheme=account.sig_scheme,
             payload=data)

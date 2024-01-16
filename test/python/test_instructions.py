@@ -5,7 +5,7 @@ from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator
 from utils.client import TezosClient
-from utils.client import TEZ_PACKED_DERIVATION_PATH
+from utils.account import Account, SigScheme
 from utils.helper import (
     get_nano_review_instructions,
     get_stax_review_instructions,
@@ -14,6 +14,12 @@ from utils.helper import (
 )
 
 TESTS_ROOT_DIR = Path(__file__).parent
+
+DEFAULT_ACCOUNT = Account(
+    "m/44'/1729'/0'/0'",
+    SigScheme.ED25519,
+    "edpkuXX2VdkdXzkN11oLCb8Aurdo1BTAtQiK8ZY9UPj2YMt3AHEpcY"
+)
 
 
 def test_reset_hwm(
@@ -59,7 +65,7 @@ def test_authorize_baking(
         instructions = get_stax_address_instructions()
 
     send_and_navigate(
-        send=lambda: tez.authorize_baking(TEZ_PACKED_DERIVATION_PATH),
+        send=lambda: tez.authorize_baking(DEFAULT_ACCOUNT),
         navigate=lambda: navigator.navigate_and_compare(
             TESTS_ROOT_DIR,
             test_name,
@@ -83,7 +89,7 @@ def test_get_public_key_baking(
         instructions = get_stax_address_instructions()
 
     send_and_navigate(
-        send=lambda: tez.get_public_key_prompt(TEZ_PACKED_DERIVATION_PATH),
+        send=lambda: tez.get_public_key_prompt(DEFAULT_ACCOUNT),
         navigate=lambda: navigator.navigate_and_compare(
             TESTS_ROOT_DIR,
             test_name,
@@ -112,7 +118,7 @@ def test_setup_baking_address(
 
     send_and_navigate(
         send=lambda: tez.setup_baking_address(
-            TEZ_PACKED_DERIVATION_PATH,
+            DEFAULT_ACCOUNT,
             chain,
             main_hwm,
             test_hwm),
@@ -127,7 +133,7 @@ def test_get_public_key_silent(backend: BackendInterface) -> None:
 
     tez = TezosClient(backend)
 
-    tez.get_public_key_silent(TEZ_PACKED_DERIVATION_PATH)
+    tez.get_public_key_silent(DEFAULT_ACCOUNT)
 
 
 def test_get_public_key_prompt(
@@ -147,7 +153,7 @@ def test_get_public_key_prompt(
         instructions = get_stax_address_instructions()
 
     send_and_navigate(
-        send=lambda: tez.get_public_key_prompt(TEZ_PACKED_DERIVATION_PATH),
+        send=lambda: tez.get_public_key_prompt(DEFAULT_ACCOUNT),
         navigate=lambda: navigator.navigate_and_compare(
             TESTS_ROOT_DIR,
             test_name,
