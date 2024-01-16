@@ -1,7 +1,6 @@
 """Module gathering the baking app instruction tests."""
 
 from pathlib import Path
-from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator
 from utils.client import TezosClient
@@ -23,13 +22,11 @@ DEFAULT_ACCOUNT = Account(
 
 
 def test_reset_hwm(
-        backend: BackendInterface,
+        client: TezosClient,
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
     """Test the RESET instruction."""
-
-    tez = TezosClient(backend)
 
     if firmware.device == "nanos":
         instructions = get_nano_review_instructions(3)
@@ -41,7 +38,7 @@ def test_reset_hwm(
     reset_level: int = 0
 
     send_and_navigate(
-        send=lambda: tez.reset_app_context(reset_level),
+        send=lambda: client.reset_app_context(reset_level),
         navigate=lambda: navigator.navigate_and_compare(
             TESTS_ROOT_DIR,
             test_name,
@@ -49,13 +46,11 @@ def test_reset_hwm(
 
 
 def test_authorize_baking(
-        backend: BackendInterface,
+        client: TezosClient,
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
-
-    tez = TezosClient(backend)
 
     if firmware.device == "nanos":
         instructions = get_nano_review_instructions(5)
@@ -65,7 +60,7 @@ def test_authorize_baking(
         instructions = get_stax_address_instructions()
 
     send_and_navigate(
-        send=lambda: tez.authorize_baking(DEFAULT_ACCOUNT),
+        send=lambda: client.authorize_baking(DEFAULT_ACCOUNT),
         navigate=lambda: navigator.navigate_and_compare(
             TESTS_ROOT_DIR,
             test_name,
@@ -73,13 +68,11 @@ def test_authorize_baking(
 
 
 def test_get_public_key_baking(
-        backend: BackendInterface,
+        client: TezosClient,
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
     """Test the PROMPT_PUBLIC_KEY instruction."""
-
-    tez = TezosClient(backend)
 
     if firmware.device == "nanos":
         instructions = get_nano_review_instructions(5)
@@ -89,7 +82,7 @@ def test_get_public_key_baking(
         instructions = get_stax_address_instructions()
 
     send_and_navigate(
-        send=lambda: tez.get_public_key_prompt(DEFAULT_ACCOUNT),
+        send=lambda: client.get_public_key_prompt(DEFAULT_ACCOUNT),
         navigate=lambda: navigator.navigate_and_compare(
             TESTS_ROOT_DIR,
             test_name,
@@ -97,13 +90,11 @@ def test_get_public_key_baking(
 
 
 def test_setup_baking_address(
-        backend: BackendInterface,
+        client: TezosClient,
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
     """Test the SETUP instruction."""
-
-    tez = TezosClient(backend)
 
     if firmware.device == "nanos":
         instructions = get_nano_review_instructions(8)
@@ -117,7 +108,7 @@ def test_setup_baking_address(
     test_hwm: int = 0
 
     send_and_navigate(
-        send=lambda: tez.setup_baking_address(
+        send=lambda: client.setup_baking_address(
             DEFAULT_ACCOUNT,
             chain,
             main_hwm,
@@ -128,22 +119,18 @@ def test_setup_baking_address(
             instructions))
 
 
-def test_get_public_key_silent(backend: BackendInterface) -> None:
+def test_get_public_key_silent(client: TezosClient) -> None:
     """Test the GET_PUBLIC_KEY instruction."""
 
-    tez = TezosClient(backend)
-
-    tez.get_public_key_silent(DEFAULT_ACCOUNT)
+    client.get_public_key_silent(DEFAULT_ACCOUNT)
 
 
 def test_get_public_key_prompt(
-        backend: BackendInterface,
+        client: TezosClient,
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
     """Test the PROMPT_PUBLIC_KEY instruction."""
-
-    tez = TezosClient(backend)
 
     if firmware.device == "nanos":
         instructions = get_nano_review_instructions(5)
@@ -153,7 +140,7 @@ def test_get_public_key_prompt(
         instructions = get_stax_address_instructions()
 
     send_and_navigate(
-        send=lambda: tez.get_public_key_prompt(DEFAULT_ACCOUNT),
+        send=lambda: client.get_public_key_prompt(DEFAULT_ACCOUNT),
         navigate=lambda: navigator.navigate_and_compare(
             TESTS_ROOT_DIR,
             test_name,
