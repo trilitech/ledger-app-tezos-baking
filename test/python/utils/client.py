@@ -7,14 +7,20 @@ from contextlib import contextmanager
 from ragger.utils import RAPDU
 from ragger.backend import BackendInterface
 from ragger.bip import pack_derivation_path
+from ragger.error import ExceptionRAPDU
 
 TEZ_PACKED_DERIVATION_PATH = pack_derivation_path("m/44'/1729'/0'/0'")
-CLA = 0x80
 
 CMD_PART1 = "17777d8de5596705f1cb35b0247b9605a7c93a7ed5c0caa454d4f4ff39eb411d"
 
 CMD_PART2 = "00cf49f66b9ea137e11818f2a78b4b6fc9895b4e50830ae58003c35000c0843d0000eac6c762212c4110" \
     "f221ec8fcb05ce83db95845700"
+
+
+class Cla(IntEnum):
+    """Class representing APDU class."""
+
+    DEFAULT = 0x80
 
 
 class Ins(IntEnum):
@@ -83,6 +89,8 @@ class StatusCode(IntEnum):
     OK = 0x9000
 
 
+MAX_APDU_SIZE: int = 235
+
 class TezosClient:
     """Class representing the tezos app client."""
 
@@ -90,45 +98,98 @@ class TezosClient:
 
     def __init__(self, backend) -> None:
         self._client: BackendInterface = backend
+        self._last_async_response : Optional[bytes] = None
+
+    def _exchange(self,
+                  ins: Ins,
+                  index: Index = Index.FIRST,
+                  sig_scheme: Optional[SigScheme] = None,
+                  payload: bytes = b'') -> bytes:
+
+        assert len(payload) <= MAX_APDU_SIZE, "Apdu too large"
+
+        # Set to a non-existent value to ensure that p2 is unused
+        p2: int = sig_scheme if sig_scheme is not None else 0xff
+
+        rapdu: RAPDU = self._client.exchange(Cla.DEFAULT,
+                                             ins,
+                                             p1=index,
+                                             p2=p2,
+                                             data=payload)
+
+        if rapdu.status != StatusCode.OK:
+            raise ExceptionRAPDU(rapdu.status, rapdu.data)
+
+        return rapdu.data
+
+    @contextmanager
+    def _exchange_async(self,
+                        ins: Ins,
+                        index: Index = Index.FIRST,
+                        sig_scheme: Optional[SigScheme] = None,
+                        payload: bytes = b'') -> Generator[None, None, None]:
+
+        assert len(payload) <= MAX_APDU_SIZE, "Apdu too large"
+
+        # Set to a non-existent value to ensure that p2 is unused
+        p2: int = sig_scheme if sig_scheme is not None else 0xff
+
+        with self._client.exchange_async(Cla.DEFAULT,
+                                         ins,
+                                         p1=index,
+                                         p2=p2,
+                                         data=payload):
+            yield
+
+        rapdu: Optional[RAPDU] = self._client.last_async_response
+
+        assert rapdu is not None, "No response found"
+
+        if rapdu.status != StatusCode.OK:
+            raise ExceptionRAPDU(rapdu.status, rapdu.data)
+
+        self._last_async_response = rapdu.data
+
+    def get_async_response(self) -> bytes:
+        """Get the last response received after a call to `exchange_async`."""
+        assert self._last_async_response is not None, "No response found"
+        return self._last_async_response
 
     @contextmanager
     def authorize_baking(self, derivation_path: bytes) -> Generator[None, None, None]:
         """Send the AUTHORIZE_BAKING instruction."""
-        with self._client.exchange_async(CLA,
-                                         Ins.AUTHORIZE_BAKING,
-                                         Index.FIRST,
-                                         SigScheme.ED25519,
-                                         derivation_path):
+        with self._exchange_async(
+                ins=Ins.AUTHORIZE_BAKING,
+                sig_scheme=SigScheme.ED25519,
+                payload=derivation_path):
             yield
 
     @contextmanager
     def get_public_key_silent(self, derivation_path: bytes) -> Generator[None, None, None]:
         """Send the GET_PUBLIC_KEY instruction."""
-        with self._client.exchange_async(CLA,
-                                         Ins.GET_PUBLIC_KEY,
-                                         Index.FIRST,
-                                         SigScheme.ED25519,
-                                         derivation_path):
+        with self._exchange_async(
+                ins=Ins.GET_PUBLIC_KEY,
+                sig_scheme=SigScheme.ED25519,
+                payload=derivation_path):
             yield
 
     @contextmanager
     def get_public_key_prompt(self, derivation_path: bytes) -> Generator[None, None, None]:
         """Send the PROMPT_PUBLIC_KEY instruction."""
-        with self._client.exchange_async(CLA,
-                                         Ins.PROMPT_PUBLIC_KEY,
-                                         Index.FIRST,
-                                         SigScheme.ED25519,
-                                         derivation_path):
+        with self._exchange_async(
+                ins=Ins.PROMPT_PUBLIC_KEY,
+                sig_scheme=SigScheme.ED25519,
+                payload=derivation_path):
             yield
 
     @contextmanager
     def reset_app_context(self, reset_level: int) -> Generator[None, None, None]:
         """Send the RESET instruction."""
-        with self._client.exchange_async(CLA,
-                                         Ins.RESET,
-                                         Index.LAST,
-                                         SigScheme.ED25519,
-                                         reset_level.to_bytes(4, byteorder='big')):
+        reset_level_raw = reset_level.to_bytes(4, byteorder='big')
+        with self._exchange_async(
+                ins=Ins.RESET,
+                sig_scheme=SigScheme.ED25519,
+                payload=reset_level_raw):
             yield
 
     @contextmanager
@@ -139,14 +200,16 @@ class TezosClient:
                              test_hwm: int) -> Generator[None, None, None]:
         """Send the SETUP instruction."""
 
-        data: bytes = chain.to_bytes(4, byteorder='big') + main_hwm.to_bytes(
-            4, byteorder='big') + test_hwm.to_bytes(4, byteorder='big') + derivation_path
+        data: bytes = b''
+        data += chain.to_bytes(4, byteorder='big')
+        data += main_hwm.to_bytes(4, byteorder='big')
+        data += test_hwm.to_bytes(4, byteorder='big')
+        data += derivation_path
 
-        with self._client.exchange_async(CLA,
-                                         Ins.SETUP,
-                                         Index.FIRST,
-                                         SigScheme.ED25519,
-                                         data):
+        with self._exchange_async(
+                ins=Ins.SETUP,
+                sig_scheme=SigScheme.ED25519,
+                payload=data):
             yield
 
     @contextmanager
@@ -155,22 +218,21 @@ class TezosClient:
                      operation_tag: OperationTag) -> Generator[None, None, None]:
         """Send the SIGN instruction."""
 
-        self._client.exchange(CLA,
-                              Ins.SIGN,
-                              Index.FIRST,
-                              SigScheme.BIP32_ED25519,
-                              derivation_path)
+        data: bytes = b''
 
-        data: bytes = bytes.fromhex(
-            CMD_PART1) + operation_tag.to_bytes(1, byteorder='big') + bytes.fromhex(CMD_PART2)
+        data += MagicByte.UNSAFE.to_bytes(1, byteorder='big')
+        data += bytes.fromhex(CMD_PART1)
+        data += operation_tag.to_bytes(1, byteorder='big')
+        data += bytes.fromhex(CMD_PART2)
 
-        with self._client.exchange_async(CLA,
-                                         Ins.SIGN,
-                                         Index.LAST,
-                                         SigScheme.ED25519,
-                                         MagicByte.UNSAFE.to_bytes(1, byteorder='big') + data):
+        self._exchange(
+            ins=Ins.SIGN,
+            sig_scheme=SigScheme.ED25519,
+            payload=derivation_path)
+
+        with self._exchange_async(
+                ins=Ins.SIGN,
+                index=Index.LAST,
+                sig_scheme=SigScheme.ED25519,
+                payload=data):
             yield
-
-    def get_async_response(self) -> Optional[RAPDU]:
-        """Get an instruction response."""
-        return self._client.last_async_response

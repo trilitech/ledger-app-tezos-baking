@@ -1,13 +1,10 @@
 """Module gathering the baking app instruction tests."""
 
-from typing import Optional
 from pathlib import Path
-
-from ragger.utils import RAPDU
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator
-from utils.client import TezosClient, StatusCode
+from utils.client import TezosClient
 from utils.client import TEZ_PACKED_DERIVATION_PATH
 from utils.helper import (
     get_nano_review_instructions,
@@ -41,10 +38,6 @@ def test_reset_hwm(
                                        test_name,
                                        instructions)
 
-    response: Optional[RAPDU] = tez.get_async_response()
-    assert response is not None
-    assert response.status == StatusCode.OK
-
 
 def test_authorize_baking(
         backend: BackendInterface,
@@ -67,10 +60,6 @@ def test_authorize_baking(
                                        test_name,
                                        instructions)
 
-    response: Optional[RAPDU] = tez.get_async_response()
-    assert response is not None
-    assert response.status == StatusCode.OK
-
 
 def test_get_public_key_baking(
         backend: BackendInterface,
@@ -92,10 +81,6 @@ def test_get_public_key_baking(
         navigator.navigate_and_compare(TESTS_ROOT_DIR,
                                        test_name,
                                        instructions)
-
-    response: Optional[RAPDU] = tez.get_async_response()
-    assert response is not None
-    assert response.status == StatusCode.OK
 
 
 def test_setup_baking_address(
@@ -123,10 +108,6 @@ def test_setup_baking_address(
                                        test_name,
                                        instructions)
 
-    response: Optional[RAPDU] = tez.get_async_response()
-    assert response is not None
-    assert response.status == StatusCode.OK
-
 
 def test_get_public_key_silent(backend: BackendInterface) -> None:
     """Test the GET_PUBLIC_KEY instruction."""
@@ -135,10 +116,6 @@ def test_get_public_key_silent(backend: BackendInterface) -> None:
 
     with tez.get_public_key_silent(TEZ_PACKED_DERIVATION_PATH):
         pass
-
-    response: Optional[RAPDU] = tez.get_async_response()
-    assert response is not None
-    assert response.status == StatusCode.OK
 
 
 def test_get_public_key_prompt(
@@ -161,7 +138,3 @@ def test_get_public_key_prompt(
         navigator.navigate_and_compare(TESTS_ROOT_DIR,
                                        test_name,
                                        instructions)
-
-    response: Optional[RAPDU] = tez.get_async_response()
-    assert response is not None
-    assert response.status == StatusCode.OK
