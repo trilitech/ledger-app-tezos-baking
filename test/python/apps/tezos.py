@@ -38,16 +38,16 @@ class Ins(IntEnum):
     SIGN_WITH_HASH            = 0x0f
 
 
-class P1(IntEnum):
-    """Class representing the first APDU argument: the packet index."""
+class Index(IntEnum):
+    """Class representing packet index."""
 
     FIRST = 0x00
     OTHER = 0x01
     LAST  = 0x81
 
 
-class P2(IntEnum):
-    """Class representing the second APDU argument: the key signature type."""
+class SigScheme(IntEnum):
+    """Class representing signature scheme."""
 
     ED25519       = 0x00
     SECP256K1     = 0x01
@@ -96,8 +96,8 @@ class TezosClient:
         """Send the AUTHORIZE_BAKING instruction."""
         with self._client.exchange_async(CLA,
                                          Ins.AUTHORIZE_BAKING,
-                                         P1.FIRST,
-                                         P2.ED25519,
+                                         Index.FIRST,
+                                         SigScheme.ED25519,
                                          derivation_path):
             yield
 
@@ -106,8 +106,8 @@ class TezosClient:
         """Send the GET_PUBLIC_KEY instruction."""
         with self._client.exchange_async(CLA,
                                          Ins.GET_PUBLIC_KEY,
-                                         P1.FIRST,
-                                         P2.ED25519,
+                                         Index.FIRST,
+                                         SigScheme.ED25519,
                                          derivation_path):
             yield
 
@@ -116,8 +116,8 @@ class TezosClient:
         """Send the PROMPT_PUBLIC_KEY instruction."""
         with self._client.exchange_async(CLA,
                                          Ins.PROMPT_PUBLIC_KEY,
-                                         P1.FIRST,
-                                         P2.ED25519,
+                                         Index.FIRST,
+                                         SigScheme.ED25519,
                                          derivation_path):
             yield
 
@@ -126,8 +126,8 @@ class TezosClient:
         """Send the RESET instruction."""
         with self._client.exchange_async(CLA,
                                          Ins.RESET,
-                                         P1.LAST,
-                                         P2.ED25519,
+                                         Index.LAST,
+                                         SigScheme.ED25519,
                                          reset_level.to_bytes(4, byteorder='big')):
             yield
 
@@ -144,8 +144,8 @@ class TezosClient:
 
         with self._client.exchange_async(CLA,
                                          Ins.SETUP,
-                                         P1.FIRST,
-                                         P2.ED25519,
+                                         Index.FIRST,
+                                         SigScheme.ED25519,
                                          data):
             yield
 
@@ -157,8 +157,8 @@ class TezosClient:
 
         self._client.exchange(CLA,
                               Ins.SIGN,
-                              P1.FIRST,
-                              P2.BIP32_ED25519,
+                              Index.FIRST,
+                              SigScheme.BIP32_ED25519,
                               derivation_path)
 
         data: bytes = bytes.fromhex(
@@ -166,8 +166,8 @@ class TezosClient:
 
         with self._client.exchange_async(CLA,
                                          Ins.SIGN,
-                                         P1.LAST,
-                                         P2.ED25519,
+                                         Index.LAST,
+                                         SigScheme.ED25519,
                                          MagicByte.UNSAFE.to_bytes(1, byteorder='big') + data):
             yield
 
