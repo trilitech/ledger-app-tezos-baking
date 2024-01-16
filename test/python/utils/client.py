@@ -135,7 +135,6 @@ class TezosClient:
         reset_level_raw = reset_level.to_bytes(4, byteorder='big')
         return self._exchange(
             ins=Ins.RESET,
-            sig_scheme=SigScheme.ED25519,
             payload=reset_level_raw)
 
     def setup_baking_address(self,
@@ -176,5 +175,4 @@ class TezosClient:
         return self._exchange(
             ins=Ins.SIGN,
             index=Index.LAST,
-            sig_scheme=account.sig_scheme,
             payload=data)
