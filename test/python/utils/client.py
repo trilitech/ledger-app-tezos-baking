@@ -7,6 +7,7 @@ from ragger.utils import RAPDU
 from ragger.backend import BackendInterface
 from ragger.bip import pack_derivation_path
 from ragger.error import ExceptionRAPDU
+from utils.account import SigScheme
 
 TEZ_PACKED_DERIVATION_PATH = pack_derivation_path("m/44'/1729'/0'/0'")
 
@@ -49,15 +50,6 @@ class Index(IntEnum):
     FIRST = 0x00
     OTHER = 0x01
     LAST  = 0x81
-
-
-class SigScheme(IntEnum):
-    """Class representing signature scheme."""
-
-    ED25519       = 0x00
-    SECP256K1     = 0x01
-    SECP256R1     = 0x02
-    BIP32_ED25519 = 0x03
 
 
 class OperationTag(IntEnum):
