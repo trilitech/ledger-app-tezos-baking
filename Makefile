@@ -37,7 +37,7 @@ else
   endif
 endif
 
-COMMIT ?= $(shell echo "$(GIT_DESCRIBE)" | awk -F'-g' '{print $$2}' | sed 's/-dirty/*/')
+COMMIT ?= $(shell echo "$(GIT_DESCRIBE)" | awk -F'-g' '{print $2}' | sed 's/-dirty/*/')
 ifeq ($(COMMIT),)
   $(warning COMMIT not specified and could not be determined with git from "$(GIT_DESCRIBE)")
 else

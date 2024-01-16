@@ -7,12 +7,62 @@ from ragger.utils import RAPDU
 from ragger.backend import BackendInterface
 from ragger.error import ExceptionRAPDU
 from utils.account import Account, SigScheme
+from utils.helper import BytesReader
 
 CMD_PART1 = "17777d8de5596705f1cb35b0247b9605a7c93a7ed5c0caa454d4f4ff39eb411d"
 
 CMD_PART2 = "00cf49f66b9ea137e11818f2a78b4b6fc9895b4e50830ae58003c35000c0843d0000eac6c762212c4110" \
     "f221ec8fcb05ce83db95845700"
 
+
+class Version:
+    """Class representing the version."""
+
+    class AppKind(IntEnum):
+        """Class representing the kind of app."""
+
+        WALLET = 0x00
+        BAKING = 0x01
+
+    app_kind: AppKind
+    major: int
+    minor: int
+    patch: int
+
+    def __init__(self,
+                 app_kind: AppKind,
+                 major: int,
+                 minor: int,
+                 patch: int):
+        self.app_kind = app_kind
+        self.major = major
+        self.minor = minor
+        self.patch = patch
+
+    def __repr__(self) -> str :
+        return f"App {self.app_kind.name}: {self.major}.{self.minor}.{self.patch}"
+
+    def __eq__(self, other: object):
+        if not isinstance(other, Version):
+            return NotImplemented
+        return \
+            self.app_kind == other.app_kind and \
+            self.major == other.major and \
+            self.minor == other.minor and \
+            self.patch == other.patch
+
+    @classmethod
+    def from_bytes(cls, raw_version: bytes) -> 'Version':
+        """Create a version from bytes."""
+
+        reader = BytesReader(raw_version)
+        app_kind = reader.read_int(1)
+        major = reader.read_int(1)
+        minor = reader.read_int(1)
+        patch = reader.read_int(1)
+        reader.assert_finished()
+
+        return Version(Version.AppKind(app_kind), major, minor, patch)
 
 class Cla(IntEnum):
     """Class representing APDU class."""
@@ -108,6 +158,17 @@ class TezosClient:
             raise ExceptionRAPDU(rapdu.status, rapdu.data)
 
         return rapdu.data
+
+    def version(self) -> Version:
+        """Send the VERSION instruction."""
+        return Version.from_bytes(self._exchange(ins=Ins.VERSION))
+
+    def git(self) -> str:
+        """Send the GIT instruction."""
+        raw_commit = self._exchange(ins=Ins.GIT)
+        assert raw_commit.endswith(b'\x00'), \
+            f"Should end with by '\x00' but got {raw_commit.hex()}"
+        return raw_commit[:-1].decode('utf-8')
 
     def authorize_baking(self, account: Account) -> bytes:
         """Send the AUTHORIZE_BAKING instruction."""

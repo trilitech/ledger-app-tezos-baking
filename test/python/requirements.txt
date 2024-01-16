@@ -1,4 +1,5 @@
 base58
 bip32
+GitPython
 pytezos==3.10.2
 ragger[tests,speculos]

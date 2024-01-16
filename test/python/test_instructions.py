@@ -3,13 +3,14 @@
 from pathlib import Path
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator
-from utils.client import TezosClient
+from utils.client import TezosClient, Version
 from utils.account import Account, SigScheme
 from utils.helper import (
     get_nano_review_instructions,
     get_stax_review_instructions,
     get_stax_address_instructions,
-    send_and_navigate
+    send_and_navigate,
+    get_current_commit
 )
 
 TESTS_ROOT_DIR = Path(__file__).parent
@@ -19,6 +20,27 @@ DEFAULT_ACCOUNT = Account(
     SigScheme.ED25519,
     "edpkuXX2VdkdXzkN11oLCb8Aurdo1BTAtQiK8ZY9UPj2YMt3AHEpcY"
 )
+
+
+def test_version(client: TezosClient) -> None:
+    """Test the VERSION instruction."""
+
+    expected_version = Version(Version.AppKind.BAKING, 2, 4, 6)
+
+    version = client.version()
+
+    assert version == expected_version, \
+        f"Expected {expected_version} but got {version}"
+
+def test_git(client: TezosClient) -> None:
+    """Test the GIT instruction."""
+
+    expected_commit = get_current_commit()
+
+    commit = client.git()
+
+    assert commit == expected_commit, \
+        f"Expected {expected_commit} but got {commit}"
 
 
 def test_reset_hwm(
