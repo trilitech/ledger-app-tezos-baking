@@ -5,6 +5,7 @@ from typing import TypeVar, Callable, List, Union
 from multiprocessing import Process, Queue
 import git
 
+from ragger.firmware import Firmware
 from ragger.navigator import NavInsID, NavIns
 
 class BytesReader:
@@ -99,3 +100,11 @@ def get_stax_address_instructions() -> List[Union[NavInsID, NavIns]]:
         NavInsID.USE_CASE_STATUS_DISMISS
     ]
     return instructions
+
+def get_public_key_flow_instructions(firmware: Firmware):
+    """Generate the instructions needed to check address."""
+    if firmware.device == "nanos":
+        return get_nano_review_instructions(5)
+    if firmware.is_nano:
+        return get_nano_review_instructions(4)
+    return get_stax_address_instructions()

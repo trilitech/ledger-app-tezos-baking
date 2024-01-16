@@ -1,14 +1,16 @@
 """Module gathering the baking app instruction tests."""
 
 from pathlib import Path
+import pytest
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator
 from utils.client import TezosClient, Version
-from utils.account import Account, SigScheme
+from utils.account import Account, SigScheme, BipPath
 from utils.helper import (
     get_nano_review_instructions,
     get_stax_review_instructions,
     get_stax_address_instructions,
+    get_public_key_flow_instructions,
     send_and_navigate,
     get_current_commit
 )
@@ -20,6 +22,8 @@ DEFAULT_ACCOUNT = Account(
     SigScheme.ED25519,
     "edpkuXX2VdkdXzkN11oLCb8Aurdo1BTAtQiK8ZY9UPj2YMt3AHEpcY"
 )
+
+EMPTY_PATH = BipPath.from_string("m")
 
 
 def test_version(client: TezosClient) -> None:
@@ -67,27 +71,94 @@ def test_reset_hwm(
             instructions))
 
 
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_authorize_baking(
+        account: Account,
         client: TezosClient,
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
 
-    if firmware.device == "nanos":
-        instructions = get_nano_review_instructions(5)
-    elif firmware.device.startswith("nano"):
-        instructions = get_nano_review_instructions(4)
-    else:
-        instructions = get_stax_address_instructions()
+    instructions = get_public_key_flow_instructions(firmware)
 
-    send_and_navigate(
-        send=lambda: client.authorize_baking(DEFAULT_ACCOUNT),
+    public_key = send_and_navigate(
+        send=lambda: client.authorize_baking(account),
         navigate=lambda: navigator.navigate_and_compare(
             TESTS_ROOT_DIR,
             test_name,
-            instructions))
+            instructions)
+    )
 
+    account.check_public_key(public_key)
+
+
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+def test_deauthorize(
+        account: Account,
+        client: TezosClient,
+        firmware: Firmware,
+        navigator: Navigator) -> None:
+    """Test the DEAUTHORIZE instruction."""
+
+    instructions = get_public_key_flow_instructions(firmware)
+
+    send_and_navigate(
+        send=lambda: client.authorize_baking(account),
+        navigate=lambda: navigator.navigate(instructions)
+    )
+
+    client.deauthorize()
+
+    # get_auth_key_with_curve raise EXC_REFERENCED_DATA_NOT_FOUND
+
+    path = client.get_auth_key()
+
+    assert path == EMPTY_PATH, \
+        f"Expected the empty path {EMPTY_PATH} but got {path}"
+
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+def test_get_auth_key(
+        account: Account,
+        client: TezosClient,
+        firmware: Firmware,
+        navigator: Navigator) -> None:
+    """Test the QUERY_AUTH_KEY instruction."""
+
+    instructions = get_public_key_flow_instructions(firmware)
+
+    send_and_navigate(
+        send=lambda: client.authorize_baking(account),
+        navigate=lambda: navigator.navigate(instructions)
+    )
+
+    path = client.get_auth_key()
+
+    assert path == account.path, \
+        f"Expected {account.path} but got {path}"
+
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+def test_get_auth_key_with_curve(
+        account: Account,
+        client: TezosClient,
+        firmware: Firmware,
+        navigator: Navigator) -> None:
+    """Test the QUERY_AUTH_KEY_WITH_CURVE instruction."""
+
+    instructions = get_public_key_flow_instructions(firmware)
+
+    send_and_navigate(
+        send=lambda: client.authorize_baking(account),
+        navigate=lambda: navigator.navigate(instructions)
+    )
+
+    sig_scheme, path = client.get_auth_key_with_curve()
+
+    assert path == account.path, \
+        f"Expected {account.path} but got {path}"
+
+    assert sig_scheme == account.sig_scheme, \
+        f"Expected {account.sig_scheme.name} but got {sig_scheme.name}"
 
 def test_get_public_key_baking(
         client: TezosClient,

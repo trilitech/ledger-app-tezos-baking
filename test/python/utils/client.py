@@ -1,6 +1,6 @@
 """Module providing a tezos client."""
 
-from typing import Optional
+from typing import Tuple, Optional
 from enum import IntEnum
 
 from ragger.utils import RAPDU
@@ -176,6 +176,23 @@ class TezosClient:
             ins=Ins.AUTHORIZE_BAKING,
             sig_scheme=account.sig_scheme,
             payload=bytes(account.path))
+
+    def deauthorize(self) -> None:
+        """Send the DEAUTHORIZE instruction."""
+        data = self._exchange(ins=Ins.DEAUTHORIZE)
+        assert data == b'', f"No data expected but got {data.hex()}"
+
+    def get_auth_key(self) -> BipPath:
+        """Send the QUERY_AUTH_KEY instruction."""
+        raw_path = self._exchange(ins=Ins.QUERY_AUTH_KEY)
+
+        return BipPath.from_bytes(raw_path)
+
+    def get_auth_key_with_curve(self) -> Tuple[SigScheme, BipPath]:
+        """Send the QUERY_AUTH_KEY_WITH_CURVE instruction."""
+        data = self._exchange(ins=Ins.QUERY_AUTH_KEY_WITH_CURVE)
+        sig_scheme = SigScheme(data[0])
+        return sig_scheme, BipPath.from_bytes(data[1:])
 
     def get_public_key_silent(self, account: Account) -> bytes:
         """Send the GET_PUBLIC_KEY instruction."""
