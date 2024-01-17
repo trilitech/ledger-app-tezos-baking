@@ -8,12 +8,7 @@ from ragger.backend import BackendInterface
 from ragger.error import ExceptionRAPDU
 from utils.account import Account, SigScheme, BipPath
 from utils.helper import BytesReader
-
-CMD_PART1 = "17777d8de5596705f1cb35b0247b9605a7c93a7ed5c0caa454d4f4ff39eb411d"
-
-CMD_PART2 = "00cf49f66b9ea137e11818f2a78b4b6fc9895b4e50830ae58003c35000c0843d0000eac6c762212c4110" \
-    "f221ec8fcb05ce83db95845700"
-
+from utils.message import Message
 
 class Version:
     """Class representing the version."""
@@ -104,7 +99,7 @@ class Hwm:
         highest_round = \
             None if reader.has_finished() else \
             reader.read_int(4)
-        assert reader.has_finished()
+        reader.assert_finished()
 
         return Hwm(highest_level, highest_round)
 
@@ -141,28 +136,6 @@ class Index(IntEnum):
     FIRST = 0x00
     OTHER = 0x01
     LAST  = 0x81
-
-
-class OperationTag(IntEnum):
-    """Class representing the operation tag."""
-
-    PROPOSAL            = 5
-    BALLOT              = 6
-    BABYLON_REVEAL      = 107
-    BABYLON_TRANSACTION = 108
-    BABYLON_ORIGINATION = 109
-    BABYLON_DELEGATION  = 110
-    ATHENS_REVEAL       = 7
-    ATHENS_TRANSACTION  = 8
-    ATHENS_ORIGINATION  = 9
-    ATHENS_DELEGATION   = 10
-
-
-class MagicByte(IntEnum):
-    """Class representing the magic byte."""
-
-    BLOCK  = 0x01
-    UNSAFE = 0x03
 
 
 class StatusCode(IntEnum):
@@ -303,21 +276,14 @@ class TezosClient:
         test_hwm = Hwm.from_bytes(reader.read_bytes(hwm_len))
         main_chain_id = reader.read_int(4)
 
-        assert reader.has_finished()
+        reader.assert_finished()
 
         return (main_chain_id, main_hwm, test_hwm)
 
     def sign_message(self,
                      account: Account,
-                     operation_tag: OperationTag) -> bytes:
+                     message: Message) -> bytes:
         """Send the SIGN instruction."""
-
-        data: bytes = b''
-
-        data += MagicByte.UNSAFE.to_bytes(1, byteorder='big')
-        data += bytes.fromhex(CMD_PART1)
-        data += operation_tag.to_bytes(1, byteorder='big')
-        data += bytes.fromhex(CMD_PART2)
 
         self._exchange(
             ins=Ins.SIGN,
@@ -327,4 +293,4 @@ class TezosClient:
         return self._exchange(
             ins=Ins.SIGN,
             index=Index.LAST,
-            payload=data)
+            payload=bytes(message))
