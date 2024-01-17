@@ -160,27 +160,31 @@ def test_get_auth_key_with_curve(
     assert sig_scheme == account.sig_scheme, \
         f"Expected {account.sig_scheme.name} but got {sig_scheme.name}"
 
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_get_public_key_baking(
+        account: Account,
         client: TezosClient,
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
-    """Test the PROMPT_PUBLIC_KEY instruction."""
+    """Test the AUTHORIZE_BAKING instruction."""
 
-    if firmware.device == "nanos":
-        instructions = get_nano_review_instructions(5)
-    elif firmware.device.startswith("nano"):
-        instructions = get_nano_review_instructions(4)
-    else:
-        instructions = get_stax_address_instructions()
+    instructions = get_public_key_flow_instructions(firmware)
 
     send_and_navigate(
-        send=lambda: client.get_public_key_prompt(DEFAULT_ACCOUNT),
+        send=lambda: client.authorize_baking(account),
+        navigate=lambda: navigator.navigate(instructions)
+    )
+
+    public_key = send_and_navigate(
+        send=lambda: client.authorize_baking(None),
         navigate=lambda: navigator.navigate_and_compare(
             TESTS_ROOT_DIR,
             test_name,
-            instructions))
+            instructions)
+    )
 
+    account.check_public_key(public_key)
 
 def test_setup_baking_address(
         client: TezosClient,

@@ -170,12 +170,20 @@ class TezosClient:
             f"Should end with by '\x00' but got {raw_commit.hex()}"
         return raw_commit[:-1].decode('utf-8')
 
-    def authorize_baking(self, account: Account) -> bytes:
+    def authorize_baking(self, account: Optional[Account]) -> bytes:
         """Send the AUTHORIZE_BAKING instruction."""
+
+        sig_scheme=SigScheme.DEFAULT # None will raise EXC_WRONG_PARAM
+        payload=b''
+
+        if account is not None:
+            sig_scheme=account.sig_scheme
+            payload=bytes(account.path)
+
         return self._exchange(
             ins=Ins.AUTHORIZE_BAKING,
-            sig_scheme=account.sig_scheme,
-            payload=bytes(account.path))
+            sig_scheme=sig_scheme,
+            payload=payload)
 
     def deauthorize(self) -> None:
         """Send the DEAUTHORIZE instruction."""

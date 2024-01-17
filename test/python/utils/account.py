@@ -29,6 +29,7 @@ class SigScheme(IntEnum):
     SECP256K1     = 0x01
     SECP256R1     = 0x02
     BIP32_ED25519 = 0x03
+    DEFAULT       = ED25519
 
 class BipPath:
     """Class representing mnemonic path."""
