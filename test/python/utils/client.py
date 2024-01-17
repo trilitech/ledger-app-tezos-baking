@@ -325,3 +325,17 @@ class TezosClient:
             data[:Message.HASH_SIZE],
             data[Message.HASH_SIZE:]
         )
+
+    def hmac(self,
+             account: Account,
+             message: bytes) -> bytes:
+        """Send the HMAC instruction."""
+
+        data: bytes = b''
+        data += bytes(account.path)
+        data += message
+
+        return self._exchange(
+            ins=Ins.HMAC,
+            sig_scheme=account.sig_scheme,
+            payload=data)
