@@ -9,7 +9,6 @@ from utils.account import Account, SigScheme, BipPath
 from utils.helper import (
     get_nano_review_instructions,
     get_stax_review_instructions,
-    get_stax_address_instructions,
     get_public_key_flow_instructions,
     send_and_navigate,
     get_current_commit
@@ -216,29 +215,31 @@ def test_setup_baking_address(
             instructions))
 
 
-def test_get_public_key_silent(client: TezosClient) -> None:
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+def test_get_public_key_silent(account: Account, client: TezosClient) -> None:
     """Test the GET_PUBLIC_KEY instruction."""
 
-    client.get_public_key_silent(DEFAULT_ACCOUNT)
+    public_key = client.get_public_key_silent(account)
+
+    account.check_public_key(public_key)
 
 
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_get_public_key_prompt(
+        account: Account,
         client: TezosClient,
         firmware: Firmware,
         navigator: Navigator,
         test_name: Path) -> None:
     """Test the PROMPT_PUBLIC_KEY instruction."""
 
-    if firmware.device == "nanos":
-        instructions = get_nano_review_instructions(5)
-    elif firmware.device.startswith("nano"):
-        instructions = get_nano_review_instructions(4)
-    else:
-        instructions = get_stax_address_instructions()
+    instructions = get_public_key_flow_instructions(firmware)
 
-    send_and_navigate(
-        send=lambda: client.get_public_key_prompt(DEFAULT_ACCOUNT),
+    public_key = send_and_navigate(
+        send=lambda: client.get_public_key_prompt(account),
         navigate=lambda: navigator.navigate_and_compare(
             TESTS_ROOT_DIR,
             test_name,
             instructions))
+
+    account.check_public_key(public_key)
