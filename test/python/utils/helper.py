@@ -108,3 +108,19 @@ def get_public_key_flow_instructions(firmware: Firmware):
     if firmware.is_nano:
         return get_nano_review_instructions(4)
     return get_stax_address_instructions()
+
+def get_setup_app_context_instructions(firmware: Firmware):
+    """Generate the instructions needed to setup app context."""
+    if firmware.device == "nanos":
+        return get_nano_review_instructions(8)
+    if firmware.is_nano:
+        return get_nano_review_instructions(7)
+    return get_stax_review_instructions(2)
+
+def get_reset_app_context_instructions(firmware: Firmware):
+    """Generate the instructions needed to reset app context."""
+    if firmware.device == "nanos":
+        return get_nano_review_instructions(3)
+    if firmware.is_nano:
+        return get_nano_review_instructions(3)
+    return get_stax_review_instructions(2)

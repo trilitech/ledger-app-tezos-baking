@@ -64,6 +64,50 @@ class Version:
 
         return Version(Version.AppKind(app_kind), major, minor, patch)
 
+class Hwm:
+    """Class representing app high water mark."""
+
+    highest_level: int
+    highest_round: Optional[int]
+
+    def __init__(self,
+                 highest_level: int,
+                 highest_round: Optional[int] = None,
+            ):
+        self.highest_level = highest_level
+        self.highest_round = highest_round
+
+    def __repr__(self) -> str :
+        return f"(Level={self.highest_level}, Round={self.highest_round})"
+
+    def __eq__(self, other: object):
+        if not isinstance(other, Hwm):
+            return NotImplemented
+        return \
+            self.highest_level == other.highest_level and \
+            self.highest_round == other.highest_round
+
+    def __bytes__(self) -> bytes :
+        return self.highest_level.to_bytes(4, byteorder='big')
+
+    @staticmethod
+    def raw_length(migrated: bool) -> int:
+        """Return the size of raw representation of hwm."""
+        return 8 if migrated else 4
+
+    @classmethod
+    def from_bytes(cls, raw_hwm: bytes) -> 'Hwm':
+        """Create a hwm from bytes."""
+
+        reader = BytesReader(raw_hwm)
+        highest_level = reader.read_int(4)
+        highest_round = \
+            None if reader.has_finished() else \
+            reader.read_int(4)
+        assert reader.has_finished()
+
+        return Hwm(highest_level, highest_round)
+
 class Cla(IntEnum):
     """Class representing APDU class."""
 
@@ -211,35 +255,57 @@ class TezosClient:
 
     def get_public_key_prompt(self, account: Account) -> bytes:
         """Send the PROMPT_PUBLIC_KEY instruction."""
-        return self._exchange(
+        return  self._exchange(
             ins=Ins.PROMPT_PUBLIC_KEY,
             sig_scheme=account.sig_scheme,
             payload=bytes(account.path))
 
-    def reset_app_context(self, reset_level: int) -> bytes:
+    def reset_app_context(self, reset_level: int) -> None:
         """Send the RESET instruction."""
         reset_level_raw = reset_level.to_bytes(4, byteorder='big')
-        return self._exchange(
+        data = self._exchange(
             ins=Ins.RESET,
             payload=reset_level_raw)
+        assert data == b'', f"No data expected but got {data.hex()}"
 
-    def setup_baking_address(self,
-                             account: Account,
-                             chain: int,
-                             main_hwm: int,
-                             test_hwm: int) -> bytes:
+
+    def setup_app_context(self,
+                          account: Account,
+                          main_chain_id: int,
+                          main_hwm: Hwm,
+                          test_hwm: Hwm) -> bytes:
         """Send the SETUP instruction."""
 
         data: bytes = b''
-        data += chain.to_bytes(4, byteorder='big')
-        data += main_hwm.to_bytes(4, byteorder='big')
-        data += test_hwm.to_bytes(4, byteorder='big')
+        data += main_chain_id.to_bytes(4, byteorder='big')
+        data += bytes(main_hwm)
+        data += bytes(test_hwm)
         data += bytes(account.path)
 
         return self._exchange(
             ins=Ins.SETUP,
             sig_scheme=account.sig_scheme,
             payload=data)
+
+    def get_main_hwm(self) -> Hwm:
+        """Send the QUERY_MAIN_HWM instruction."""
+        return Hwm.from_bytes(self._exchange(ins=Ins.QUERY_MAIN_HWM))
+
+    def get_all_hwm(self) -> Tuple[int, Hwm, Hwm]:
+        """Send the QUERY_ALL_HWM instruction."""
+        raw_data = self._exchange(ins=Ins.QUERY_ALL_HWM)
+
+        reader = BytesReader(raw_data)
+        migrated = len(raw_data) == 2 * Hwm.raw_length(migrated=True) + 4
+        hwm_len = Hwm.raw_length(migrated=migrated)
+
+        main_hwm = Hwm.from_bytes(reader.read_bytes(hwm_len))
+        test_hwm = Hwm.from_bytes(reader.read_bytes(hwm_len))
+        main_chain_id = reader.read_int(4)
+
+        assert reader.has_finished()
+
+        return (main_chain_id, main_hwm, test_hwm)
 
     def sign_message(self,
                      account: Account,

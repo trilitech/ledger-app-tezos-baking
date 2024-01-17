@@ -4,12 +4,12 @@ from pathlib import Path
 import pytest
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator
-from utils.client import TezosClient, Version
+from utils.client import TezosClient, Version, Hwm
 from utils.account import Account, SigScheme, BipPath
 from utils.helper import (
-    get_nano_review_instructions,
-    get_stax_review_instructions,
     get_public_key_flow_instructions,
+    get_setup_app_context_instructions,
+    get_reset_app_context_instructions,
     send_and_navigate,
     get_current_commit
 )
@@ -45,29 +45,6 @@ def test_git(client: TezosClient) -> None:
     assert commit == expected_commit, \
         f"Expected {expected_commit} but got {commit}"
 
-
-def test_reset_hwm(
-        client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator,
-        test_name: Path) -> None:
-    """Test the RESET instruction."""
-
-    if firmware.device == "nanos":
-        instructions = get_nano_review_instructions(3)
-    elif firmware.device.startswith("nano"):
-        instructions = get_nano_review_instructions(3)
-    else:
-        instructions = get_stax_review_instructions(2)
-
-    reset_level: int = 0
-
-    send_and_navigate(
-        send=lambda: client.reset_app_context(reset_level),
-        navigate=lambda: navigator.navigate_and_compare(
-            TESTS_ROOT_DIR,
-            test_name,
-            instructions))
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
@@ -185,35 +162,6 @@ def test_get_public_key_baking(
 
     account.check_public_key(public_key)
 
-def test_setup_baking_address(
-        client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator,
-        test_name: Path) -> None:
-    """Test the SETUP instruction."""
-
-    if firmware.device == "nanos":
-        instructions = get_nano_review_instructions(8)
-    elif firmware.device.startswith("nano"):
-        instructions = get_nano_review_instructions(7)
-    else:
-        instructions = get_stax_review_instructions(2)
-
-    chain: int = 0
-    main_hwm: int = 0
-    test_hwm: int = 0
-
-    send_and_navigate(
-        send=lambda: client.setup_baking_address(
-            DEFAULT_ACCOUNT,
-            chain,
-            main_hwm,
-            test_hwm),
-        navigate=lambda: navigator.navigate_and_compare(
-            TESTS_ROOT_DIR,
-            test_name,
-            instructions))
-
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_get_public_key_silent(account: Account, client: TezosClient) -> None:
@@ -243,3 +191,114 @@ def test_get_public_key_prompt(
             instructions))
 
     account.check_public_key(public_key)
+
+
+def test_reset_app_context(
+        client: TezosClient,
+        firmware,
+        navigator,
+        test_name) -> None:
+    """Test the RESET instruction."""
+
+    instructions = get_reset_app_context_instructions(firmware)
+
+    reset_level: int = 0
+
+    send_and_navigate(
+        send=lambda: client.reset_app_context(reset_level),
+        navigate=lambda: navigator.navigate_and_compare(
+            TESTS_ROOT_DIR,
+            test_name,
+            instructions)
+    )
+
+
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+def test_setup_app_context(
+        account: Account,
+        client: TezosClient,
+        firmware: Firmware,
+        navigator: Navigator,
+        test_name: Path) -> None:
+    """Test the SETUP instruction."""
+
+    main_chain_id: int = 0
+    main_hwm = Hwm(0)
+    test_hwm = Hwm(0)
+
+    instructions = get_setup_app_context_instructions(firmware)
+
+    public_key = send_and_navigate(
+        send=lambda: client.setup_app_context(
+            account,
+            main_chain_id,
+            main_hwm,
+            test_hwm),
+        navigate=lambda: navigator.navigate_and_compare(
+            TESTS_ROOT_DIR,
+            test_name,
+            instructions))
+
+    account.check_public_key(public_key)
+
+
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+def test_get_main_hwm(
+        account: Account,
+        client: TezosClient,
+        firmware: Firmware,
+        navigator: Navigator) -> None:
+    """Test the QUERY_MAIN_HWM instruction."""
+
+    main_chain_id: int = 0
+    main_hwm = Hwm(0)
+    test_hwm = Hwm(0)
+
+    instructions = get_setup_app_context_instructions(firmware)
+
+    send_and_navigate(
+        send=lambda: client.setup_app_context(
+            account,
+            main_chain_id,
+            main_hwm,
+            test_hwm),
+        navigate=lambda: navigator.navigate(instructions))
+
+    received_main_hwm = client.get_main_hwm()
+
+    assert received_main_hwm == main_hwm, \
+        f"Expected main hmw {main_hwm} but got {received_main_hwm}"
+
+
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+def test_get_all_hwm(
+        account: Account,
+        client: TezosClient,
+        firmware: Firmware,
+        navigator: Navigator) -> None:
+    """Test the QUERY_ALL_HWM instruction."""
+
+    main_chain_id: int = 0
+    main_hwm = Hwm(0)
+    test_hwm = Hwm(0)
+
+    instructions = get_setup_app_context_instructions(firmware)
+
+    send_and_navigate(
+        send=lambda: client.setup_app_context(
+            account,
+            main_chain_id,
+            main_hwm,
+            test_hwm),
+        navigate=lambda: navigator.navigate(instructions))
+
+    received_main_chain_id, received_main_hwm, received_test_hwm = client.get_all_hwm()
+
+    assert received_main_chain_id == main_chain_id, \
+        f"Expected main chain id {main_chain_id} but got {received_main_chain_id}"
+
+    assert received_main_hwm == main_hwm, \
+        f"Expected main hmw {main_hwm} but got {received_main_hwm}"
+
+    assert received_test_hwm == test_hwm, \
+        f"Expected test hmw {test_hwm} but got {received_test_hwm}"
