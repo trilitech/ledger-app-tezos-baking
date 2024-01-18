@@ -34,6 +34,12 @@ class BytesReader:
         self.offset += size
         return res
 
+    def read_bytes(self, size: int) -> bytes:
+        """Read a size-byte-long bytes."""
+        res = self.data[self.offset : self.offset+size]
+        self.offset += size
+        return res
+
 def get_current_commit() -> str:
     """Return the current commit."""
     repo = git.Repo(".")

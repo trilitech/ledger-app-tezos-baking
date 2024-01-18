@@ -18,7 +18,9 @@ from enum import IntEnum
 from typing import Union
 import base58
 from pytezos import pytezos
-from ragger.bip import pack_derivation_path
+from bip_utils.bip.bip32.bip32_path import Bip32Path, Bip32PathParser
+from bip_utils.bip.bip32.bip32_key_data import Bip32KeyIndex
+from utils.helper import BytesReader
 
 class SigScheme(IntEnum):
     """Class representing signature scheme."""
@@ -27,6 +29,47 @@ class SigScheme(IntEnum):
     SECP256K1     = 0x01
     SECP256R1     = 0x02
     BIP32_ED25519 = 0x03
+
+class BipPath:
+    """Class representing mnemonic path."""
+    value: Bip32Path
+
+    def __init__(self, value: Bip32Path):
+        self.value = value
+
+    def __eq__(self, other: object):
+        if not isinstance(other, BipPath):
+            return NotImplemented
+        return \
+            self.value.m_elems == other.value.m_elems and \
+            self.value.m_is_absolute == other.value.m_is_absolute
+
+    def __bytes__(self) -> bytes:
+        res = self.value.Length().to_bytes(1, byteorder='big')
+        for elem in self.value:
+            res += bytes(elem)
+        return res
+
+    def __repr__(self) -> str:
+        return str(self.value)
+
+    @classmethod
+    def from_string(cls, path: str) -> 'BipPath':
+        """Return the path from its string representation."""
+        return BipPath(Bip32PathParser.Parse(path))
+
+    @classmethod
+    def from_bytes(cls, raw_path: bytes) -> 'BipPath':
+        """Create a path from bytes."""
+        reader = BytesReader(raw_path)
+        path_len = reader.read_int(1)
+        elems = []
+        for _ in range(path_len):
+            elems.append(
+                Bip32KeyIndex.FromBytes(
+                    reader.read_bytes(Bip32KeyIndex.FixedLength())
+                ))
+        return BipPath(Bip32Path(elems))
 
 class Signature:
     """Class representing signature."""
@@ -78,13 +121,15 @@ class Signature:
 
 class Account:
     """Class representing account."""
+
     def __init__(self,
-                 path: Union[str, bytes],
+                 path: Union[BipPath, str, bytes],
                  sig_scheme: SigScheme,
                  public_key: str):
-        self.path: bytes = \
-            pack_derivation_path(path) if isinstance(path, str) \
-            else path
+        self.path: BipPath = \
+            BipPath.from_string(path) if isinstance(path, str) else \
+            BipPath.from_bytes(path) if isinstance(path, bytes) else \
+            path
         self.sig_scheme: SigScheme = sig_scheme
         self.public_key: str = public_key
 
