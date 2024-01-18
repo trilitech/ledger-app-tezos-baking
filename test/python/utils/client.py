@@ -1,8 +1,7 @@
 """Module providing a tezos client."""
 
-from typing import Generator, Optional
+from typing import Optional
 from enum import IntEnum
-from contextlib import contextmanager
 
 from ragger.utils import RAPDU
 from ragger.backend import BackendInterface
@@ -98,7 +97,6 @@ class TezosClient:
 
     def __init__(self, backend) -> None:
         self._client: BackendInterface = backend
-        self._last_async_response : Optional[bytes] = None
 
     def _exchange(self,
                   ins: Ins,
@@ -122,82 +120,40 @@ class TezosClient:
 
         return rapdu.data
 
-    @contextmanager
-    def _exchange_async(self,
-                        ins: Ins,
-                        index: Index = Index.FIRST,
-                        sig_scheme: Optional[SigScheme] = None,
-                        payload: bytes = b'') -> Generator[None, None, None]:
-
-        assert len(payload) <= MAX_APDU_SIZE, "Apdu too large"
-
-        # Set to a non-existent value to ensure that p2 is unused
-        p2: int = sig_scheme if sig_scheme is not None else 0xff
-
-        with self._client.exchange_async(Cla.DEFAULT,
-                                         ins,
-                                         p1=index,
-                                         p2=p2,
-                                         data=payload):
-            yield
-
-        rapdu: Optional[RAPDU] = self._client.last_async_response
-
-        assert rapdu is not None, "No response found"
-
-        if rapdu.status != StatusCode.OK:
-            raise ExceptionRAPDU(rapdu.status, rapdu.data)
-
-        self._last_async_response = rapdu.data
-
-    def get_async_response(self) -> bytes:
-        """Get the last response received after a call to `exchange_async`."""
-        assert self._last_async_response is not None, "No response found"
-        return self._last_async_response
-
-    @contextmanager
-    def authorize_baking(self, derivation_path: bytes) -> Generator[None, None, None]:
+    def authorize_baking(self, derivation_path: bytes) -> bytes:
         """Send the AUTHORIZE_BAKING instruction."""
-        with self._exchange_async(
-                ins=Ins.AUTHORIZE_BAKING,
-                sig_scheme=SigScheme.ED25519,
-                payload=derivation_path):
-            yield
+        return self._exchange(
+            ins=Ins.AUTHORIZE_BAKING,
+            sig_scheme=SigScheme.ED25519,
+            payload=derivation_path)
 
-    @contextmanager
-    def get_public_key_silent(self, derivation_path: bytes) -> Generator[None, None, None]:
+    def get_public_key_silent(self, derivation_path: bytes) -> bytes:
         """Send the GET_PUBLIC_KEY instruction."""
-        with self._exchange_async(
-                ins=Ins.GET_PUBLIC_KEY,
-                sig_scheme=SigScheme.ED25519,
-                payload=derivation_path):
-            yield
+        return self._exchange(
+            ins=Ins.GET_PUBLIC_KEY,
+            sig_scheme=SigScheme.ED25519,
+            payload=derivation_path)
 
-    @contextmanager
-    def get_public_key_prompt(self, derivation_path: bytes) -> Generator[None, None, None]:
+    def get_public_key_prompt(self, derivation_path: bytes) -> bytes:
         """Send the PROMPT_PUBLIC_KEY instruction."""
-        with self._exchange_async(
-                ins=Ins.PROMPT_PUBLIC_KEY,
-                sig_scheme=SigScheme.ED25519,
-                payload=derivation_path):
-            yield
+        return self._exchange(
+            ins=Ins.PROMPT_PUBLIC_KEY,
+            sig_scheme=SigScheme.ED25519,
+            payload=derivation_path)
 
-    @contextmanager
-    def reset_app_context(self, reset_level: int) -> Generator[None, None, None]:
+    def reset_app_context(self, reset_level: int) -> bytes:
         """Send the RESET instruction."""
         reset_level_raw = reset_level.to_bytes(4, byteorder='big')
-        with self._exchange_async(
-                ins=Ins.RESET,
-                sig_scheme=SigScheme.ED25519,
-                payload=reset_level_raw):
-            yield
+        return self._exchange(
+            ins=Ins.RESET,
+            sig_scheme=SigScheme.ED25519,
+            payload=reset_level_raw)
 
-    @contextmanager
     def setup_baking_address(self,
                              derivation_path: bytes,
                              chain: int,
                              main_hwm: int,
-                             test_hwm: int) -> Generator[None, None, None]:
+                             test_hwm: int) -> bytes:
         """Send the SETUP instruction."""
 
         data: bytes = b''
@@ -206,16 +162,14 @@ class TezosClient:
         data += test_hwm.to_bytes(4, byteorder='big')
         data += derivation_path
 
-        with self._exchange_async(
-                ins=Ins.SETUP,
-                sig_scheme=SigScheme.ED25519,
-                payload=data):
-            yield
+        return self._exchange(
+            ins=Ins.SETUP,
+            sig_scheme=SigScheme.ED25519,
+            payload=data)
 
-    @contextmanager
     def sign_message(self,
                      derivation_path: bytes,
-                     operation_tag: OperationTag) -> Generator[None, None, None]:
+                     operation_tag: OperationTag) -> bytes:
         """Send the SIGN instruction."""
 
         data: bytes = b''
@@ -230,9 +184,8 @@ class TezosClient:
             sig_scheme=SigScheme.ED25519,
             payload=derivation_path)
 
-        with self._exchange_async(
-                ins=Ins.SIGN,
-                index=Index.LAST,
-                sig_scheme=SigScheme.ED25519,
-                payload=data):
-            yield
+        return self._exchange(
+            ins=Ins.SIGN,
+            index=Index.LAST,
+            sig_scheme=SigScheme.ED25519,
+            payload=data)

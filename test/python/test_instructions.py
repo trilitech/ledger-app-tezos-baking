@@ -9,7 +9,8 @@ from utils.client import TEZ_PACKED_DERIVATION_PATH
 from utils.helper import (
     get_nano_review_instructions,
     get_stax_review_instructions,
-    get_stax_address_instructions
+    get_stax_address_instructions,
+    send_and_navigate
 )
 
 TESTS_ROOT_DIR = Path(__file__).parent
@@ -33,10 +34,12 @@ def test_reset_hwm(
 
     reset_level: int = 0
 
-    with tez.reset_app_context(reset_level):
-        navigator.navigate_and_compare(TESTS_ROOT_DIR,
-                                       test_name,
-                                       instructions)
+    send_and_navigate(
+        send=lambda: tez.reset_app_context(reset_level),
+        navigate=lambda: navigator.navigate_and_compare(
+            TESTS_ROOT_DIR,
+            test_name,
+            instructions))
 
 
 def test_authorize_baking(
@@ -55,10 +58,12 @@ def test_authorize_baking(
     else:
         instructions = get_stax_address_instructions()
 
-    with tez.authorize_baking(TEZ_PACKED_DERIVATION_PATH):
-        navigator.navigate_and_compare(TESTS_ROOT_DIR,
-                                       test_name,
-                                       instructions)
+    send_and_navigate(
+        send=lambda: tez.authorize_baking(TEZ_PACKED_DERIVATION_PATH),
+        navigate=lambda: navigator.navigate_and_compare(
+            TESTS_ROOT_DIR,
+            test_name,
+            instructions))
 
 
 def test_get_public_key_baking(
@@ -77,10 +82,12 @@ def test_get_public_key_baking(
     else:
         instructions = get_stax_address_instructions()
 
-    with tez.get_public_key_prompt(TEZ_PACKED_DERIVATION_PATH):
-        navigator.navigate_and_compare(TESTS_ROOT_DIR,
-                                       test_name,
-                                       instructions)
+    send_and_navigate(
+        send=lambda: tez.get_public_key_prompt(TEZ_PACKED_DERIVATION_PATH),
+        navigate=lambda: navigator.navigate_and_compare(
+            TESTS_ROOT_DIR,
+            test_name,
+            instructions))
 
 
 def test_setup_baking_address(
@@ -103,10 +110,16 @@ def test_setup_baking_address(
     main_hwm: int = 0
     test_hwm: int = 0
 
-    with tez.setup_baking_address(TEZ_PACKED_DERIVATION_PATH, chain, main_hwm, test_hwm):
-        navigator.navigate_and_compare(TESTS_ROOT_DIR,
-                                       test_name,
-                                       instructions)
+    send_and_navigate(
+        send=lambda: tez.setup_baking_address(
+            TEZ_PACKED_DERIVATION_PATH,
+            chain,
+            main_hwm,
+            test_hwm),
+        navigate=lambda: navigator.navigate_and_compare(
+            TESTS_ROOT_DIR,
+            test_name,
+            instructions))
 
 
 def test_get_public_key_silent(backend: BackendInterface) -> None:
@@ -114,8 +127,7 @@ def test_get_public_key_silent(backend: BackendInterface) -> None:
 
     tez = TezosClient(backend)
 
-    with tez.get_public_key_silent(TEZ_PACKED_DERIVATION_PATH):
-        pass
+    tez.get_public_key_silent(TEZ_PACKED_DERIVATION_PATH)
 
 
 def test_get_public_key_prompt(
@@ -134,7 +146,9 @@ def test_get_public_key_prompt(
     else:
         instructions = get_stax_address_instructions()
 
-    with tez.get_public_key_prompt(TEZ_PACKED_DERIVATION_PATH):
-        navigator.navigate_and_compare(TESTS_ROOT_DIR,
-                                       test_name,
-                                       instructions)
+    send_and_navigate(
+        send=lambda: tez.get_public_key_prompt(TEZ_PACKED_DERIVATION_PATH),
+        navigate=lambda: navigator.navigate_and_compare(
+            TESTS_ROOT_DIR,
+            test_name,
+            instructions))
