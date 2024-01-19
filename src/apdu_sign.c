@@ -24,7 +24,8 @@
 static inline void conditional_init_hash_state(blake2b_hash_state_t *const state) {
     check_null(state);
     if (!state->initialized) {
-        cx_blake2b_init(&state->state, SIGN_HASH_SIZE * 8);  // cx_blake2b_init takes size in bits.
+        // cx_blake2b_init takes size in bits.
+        CX_THROW(cx_blake2b_init_no_throw(&state->state, SIGN_HASH_SIZE * 8));
         state->initialized = true;
     }
 }
@@ -42,7 +43,8 @@ static void blake2b_incremental_hash(
     while (*out_length > B2B_BLOCKBYTES) {
         if (current - out > (int) out_size) THROW(EXC_MEMORY_ERROR);
         conditional_init_hash_state(state);
-        cx_hash((cx_hash_t *) &state->state, 0, current, B2B_BLOCKBYTES, NULL, 0);
+        CX_THROW(
+            cx_hash_no_throw((cx_hash_t *) &state->state, 0, current, B2B_BLOCKBYTES, NULL, 0));
         *out_length -= B2B_BLOCKBYTES;
         current += B2B_BLOCKBYTES;
     }
@@ -64,7 +66,8 @@ static void blake2b_finish_hash(
 
     conditional_init_hash_state(state);
     blake2b_incremental_hash(buff, buff_size, buff_length, state);
-    cx_hash((cx_hash_t *) &state->state, CX_LAST, buff, *buff_length, out, out_size);
+    CX_THROW(
+        cx_hash_no_throw((cx_hash_t *) &state->state, CX_LAST, buff, *buff_length, out, out_size));
 }
 
 static inline void clear_data(void) {
