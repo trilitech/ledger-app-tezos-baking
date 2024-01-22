@@ -13,4 +13,5 @@ jobs:
     uses: LedgerHQ/app-exchange/.github/workflows/reusable_swap_functional_tests.yml@develop
     with:
       branch_for_tezos: ${{ github.ref }}
+      repo_for_tezos: ${{ github.repository }}
       test_filter: '"XLM or xlm or Tezos or tezos"'
