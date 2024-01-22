@@ -14,10 +14,9 @@
 
 #include <string.h>
 
-__attribute__((noreturn)) void prompt_address(
-    bool baking,
-    ui_callback_t ok_cb,
-    ui_callback_t cxl_cb) {
+__attribute__((noreturn)) void prompt_address(bool baking,
+                                              ui_callback_t ok_cb,
+                                              ui_callback_t cxl_cb) {
     init_screen_stack();
 
 #ifdef BAKING_APP
