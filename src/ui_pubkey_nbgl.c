@@ -47,11 +47,7 @@ static void verify_address(void) {
     nbgl_useCaseAddressConfirmation(transactionContext.buffer, confirmation_callback);
 }
 
-void prompt_address(
-    bool baking,
-    ui_callback_t ok_cb,
-    ui_callback_t cxl_cb) {
-
+void prompt_address(bool baking, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
     transactionContext.ok_cb = ok_cb;
     transactionContext.cxl_cb = cxl_cb;
 
