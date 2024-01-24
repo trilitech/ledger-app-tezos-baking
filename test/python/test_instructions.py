@@ -13,6 +13,7 @@ from utils.helper import (
     send_and_navigate,
     get_current_commit
 )
+from utils.message import Preattestation
 
 TESTS_ROOT_DIR = Path(__file__).parent
 
@@ -302,3 +303,46 @@ def test_get_all_hwm(
 
     assert received_test_hwm == test_hwm, \
         f"Expected test hmw {test_hwm} but got {received_test_hwm}"
+
+
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("with_hash", [False, True])
+def test_sign_preattestation(
+        account: Account,
+        with_hash: bool,
+        client: TezosClient,
+        firmware: Firmware,
+        navigator: Navigator) -> None:
+    """Test the SIGN(_WITH_HASH) instruction on preattestation."""
+
+    main_chain_id: int = 0
+    main_hwm = Hwm(0)
+    test_hwm = Hwm(0)
+
+    instructions = get_setup_app_context_instructions(firmware)
+
+    send_and_navigate(
+        send=lambda: client.setup_app_context(
+            account,
+            main_chain_id,
+            main_hwm,
+            test_hwm),
+        navigate=lambda: navigator.navigate(instructions))
+
+    preattestation = Preattestation(
+        chain_id=main_chain_id,
+        branch="0000000000000000000000000000000000000000000000000000000000000000",
+        slot=0,
+        op_level=0,
+        op_round=0,
+        block_payload_hash="0000000000000000000000000000000000000000000000000000000000000000"
+    )
+
+    if with_hash:
+        signature = client.sign_message(account, preattestation)
+        account.check_signature(signature, bytes(preattestation))
+    else:
+        preattestation_hash, signature = client.sign_message_with_hash(account, preattestation)
+        assert preattestation_hash == preattestation.hash, \
+            f"Expected hash {preattestation.hash.hex()} but got {preattestation_hash.hex()}"
+        account.check_signature(signature, bytes(preattestation))

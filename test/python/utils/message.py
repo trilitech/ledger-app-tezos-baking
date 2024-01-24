@@ -39,6 +39,15 @@ class Message(ABC):
     def __bytes__(self) -> bytes:
         return self.raw()
 
+def scrub(value: Union[str, bytes]) -> bytes:
+    """Helping function to handle str as bytes."""
+    return value if isinstance(value, bytes) else \
+        bytes.fromhex(value)
+
+def assert_data_size(name: str, data: bytes, size: int):
+    assert len(data) == size, \
+        f"Wrong {name} size: {data.hex()} should be {size}-bytes long."
+
 class RawMessage(Message):
     """Class representing a raw message."""
 
@@ -75,3 +84,41 @@ class OperationTag(IntEnum):
     ATHENS_TRANSACTION  = 8
     ATHENS_ORIGINATION  = 9
     ATHENS_DELEGATION   = 10
+    PREATTESTATION      = 20
+
+class Preattestation(Message):
+    """Class representing a preattestation."""
+    chain_id: int
+    branch: bytes
+    slot: int
+    op_level: int
+    op_round: int
+    block_payload_hash: bytes
+
+    def __init__(self,
+                 chain_id: int,
+                 branch: Union[str, bytes],
+                 slot: int,
+                 op_level: int,
+                 op_round: int,
+                 block_payload_hash: Union[str, bytes]):
+        self.chain_id = chain_id
+        self.branch = scrub(branch)
+        assert_data_size("branch", self.branch, 32)
+        self.slot = slot
+        self.op_level = op_level
+        self.op_round = op_round
+        self.block_payload_hash = scrub(block_payload_hash)
+        assert_data_size("block_payload_hash", self.block_payload_hash, 32)
+
+    def raw(self) -> bytes:
+        raw = b''
+        raw += MagicByte.TENDERBAKE_PREENDORSEMENT.to_bytes(1, byteorder='big')
+        raw += self.chain_id.to_bytes(4, byteorder='big')
+        raw += self.branch
+        raw += OperationTag.PREATTESTATION.to_bytes(1, byteorder='big')
+        raw += self.slot.to_bytes(2, byteorder='big')
+        raw += self.op_level.to_bytes(4, byteorder='big')
+        raw += self.op_round.to_bytes(4, byteorder='big')
+        raw += self.block_payload_hash
+        return raw

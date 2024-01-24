@@ -290,7 +290,38 @@ class TezosClient:
             sig_scheme=account.sig_scheme,
             payload=bytes(account.path))
 
-        return self._exchange(
+        signature = self._exchange(
             ins=Ins.SIGN,
             index=Index.LAST,
             payload=bytes(message))
+
+        assert len(signature) == 64, \
+            f"Signatures should be {64} bytes long " \
+            f"but {signature.hex()} is {len(signature)} bytes long"
+
+        return signature
+
+    def sign_message_with_hash(self,
+                     account: Account,
+                     message: Message) -> Tuple[bytes, bytes]:
+        """Send the SIGN_WITH_HASH instruction."""
+
+        self._exchange(
+            ins=Ins.SIGN_WITH_HASH,
+            sig_scheme=account.sig_scheme,
+            payload=bytes(account.path))
+
+        data = self._exchange(
+            ins=Ins.SIGN_WITH_HASH,
+            index=Index.LAST,
+            payload=bytes(message))
+
+        assert len(data) == Message.HASH_SIZE + 64, \
+            f"The data is expected to be a hash followed by a signature.\n" \
+            f"Combined, it should be {Message.HASH_SIZE + 64} bytes long " \
+            f"but {data.hex()} is {len(data)} bytes long"
+
+        return (
+            data[:Message.HASH_SIZE],
+            data[Message.HASH_SIZE:]
+        )
