@@ -13,7 +13,13 @@ from utils.helper import (
     send_and_navigate,
     get_current_commit
 )
-from utils.message import Preattestation, Attestation
+from utils.message import (
+    Preattestation,
+    Attestation,
+    Fitness,
+    BlockHeader,
+    Block
+)
 
 TESTS_ROOT_DIR = Path(__file__).parent
 
@@ -389,3 +395,60 @@ def test_sign_attestation(
         assert attestation_hash == attestation.hash, \
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
+
+
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("with_hash", [False, True])
+def test_sign_block(
+        account: Account,
+        with_hash: bool,
+        client: TezosClient,
+        firmware: Firmware,
+        navigator: Navigator) -> None:
+    """Test the SIGN(_WITH_HASH) instruction on block."""
+
+    main_chain_id: int = 23
+    main_hwm = Hwm(0)
+    test_hwm = Hwm(0)
+
+    instructions = get_setup_app_context_instructions(firmware)
+
+    send_and_navigate(
+        send=lambda: client.setup_app_context(
+            account,
+            main_chain_id,
+            main_hwm,
+            test_hwm),
+        navigate=lambda: navigator.navigate(instructions))
+
+    fitness = Fitness(
+        level=3,
+        locked_round=7,
+        predecessor_round=11,
+        current_round=13
+    )
+
+    block_header = BlockHeader(
+        level=17,
+        predecessor="0000000000000000000000000000000000000000000000000000000000000000",
+        timestamp=0,
+        validation_pass=19,
+        operations_hash="0000000000000000000000000000000000000000000000000000000000000000",
+        fitness=fitness,
+        context="0000000000000000000000000000000000000000000000000000000000000000"
+    )
+
+    block = Block(
+        chain_id=main_chain_id,
+        header=block_header,
+        data=b''
+    )
+
+    if with_hash:
+        signature = client.sign_message(account, block)
+        account.check_signature(signature, bytes(block))
+    else:
+        block_hash, signature = client.sign_message_with_hash(account, block)
+        assert block_hash == block.hash, \
+            f"Expected hash {block.hash.hex()} but got {block_hash.hex()}"
+        account.check_signature(signature, bytes(block))

@@ -16,7 +16,7 @@
 from abc import ABC, abstractmethod
 from enum import IntEnum
 from hashlib import blake2b
-from typing import Union
+from typing import Optional, Union
 
 class Message(ABC):
     """Class representing a message."""
@@ -70,6 +70,13 @@ class MagicByte(IntEnum):
     TENDERBAKE_BLOCK          = 0x11
     TENDERBAKE_PREENDORSEMENT = 0x12
     TENDERBAKE_ENDORSEMENT    = 0x13
+
+class ConsensusProtocol(IntEnum):
+    """Class representing the consensus protocol."""
+
+    EMMY       = 0
+    EMMY_PLUS  = 1
+    TENDERBAKE = 2
 
 class OperationTag(IntEnum):
     """Class representing the operation tag."""
@@ -159,4 +166,93 @@ class Attestation(Message):
         raw += self.op_level.to_bytes(4, byteorder='big')
         raw += self.op_round.to_bytes(4, byteorder='big')
         raw += self.block_payload_hash
+        return raw
+
+class Fitness:
+    """Class representing a fitness."""
+    level: int
+    locked_round: Optional[int]
+    predecessor_round: int
+    current_round: int
+
+    def __init__(self,
+                 level: int,
+                 locked_round: Optional[int],
+                 predecessor_round: int,
+                 current_round: int):
+        self.level             = level
+        self.locked_round      = locked_round
+        self.predecessor_round = predecessor_round
+        self.current_round     = current_round
+
+    def __bytes__(self) -> bytes:
+        raw = b''
+        raw += self.level.to_bytes(4, byteorder='big')
+        if self.locked_round is not None:
+            raw += self.locked_round.to_bytes(4, byteorder='big')
+        raw += self.predecessor_round.to_bytes(4, byteorder='big')
+        raw += self.current_round.to_bytes(4, byteorder='big')
+        return len(raw).to_bytes(4, byteorder='big') + raw
+
+class BlockHeader:
+    """Class representing a block header."""
+    level: int
+    predecessor: bytes
+    timestamp: int
+    validation_pass: int
+    operations_hash: bytes
+    fitness: Fitness
+    context: bytes
+
+    def __init__(self,
+                 level: int,
+                 predecessor: Union[str, bytes],
+                 timestamp: int,
+                 validation_pass: int,
+                 operations_hash: Union[str, bytes],
+                 fitness: Fitness,
+                 context: Union[str, bytes]):
+        self.level = level
+        self.predecessor = scrub(predecessor)
+        assert_data_size("predecessor", self.predecessor, 32)
+        self.timestamp = timestamp
+        self.validation_pass = validation_pass
+        self.operations_hash = scrub(operations_hash)
+        assert_data_size("operations_hash", self.operations_hash, 32)
+        self.fitness = fitness
+        self.context = scrub(context)
+        assert_data_size("context", self.context, 32)
+
+    def __bytes__(self) -> bytes:
+        raw = b''
+        raw += self.level.to_bytes(4, byteorder='big')
+        raw += ConsensusProtocol.TENDERBAKE.to_bytes(1, byteorder='big')
+        raw += self.predecessor
+        raw += self.timestamp.to_bytes(8, byteorder='big')
+        raw += self.validation_pass.to_bytes(1, byteorder='big')
+        raw += self.operations_hash
+        raw += bytes(self.fitness)
+        raw += self.context
+        return raw
+
+class Block(Message):
+    """Class representing a block."""
+    chain_id: int
+    header: BlockHeader
+    data: bytes
+
+    def __init__(self,
+                 chain_id: int,
+                 header: BlockHeader,
+                 data: bytes):
+        self.chain_id = chain_id
+        self.header = header
+        self.data = data
+
+    def raw(self) -> bytes:
+        raw = b''
+        raw += MagicByte.TENDERBAKE_BLOCK.to_bytes(1, byteorder='big')
+        raw += self.chain_id.to_bytes(4, byteorder='big')
+        raw += bytes(self.header)
+        raw += self.data
         return raw
