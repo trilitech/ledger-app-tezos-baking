@@ -81,18 +81,19 @@ class ConsensusProtocol(IntEnum):
 class OperationTag(IntEnum):
     """Class representing the operation tag."""
 
-    PROPOSAL            = 5
-    BALLOT              = 6
-    BABYLON_REVEAL      = 107
-    BABYLON_TRANSACTION = 108
-    BABYLON_ORIGINATION = 109
-    BABYLON_DELEGATION  = 110
-    ATHENS_REVEAL       = 7
-    ATHENS_TRANSACTION  = 8
-    ATHENS_ORIGINATION  = 9
-    ATHENS_DELEGATION   = 10
-    PREATTESTATION      = 20
-    ATTESTATION         = 21
+    PROPOSAL             = 5
+    BALLOT               = 6
+    BABYLON_REVEAL       = 107
+    BABYLON_TRANSACTION  = 108
+    BABYLON_ORIGINATION  = 109
+    BABYLON_DELEGATION   = 110
+    ATHENS_REVEAL        = 7
+    ATHENS_TRANSACTION   = 8
+    ATHENS_ORIGINATION   = 9
+    ATHENS_DELEGATION    = 10
+    PREATTESTATION       = 20
+    ATTESTATION          = 21
+    ATTESTATION_WITH_DAL = 23
 
 class Preattestation(Message):
     """Class representing a preattestation."""
@@ -162,6 +163,46 @@ class Attestation(Message):
         raw += self.chain_id.to_bytes(4, byteorder='big')
         raw += self.branch
         raw += OperationTag.ATTESTATION.to_bytes(1, byteorder='big')
+        raw += self.slot.to_bytes(2, byteorder='big')
+        raw += self.op_level.to_bytes(4, byteorder='big')
+        raw += self.op_round.to_bytes(4, byteorder='big')
+        raw += self.block_payload_hash
+        return raw
+
+class AttestationDal(Message):
+    """Class representing an attestation + DAL."""
+    chain_id: int
+    branch: bytes
+    slot: int
+    op_level: int
+    op_round: int
+    block_payload_hash: bytes
+    dal_message: bytes
+
+    def __init__(self,
+                 chain_id: int,
+                 branch: Union[str,bytes],
+                 slot: int,
+                 op_level: int,
+                 op_round: int,
+                 block_payload_hash: Union[str,bytes],
+                 dal_message: Union[str,bytes]):
+        self.chain_id = chain_id
+        self.branch = scrub(branch)
+        assert_data_size("branch", self.branch, 32)
+        self.slot = slot
+        self.op_level = op_level
+        self.op_round = op_round
+        self.block_payload_hash = scrub(block_payload_hash)
+        assert_data_size("block_payload_hash", self.block_payload_hash, 32)
+        self.dal_message = scrub(dal_message)
+
+    def raw(self) -> bytes:
+        raw = b''
+        raw += MagicByte.TENDERBAKE_ENDORSEMENT.to_bytes(1, byteorder='big')
+        raw += self.chain_id.to_bytes(4, byteorder='big')
+        raw += self.branch
+        raw += OperationTag.ATTESTATION_WITH_DAL.to_bytes(1, byteorder='big')
         raw += self.slot.to_bytes(2, byteorder='big')
         raw += self.op_level.to_bytes(4, byteorder='big')
         raw += self.op_round.to_bytes(4, byteorder='big')
