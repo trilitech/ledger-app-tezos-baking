@@ -7,9 +7,7 @@ from ragger.navigator import Navigator
 from utils.client import TezosClient, Version, Hwm
 from utils.account import Account
 from utils.helper import (
-    get_public_key_flow_instructions,
-    get_setup_app_context_instructions,
-    get_reset_app_context_instructions,
+    Instructions,
     send_and_navigate,
     get_current_commit
 )
@@ -59,7 +57,7 @@ def test_authorize_baking(
         test_name: Path) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     public_key = send_and_navigate(
         send=lambda: client.authorize_baking(account),
@@ -80,7 +78,7 @@ def test_deauthorize(
         navigator: Navigator) -> None:
     """Test the DEAUTHORIZE instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.authorize_baking(account),
@@ -104,7 +102,7 @@ def test_get_auth_key(
         navigator: Navigator) -> None:
     """Test the QUERY_AUTH_KEY instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.authorize_baking(account),
@@ -124,7 +122,7 @@ def test_get_auth_key_with_curve(
         navigator: Navigator) -> None:
     """Test the QUERY_AUTH_KEY_WITH_CURVE instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.authorize_baking(account),
@@ -148,7 +146,7 @@ def test_get_public_key_baking(
         test_name: Path) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.authorize_baking(account),
@@ -184,7 +182,7 @@ def test_get_public_key_prompt(
         test_name: Path) -> None:
     """Test the PROMPT_PUBLIC_KEY instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     public_key = send_and_navigate(
         send=lambda: client.get_public_key_prompt(account),
@@ -203,7 +201,7 @@ def test_reset_app_context(
         test_name) -> None:
     """Test the RESET instruction."""
 
-    instructions = get_reset_app_context_instructions(firmware)
+    instructions = Instructions.get_reset_app_context_instructions(firmware)
 
     reset_level: int = 0
 
@@ -229,7 +227,7 @@ def test_setup_app_context(
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     public_key = send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -257,7 +255,7 @@ def test_get_main_hwm(
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -285,7 +283,7 @@ def test_get_all_hwm(
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -321,7 +319,7 @@ def test_sign_preattestation(
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -364,7 +362,7 @@ def test_sign_attestation(
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -407,7 +405,7 @@ def test_sign_attestation_dal(
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -453,7 +451,7 @@ def test_sign_block(
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
