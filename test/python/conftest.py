@@ -1,15 +1,18 @@
+"""Pytest configuration file."""
+
+import pytest
+from ragger.backend import BackendInterface
 from ragger.conftest import configuration
+from utils.client import TezosClient
 
-###########################
-### CONFIGURATION START ###
-###########################
+DEFAULT_SEED = " ".join(['zebra'] * 24)
 
-# You can configure optional parameters by overriding the value of ragger.configuration.OPTIONAL_CONFIGURATION
-# Please refer to ragger/conftest/configuration.py for their descriptions and accepted values
-
-#########################
-### CONFIGURATION END ###
-#########################
+configuration.OPTIONAL.CUSTOM_SEED = DEFAULT_SEED
 
 # Pull all features from the base ragger conftest using the overridden configuration
 pytest_plugins = ("ragger.conftest.base_conftest", )
+
+@pytest.fixture(scope="function")
+def client(backend: BackendInterface):
+    """Get a tezos client."""
+    return TezosClient(backend)
