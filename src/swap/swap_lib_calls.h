@@ -1,9 +1,11 @@
 #pragma once
 
-/* This file is the shared API between Exchange and the apps started in Library mode for Exchange
+/* This file is the shared API between Exchange and the apps started in Library
+ * mode for Exchange
  *
  * DO NOT MODIFY THIS FILE IN APPLICATIONS OTHER THAN EXCHANGE
- * On modification in Exchange, forward the changes to all applications supporting Exchange
+ * On modification in Exchange, forward the changes to all applications
+ * supporting Exchange
  */
 
 #include "stdbool.h"
@@ -29,52 +31,53 @@
 
 // structure that should be send to specific coin application to get address
 typedef struct check_address_parameters_s {
-    // IN
-    uint8_t *coin_configuration;
-    uint8_t coin_configuration_length;
-    // serialized path, segwit, version prefix, hash used, dictionary etc.
-    // fields and serialization format depends on specific coin app
-    uint8_t *address_parameters;
-    uint8_t address_parameters_length;
-    char *address_to_check;
-    char *extra_id_to_check;
-    // OUT
-    int result;
+  // IN
+  uint8_t *coin_configuration;
+  uint8_t coin_configuration_length;
+  // serialized path, segwit, version prefix, hash used, dictionary etc.
+  // fields and serialization format depends on specific coin app
+  uint8_t *address_parameters;
+  uint8_t address_parameters_length;
+  char *address_to_check;
+  char *extra_id_to_check;
+  // OUT
+  int result;
 } check_address_parameters_t;
 
-// structure that should be send to specific coin application to get printable amount
+// structure that should be send to specific coin application to get printable
+// amount
 typedef struct get_printable_amount_parameters_s {
-    // IN
-    uint8_t *coin_configuration;
-    uint8_t coin_configuration_length;
-    uint8_t *amount;
-    uint8_t amount_length;
-    bool is_fee;
-    // OUT
-    char printable_amount[MAX_PRINTABLE_AMOUNT_SIZE];
+  // IN
+  uint8_t *coin_configuration;
+  uint8_t coin_configuration_length;
+  uint8_t *amount;
+  uint8_t amount_length;
+  bool is_fee;
+  // OUT
+  char printable_amount[MAX_PRINTABLE_AMOUNT_SIZE];
 } get_printable_amount_parameters_t;
 
 typedef struct create_transaction_parameters_s {
-    // IN
-    uint8_t *coin_configuration;
-    uint8_t coin_configuration_length;
-    uint8_t *amount;
-    uint8_t amount_length;
-    uint8_t *fee_amount;
-    uint8_t fee_amount_length;
-    char *destination_address;
-    char *destination_address_extra_id;
-    // OUT
-    uint8_t result;
+  // IN
+  uint8_t *coin_configuration;
+  uint8_t coin_configuration_length;
+  uint8_t *amount;
+  uint8_t amount_length;
+  uint8_t *fee_amount;
+  uint8_t fee_amount_length;
+  char *destination_address;
+  char *destination_address_extra_id;
+  // OUT
+  uint8_t result;
 } create_transaction_parameters_t;
 
 typedef struct libargs_s {
-    unsigned int id;
-    unsigned int command;
-    unsigned int unused;
-    union {
-        check_address_parameters_t *check_address;
-        create_transaction_parameters_t *create_transaction;
-        get_printable_amount_parameters_t *get_printable_amount;
-    };
+  unsigned int id;
+  unsigned int command;
+  unsigned int unused;
+  union {
+    check_address_parameters_t *check_address;
+    create_transaction_parameters_t *create_transaction;
+    get_printable_amount_parameters_t *get_printable_amount;
+  };
 } libargs_t;

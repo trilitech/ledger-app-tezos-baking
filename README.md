@@ -704,7 +704,7 @@ Originated accounts have names beginning with `KT1` rather than `tz1`, `tz2` or 
 
 ### Signing Michelson
 The wallet app allows you to sign packed Michelson values. This can be useful when interacting with a Michelson contract that
-uses `PACK` and `CHECK_SIGNATURE` (multisig contracts use this functionality). 
+uses `PACK` and `CHECK_SIGNATURE` (multisig contracts use this functionality).
 
 Here is an example:
 ```
@@ -1054,4 +1054,3 @@ If you install a Ledger application, such as Tezos Wallet or Tezos Baking, outsi
 You can email us at tezos@obsidian.systems and request to join our Slack.
 We have several channels about baking and one specifically for our Ledger applications.
 You can ask questions and get answers from Obsidian staff or from the community.
-

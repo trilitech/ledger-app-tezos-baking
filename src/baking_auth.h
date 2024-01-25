@@ -20,8 +20,7 @@ bool is_valid_level(level_t level);
 void write_high_water_mark(parsed_baking_data_t const *const in);
 
 // Return false if it is invalid
-bool parse_baking_data(parsed_baking_data_t *const out,
-                       void const *const data,
+bool parse_baking_data(parsed_baking_data_t *const out, void const *const data,
                        size_t const length);
 
-#endif  // #ifdef BAKING_APP
+#endif // #ifdef BAKING_APP

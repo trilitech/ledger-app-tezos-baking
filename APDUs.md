@@ -135,4 +135,3 @@ There are some limitations for Michelson parsing that should be noted.
 - “contract-to-contract” requires that you use:
   - the default endpoint for your destination contract
   - the parameters must be of type unit
-

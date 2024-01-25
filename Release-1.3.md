@@ -126,23 +126,23 @@ manually. Most users will never need to use this feature.
 
 ### U2F Support
 
-The Wallet Application now supports U2F protocol, the standard method for enabling 
-browser access by 3rd party wallet providers for all tokens. Recent versions 
-of Ledger Nano S firmware (v1.4.1+) allow us to support browsers seamlessly without the need 
-to toggle it in settings; the app will automatically detect which protocol is 
+The Wallet Application now supports U2F protocol, the standard method for enabling
+browser access by 3rd party wallet providers for all tokens. Recent versions
+of Ledger Nano S firmware (v1.4.1+) allow us to support browsers seamlessly without the need
+to toggle it in settings; the app will automatically detect which protocol is
 being used.
 
 #### APDU level error: Unexpected sequence number (expect 0, got 191)
 
-As a side effect of adding U2F support, users will see this error when sending operations 
+As a side effect of adding U2F support, users will see this error when sending operations
 to the Wallet Application. There are two situations where this error will fire:
 
-* If you send an operation to the Tezos Wallet Application. `tezos-client` might interpret 
-the presence of U2F support as a sequence number error, but it will recover from this error 
-and successfully be able to communicate with the device over APDU protocol. In our experience, 
+* If you send an operation to the Tezos Wallet Application. `tezos-client` might interpret
+the presence of U2F support as a sequence number error, but it will recover from this error
+and successfully be able to communicate with the device over APDU protocol. In our experience,
 the operation always succeeds despite this error. We intend to have the error message from `tezos-client`
 adjusted to reflect the success of these operations.
-* If you send an operation to the Ledger device and neither Tezos Application is open. 
+* If you send an operation to the Ledger device and neither Tezos Application is open.
 You'll be communicating with the ledger OS, not one of the Tezos Applications.
 
 ## Baking Application -- Release Details
@@ -161,10 +161,10 @@ level, only one endorsement will actually need to be signed, and you
 will receive the reward for all the endorsement slots at that level.
 
 As before, you may reset the high watermark with a reset command
-(`tezos-client set ledger high watermark for <uri> to <high watermark>`), which 
-will prompt "Reset HWM" and the new value. Legitimate reasons to change the high 
-watermark include switching to a test network at a different block level or 
-restoring a baker after an attacker or software error caused a block to be signed 
+(`tezos-client set ledger high watermark for <uri> to <high watermark>`), which
+will prompt "Reset HWM" and the new value. Legitimate reasons to change the high
+watermark include switching to a test network at a different block level or
+restoring a baker after an attacker or software error caused a block to be signed
 with too high a level.
 
 ## Acknowledgements

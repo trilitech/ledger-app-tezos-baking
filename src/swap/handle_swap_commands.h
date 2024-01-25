@@ -11,4 +11,5 @@ bool is_safe_to_swap();
 void app_main(void);
 void library_main(struct libargs_s *args);
 
-void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_success);
+void __attribute__((noreturn))
+finalize_exchange_sign_transaction(bool is_success);
