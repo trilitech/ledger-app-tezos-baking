@@ -5,7 +5,7 @@ import pytest
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator
 from utils.client import TezosClient, Version, Hwm
-from utils.account import Account, SigScheme, BipPath
+from utils.account import Account
 from utils.helper import (
     get_public_key_flow_instructions,
     get_setup_app_context_instructions,
@@ -21,16 +21,11 @@ from utils.message import (
     BlockHeader,
     Block
 )
-
-TESTS_ROOT_DIR = Path(__file__).parent
-
-DEFAULT_ACCOUNT = Account(
-    "m/44'/1729'/0'/0'",
-    SigScheme.ED25519,
-    "edpkuXX2VdkdXzkN11oLCb8Aurdo1BTAtQiK8ZY9UPj2YMt3AHEpcY"
+from common import (
+    TESTS_ROOT_DIR,
+    DEFAULT_ACCOUNT,
+    EMPTY_PATH
 )
-
-EMPTY_PATH = BipPath.from_string("m")
 
 
 def test_version(client: TezosClient) -> None:
