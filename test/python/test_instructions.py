@@ -16,6 +16,7 @@ from utils.helper import (
 from utils.message import (
     Preattestation,
     Attestation,
+    AttestationDal,
     Fitness,
     BlockHeader,
     Block
@@ -35,7 +36,7 @@ EMPTY_PATH = BipPath.from_string("m")
 def test_version(client: TezosClient) -> None:
     """Test the VERSION instruction."""
 
-    expected_version = Version(Version.AppKind.BAKING, 2, 4, 6)
+    expected_version = Version(Version.AppKind.BAKING, 2, 4, 7)
 
     version = client.version()
 
@@ -395,6 +396,52 @@ def test_sign_attestation(
         assert attestation_hash == attestation.hash, \
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
+
+
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("with_hash", [False, True])
+def test_sign_attestation_dal(
+        account: Account,
+        with_hash: bool,
+        client: TezosClient,
+        firmware: Firmware,
+        navigator: Navigator) -> None:
+    """Test the SIGN(_WITH_HASH) instruction on attestation."""
+
+    main_chain_id: int = 0
+    main_hwm = Hwm(0)
+    test_hwm = Hwm(0)
+
+    instructions = get_setup_app_context_instructions(firmware)
+
+    send_and_navigate(
+        send=lambda: client.setup_app_context(
+            account,
+            main_chain_id,
+            main_hwm,
+            test_hwm),
+        navigate=lambda: navigator.navigate(instructions))
+
+    attestation = AttestationDal(
+        chain_id=main_chain_id,
+        branch="0000000000000000000000000000000000000000000000000000000000000000",
+        slot=0,
+        op_level=0,
+        op_round=0,
+        block_payload_hash="0000000000000000000000000000000000000000000000000000000000000000",
+        dal_message="0000000000000000000000000000000000000000000000000000000000000000"
+    )
+
+    if with_hash:
+        signature = client.sign_message(account, attestation)
+        account.check_signature(signature, bytes(attestation))
+    else:
+        attestation_hash, signature = client.sign_message_with_hash(account, attestation)
+        assert attestation_hash == attestation.hash, \
+            f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
+        account.check_signature(signature, bytes(attestation))
+
+
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])

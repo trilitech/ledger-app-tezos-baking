@@ -191,6 +191,7 @@ bool parse_consensus_operation(parsed_baking_data_t *const out,
             return true;
         case 20:  // tenderbake preendorsement
         case 21:  // tenderbake endorsement
+        case 23:  // tenderbake endorsement + DAL
             if (length < sizeof(struct tenderbake_consensus_op_wire)) return false;
             struct tenderbake_consensus_op_wire const *const tb_op = data;
             out->is_tenderbake = true;
