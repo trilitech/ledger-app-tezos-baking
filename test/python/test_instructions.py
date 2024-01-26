@@ -36,7 +36,7 @@ EMPTY_PATH = BipPath.from_string("m")
 def test_version(client: TezosClient) -> None:
     """Test the VERSION instruction."""
 
-    expected_version = Version(Version.AppKind.BAKING, 2, 4, 6)
+    expected_version = Version(Version.AppKind.BAKING, 2, 4, 7)
 
     version = client.version()
 
