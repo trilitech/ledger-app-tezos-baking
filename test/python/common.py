@@ -10,7 +10,7 @@ DEFAULT_SEED = " ".join(['zebra'] * 24)
 DEFAULT_ACCOUNT = Account(
     "m/44'/1729'/0'/0'",
     SigScheme.ED25519,
-    "edpkuXX2VdkdXzkN11oLCb8Aurdo1BTAtQiK8ZY9UPj2YMt3AHEpcY"
+    "edsk2tUyhVvGj9B1S956ZzmaU4bC9J7t8xVBH52fkAoZL25MHEwacd"
 )
 
 EMPTY_PATH = BipPath.from_string("m")
