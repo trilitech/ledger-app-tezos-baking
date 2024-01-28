@@ -17,7 +17,8 @@ from utils.message import (
     AttestationDal,
     Fitness,
     BlockHeader,
-    Block
+    Block,
+    DEFAULT_CHAIN_ID
 )
 from common import (
     TESTS_ROOT_DIR,
@@ -223,7 +224,7 @@ def test_setup_app_context(
         test_name: Path) -> None:
     """Test the SETUP instruction."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
@@ -251,7 +252,7 @@ def test_get_main_hwm(
         navigator: Navigator) -> None:
     """Test the QUERY_MAIN_HWM instruction."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
@@ -279,7 +280,7 @@ def test_get_all_hwm(
         navigator: Navigator) -> None:
     """Test the QUERY_ALL_HWM instruction."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
@@ -315,7 +316,7 @@ def test_sign_preattestation(
         navigator: Navigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on preattestation."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
@@ -329,14 +330,7 @@ def test_sign_preattestation(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    preattestation = Preattestation(
-        chain_id=main_chain_id,
-        branch="0000000000000000000000000000000000000000000000000000000000000000",
-        slot=0,
-        op_level=0,
-        op_round=0,
-        block_payload_hash="0000000000000000000000000000000000000000000000000000000000000000"
-    )
+    preattestation = Preattestation(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, preattestation)
@@ -358,7 +352,7 @@ def test_sign_attestation(
         navigator: Navigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
@@ -372,14 +366,7 @@ def test_sign_attestation(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    attestation = Attestation(
-        chain_id=main_chain_id,
-        branch="0000000000000000000000000000000000000000000000000000000000000000",
-        slot=0,
-        op_level=0,
-        op_round=0,
-        block_payload_hash="0000000000000000000000000000000000000000000000000000000000000000"
-    )
+    attestation = Attestation(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -401,7 +388,7 @@ def test_sign_attestation_dal(
         navigator: Navigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
@@ -415,15 +402,7 @@ def test_sign_attestation_dal(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    attestation = AttestationDal(
-        chain_id=main_chain_id,
-        branch="0000000000000000000000000000000000000000000000000000000000000000",
-        slot=0,
-        op_level=0,
-        op_round=0,
-        block_payload_hash="0000000000000000000000000000000000000000000000000000000000000000",
-        dal_message="0000000000000000000000000000000000000000000000000000000000000000"
-    )
+    attestation = AttestationDal(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -447,7 +426,7 @@ def test_sign_block(
         navigator: Navigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on block."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
@@ -461,28 +440,9 @@ def test_sign_block(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    fitness = Fitness(
-        level=0,
-        locked_round=0,
-        predecessor_round=0,
-        current_round=0
-    )
-
-    block_header = BlockHeader(
-        level=0,
-        proto_level=0,
-        predecessor="0000000000000000000000000000000000000000000000000000000000000000",
-        timestamp=0,
-        validation_pass=0,
-        operations_hash="0000000000000000000000000000000000000000000000000000000000000000",
-        fitness=fitness,
-        context="0000000000000000000000000000000000000000000000000000000000000000"
-    )
-
     block = Block(
         chain_id=main_chain_id,
-        header=block_header,
-        data=b''
+        header=BlockHeader(level=1)
     )
 
     if with_hash:
