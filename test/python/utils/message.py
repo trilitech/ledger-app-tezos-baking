@@ -101,35 +101,26 @@ DEFAULT_TIMESTAMP = "1970-01-01T00:00:00-00:00"
 # Context_hash.zero
 DEFAULT_CONTEXT_HASH = "CoUeJrcPBj3T3iJL3PY4jZHnmZa5rRZ87VQPdSBNBcwZRMWJGh9j"
 
-class Preattestation(Message):
+class Preattestation:
     """Class representing a preattestation."""
 
-    chain_id: str
-    branch: str
     slot: int
     op_level: int
     op_round: int
     block_payload_hash: str
 
     def __init__(self,
-                 chain_id: str = DEFAULT_CHAIN_ID,
-                 branch: str = DEFAULT_BLOCK_HASH,
                  slot: int = 0,
                  op_level: int = 0,
                  op_round: int = 0,
                  block_payload_hash: str = DEFAULT_BLOCK_PAYLOAD_HASH):
-        self.chain_id           = chain_id
-        self.branch             = branch
         self.slot               = slot
         self.op_level           = op_level
         self.op_round           = op_round
         self.block_payload_hash = block_payload_hash
 
-    def raw(self) -> bytes:
+    def __bytes__(self) -> bytes:
         raw = b''
-        raw += forge_int_fixed(MagicByte.TENDERBAKE_PREENDORSEMENT, 1)
-        raw += forge.forge_base58(self.chain_id)
-        raw += forge.forge_base58(self.branch)
         raw += forge_int_fixed(OperationTag.PREATTESTATION, 1)
         raw += forge.forge_int16(self.slot)
         raw += forge.forge_int32(self.op_level)
@@ -137,34 +128,39 @@ class Preattestation(Message):
         raw += forge.forge_base58(self.block_payload_hash)
         return raw
 
-class Attestation(Message):
+    def forge(self,
+              chain_id: str = DEFAULT_CHAIN_ID,
+              branch: str = DEFAULT_BLOCK_HASH) -> Message:
+        """Forge the preattestation."""
+        raw_operation = \
+            forge.forge_base58(branch) + \
+            bytes(self)
+        watermark = \
+            forge_int_fixed(MagicByte.TENDERBAKE_PREENDORSEMENT, 1) + \
+            forge.forge_base58(chain_id)
+        raw = watermark + raw_operation
+        return RawMessage(raw)
+
+class Attestation:
     """Class representing an attestation."""
-    chain_id: str
-    branch: str
+
     slot: int
     op_level: int
     op_round: int
     block_payload_hash: str
 
     def __init__(self,
-                 chain_id: str = DEFAULT_CHAIN_ID,
-                 branch: str = DEFAULT_BLOCK_HASH,
                  slot: int = 0,
                  op_level: int = 0,
                  op_round: int = 0,
                  block_payload_hash: str = DEFAULT_BLOCK_PAYLOAD_HASH):
-        self.chain_id           = chain_id
-        self.branch             = branch
         self.slot               = slot
         self.op_level           = op_level
         self.op_round           = op_round
         self.block_payload_hash = block_payload_hash
 
-    def raw(self) -> bytes:
+    def __bytes__(self) -> bytes:
         raw = b''
-        raw += forge_int_fixed(MagicByte.TENDERBAKE_ENDORSEMENT, 1)
-        raw += forge.forge_base58(self.chain_id)
-        raw += forge.forge_base58(self.branch)
         raw += forge_int_fixed(OperationTag.ATTESTATION, 1)
         raw += forge.forge_int16(self.slot)
         raw += forge.forge_int32(self.op_level)
@@ -172,10 +168,22 @@ class Attestation(Message):
         raw += forge.forge_base58(self.block_payload_hash)
         return raw
 
-class AttestationDal(Message):
+    def forge(self,
+              chain_id: str = DEFAULT_CHAIN_ID,
+              branch: str = DEFAULT_BLOCK_HASH) -> Message:
+        """Forge the attestation."""
+        raw_operation = \
+            forge.forge_base58(branch) + \
+            bytes(self)
+        watermark = \
+            forge_int_fixed(MagicByte.TENDERBAKE_ENDORSEMENT, 1) + \
+            forge.forge_base58(chain_id)
+        raw = watermark + raw_operation
+        return RawMessage(raw)
+
+class AttestationDal:
     """Class representing an attestation + DAL."""
-    chain_id: str
-    branch: str
+
     slot: int
     op_level: int
     op_round: int
@@ -183,26 +191,19 @@ class AttestationDal(Message):
     dal_attestation: int
 
     def __init__(self,
-                 chain_id: str = DEFAULT_CHAIN_ID,
-                 branch: str = DEFAULT_BLOCK_HASH,
                  slot: int = 0,
                  op_level: int = 0,
                  op_round: int = 0,
                  block_payload_hash: str = DEFAULT_BLOCK_PAYLOAD_HASH,
                  dal_attestation: int = 0):
-        self.chain_id           = chain_id
-        self.branch             = branch
         self.slot               = slot
         self.op_level           = op_level
         self.op_round           = op_round
         self.block_payload_hash = block_payload_hash
         self.dal_attestation    = dal_attestation
 
-    def raw(self) -> bytes:
+    def __bytes__(self) -> bytes:
         raw = b''
-        raw += forge_int_fixed(MagicByte.TENDERBAKE_ENDORSEMENT, 1)
-        raw += forge.forge_base58(self.chain_id)
-        raw += forge.forge_base58(self.branch)
         raw += forge_int_fixed(OperationTag.ATTESTATION_WITH_DAL, 1)
         raw += forge.forge_int16(self.slot)
         raw += forge.forge_int32(self.op_level)
@@ -210,6 +211,19 @@ class AttestationDal(Message):
         raw += forge.forge_base58(self.block_payload_hash)
         raw += forge.forge_nat(self.dal_attestation)
         return raw
+
+    def forge(self,
+              chain_id: str = DEFAULT_CHAIN_ID,
+              branch: str = DEFAULT_BLOCK_HASH) -> Message:
+        """Forge the attestation + DAL."""
+        raw_operation = \
+            forge.forge_base58(branch) + \
+            bytes(self)
+        watermark = \
+            forge_int_fixed(MagicByte.TENDERBAKE_ENDORSEMENT, 1) + \
+            forge.forge_base58(chain_id)
+        raw = watermark + raw_operation
+        return RawMessage(raw)
 
 class Fitness:
     """Class representing a fitness."""
@@ -286,26 +300,26 @@ class BlockHeader:
         raw += forge.forge_base58(self.context)
         return raw
 
-class Block(Message):
+class Block:
     """Class representing a block."""
 
-    chain_id: str
     header: BlockHeader
     content: bytes
 
     def __init__(self,
-                 chain_id: str = DEFAULT_CHAIN_ID,
                  header: BlockHeader = BlockHeader(),
                  content: Union[str, bytes] = b''):
-        self.chain_id = chain_id
-        self.header   = header
-        self.content  = content if isinstance(content, bytes) else \
+        self.header  = header
+        self.content = content if isinstance(content, bytes) else \
             bytes.fromhex(content)
 
-    def raw(self) -> bytes:
-        raw = b''
-        raw += forge_int_fixed(MagicByte.TENDERBAKE_BLOCK, 1)
-        raw += forge.forge_base58(self.chain_id)
-        raw += bytes(self.header)
-        raw += self.content
-        return raw
+    def __bytes__(self) -> bytes:
+        return bytes(self.header) + self.content
+
+    def forge(self, chain_id: str = DEFAULT_CHAIN_ID) -> Message:
+        """Forge the block."""
+        watermark = \
+            forge_int_fixed(MagicByte.TENDERBAKE_BLOCK, 1) + \
+            forge.forge_base58(chain_id)
+        raw = watermark + bytes(self)
+        return RawMessage(raw)

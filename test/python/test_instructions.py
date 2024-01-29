@@ -15,7 +15,6 @@ from utils.message import (
     Preattestation,
     Attestation,
     AttestationDal,
-    Fitness,
     BlockHeader,
     Block,
     DEFAULT_CHAIN_ID
@@ -330,7 +329,7 @@ def test_sign_preattestation(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    preattestation = Preattestation(chain_id=main_chain_id)
+    preattestation = Preattestation().forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, preattestation)
@@ -366,7 +365,7 @@ def test_sign_attestation(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    attestation = Attestation(chain_id=main_chain_id)
+    attestation = Attestation().forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -402,7 +401,7 @@ def test_sign_attestation_dal(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    attestation = AttestationDal(chain_id=main_chain_id)
+    attestation = AttestationDal().forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -440,10 +439,7 @@ def test_sign_block(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    block = Block(
-        chain_id=main_chain_id,
-        header=BlockHeader(level=1)
-    )
+    block = Block(header=BlockHeader(level=1)).forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, block)
