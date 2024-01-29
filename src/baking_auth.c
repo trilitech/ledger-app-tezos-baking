@@ -141,6 +141,12 @@ struct tenderbake_consensus_op_wire {
 #define TENDERBAKE_PROTO_FITNESS_VERSION 2
 
 uint8_t get_proto_version(void const *const fitness) {
+    // Each field is preceded by its size (uint32_t).
+    // That's why we need to look at `sizeof(uint32_t)` bytes after
+    // the start of `fitness` to get to its first field.
+    // See:
+    // https://gitlab.com/tezos/tezos/-/blob/master/src/proto_alpha/lib_protocol/fitness_repr.ml#L193-201
+    // https://gitlab.com/tezos/tezos/-/blob/master/src/lib_base/fitness.ml#L76
     return READ_UNALIGNED_BIG_ENDIAN(uint8_t, fitness + sizeof(uint32_t));
 }
 

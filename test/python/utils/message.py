@@ -228,12 +228,25 @@ class Fitness:
         self.current_round     = current_round
 
     def __bytes__(self) -> bytes:
-        raw = b''
-        raw += self.level.to_bytes(4, byteorder='big')
+        raw_consensus_proto = ConsensusProtocol.TENDERBAKE.to_bytes(1, byteorder='big')
+        raw_level = self.level.to_bytes(4, byteorder='big')
+        raw_locked_round = b''
         if self.locked_round is not None:
-            raw += self.locked_round.to_bytes(4, byteorder='big')
-        raw += self.predecessor_round.to_bytes(4, byteorder='big')
-        raw += self.current_round.to_bytes(4, byteorder='big')
+            raw_locked_round = self.locked_round.to_bytes(4, byteorder='big')
+        raw_predecessor_round = (-self.predecessor_round-1).to_bytes(4, byteorder='big', signed=True)
+        raw_current_round = self.current_round.to_bytes(4, byteorder='big')
+
+        raw = b''
+        raw += len(raw_consensus_proto).to_bytes(4, byteorder='big')
+        raw += raw_consensus_proto
+        raw += len(raw_level).to_bytes(4, byteorder='big')
+        raw += raw_level
+        raw += len(raw_locked_round).to_bytes(4, byteorder='big')
+        raw += raw_locked_round
+        raw += len(raw_predecessor_round).to_bytes(4, byteorder='big')
+        raw += raw_predecessor_round
+        raw += len(raw_current_round).to_bytes(4, byteorder='big')
+        raw += raw_current_round
         return len(raw).to_bytes(4, byteorder='big') + raw
 
 class BlockHeader:
@@ -248,6 +261,7 @@ class BlockHeader:
 
     def __init__(self,
                  level: int,
+                 proto_level: int,
                  predecessor: Union[str, bytes],
                  timestamp: int,
                  validation_pass: int,
@@ -255,6 +269,7 @@ class BlockHeader:
                  fitness: Fitness,
                  context: Union[str, bytes]):
         self.level = level
+        self.proto_level = proto_level
         self.predecessor = scrub(predecessor)
         assert_data_size("predecessor", self.predecessor, 32)
         self.timestamp = timestamp
@@ -268,7 +283,7 @@ class BlockHeader:
     def __bytes__(self) -> bytes:
         raw = b''
         raw += self.level.to_bytes(4, byteorder='big')
-        raw += ConsensusProtocol.TENDERBAKE.to_bytes(1, byteorder='big')
+        raw += self.proto_level.to_bytes(1, byteorder='big')
         raw += self.predecessor
         raw += self.timestamp.to_bytes(8, byteorder='big')
         raw += self.validation_pass.to_bytes(1, byteorder='big')

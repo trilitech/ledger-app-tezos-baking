@@ -454,7 +454,7 @@ def test_sign_block(
         navigator: Navigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on block."""
 
-    main_chain_id: int = 23
+    main_chain_id: int = 0
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
@@ -469,17 +469,18 @@ def test_sign_block(
         navigate=lambda: navigator.navigate(instructions))
 
     fitness = Fitness(
-        level=3,
-        locked_round=7,
-        predecessor_round=11,
-        current_round=13
+        level=0,
+        locked_round=0,
+        predecessor_round=0,
+        current_round=0
     )
 
     block_header = BlockHeader(
-        level=17,
+        level=0,
+        proto_level=0,
         predecessor="0000000000000000000000000000000000000000000000000000000000000000",
         timestamp=0,
-        validation_pass=19,
+        validation_pass=0,
         operations_hash="0000000000000000000000000000000000000000000000000000000000000000",
         fitness=fitness,
         context="0000000000000000000000000000000000000000000000000000000000000000"
