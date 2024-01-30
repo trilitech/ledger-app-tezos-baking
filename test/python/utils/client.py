@@ -153,7 +153,7 @@ class TezosClient:
     backend: BackendInterface
 
     def __init__(self, backend) -> None:
-        self._client: BackendInterface = backend
+        self.backend = backend
 
     def _exchange(self,
                   ins: Ins,
@@ -166,7 +166,7 @@ class TezosClient:
         # Set to a non-existent value to ensure that p2 is unused
         p2: int = sig_scheme if sig_scheme is not None else 0xff
 
-        rapdu: RAPDU = self._client.exchange(Cla.DEFAULT,
+        rapdu: RAPDU = self.backend.exchange(Cla.DEFAULT,
                                              ins,
                                              p1=index,
                                              p2=p2,
