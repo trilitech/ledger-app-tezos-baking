@@ -8,6 +8,13 @@ from multiprocessing.pool import ThreadPool
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
+from ragger.firmware.stax.screen import MetaScreen
+from ragger.firmware.stax.use_cases import (
+    UseCaseHome,
+    UseCaseSettings,
+    UseCaseReview,
+    UseCaseAddressConfirmation
+)
 from ragger.navigator import Navigator, NavInsID, NavIns
 
 from common import TESTS_ROOT_DIR
@@ -102,19 +109,39 @@ class Instructions:
             return Instructions.get_nano_review_instructions(3)
         return Instructions.get_stax_review_instructions(2)
 
-class TezosNavigator:
+class TezosNavigator(metaclass=MetaScreen):
     """Class representing the tezos app navigator."""
+
+    use_case_home       = UseCaseHome
+    use_case_settings   = UseCaseSettings
+    use_case_review     = UseCaseReview
+    use_case_provide_pk = UseCaseAddressConfirmation
+
+    home:       UseCaseHome
+    settings:   UseCaseSettings
+    review:     UseCaseReview
+    provide_pk: UseCaseAddressConfirmation
 
     backend:   BackendInterface
     firmware:  Firmware
     client:    TezosClient
     navigator: Navigator
 
-    def __init__(self, backend, firmware, client, navigator) -> None:
+    _golden_run:        bool
+    _root_dir:          Path
+    _snapshots_dir:     Path
+    _tmp_snapshots_dir: Path
+
+    def __init__(self, backend, firmware, client, navigator, golden_run) -> None:
         self.backend   = backend
         self.firmware  = firmware
         self.client    = client
         self.navigator = navigator
+
+        self._golden_run        = golden_run
+        self._root_dir          = TESTS_ROOT_DIR
+        self._snapshots_dir     = self._root_dir / "snapshots" / backend.firmware.name
+        self._tmp_snapshots_dir = self._root_dir / "snapshots-tmp" / backend.firmware.name
 
     def _send_and_navigate(self,
                           send: Callable[[], RESPONSE],
@@ -124,12 +151,26 @@ class TezosNavigator:
         return send_and_navigate(
             send=send,
             navigate=lambda: self.navigator.navigate_and_compare(
-                TESTS_ROOT_DIR,
+                self._root_dir,
                 path,
                 instructions,
                 **kwargs
             )
         )
+
+    def _assert_screen(self, path: Path) -> None:
+        golden_path = self._snapshots_dir / path
+        if not golden_path.parent.is_dir() and self._golden_run:
+            golden_path.parent.mkdir(parents=True)
+        tmp_path = self._tmp_snapshots_dir / path
+        if not tmp_path.parent.is_dir():
+            tmp_path.parent.mkdir(parents=True)
+
+        assert self.backend.compare_screen_with_snapshot(
+            golden_path,
+            tmp_snap_path=tmp_path,
+            golden_run=self._golden_run
+        ), f"Screen does not match golden {path}."
 
     def authorize_baking(self, account: Optional[Account], **kwargs) -> bytes:
         """Send an authorize baking request and navigate until accept"""

@@ -23,6 +23,7 @@ def client(backend: BackendInterface):
 def tezos_navigator(backend: BackendInterface,
                     client: TezosClient,
                     firmware: Firmware,
-                    navigator: Navigator):
+                    navigator: Navigator,
+                    golden_run: bool):
     """Get a tezos navigator."""
-    return TezosNavigator(backend, firmware, client, navigator)
+    return TezosNavigator(backend, firmware, client, navigator, golden_run)
