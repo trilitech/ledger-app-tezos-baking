@@ -160,24 +160,42 @@ def test_get_public_key_prompt(
     account.check_public_key(public_key)
 
 
-def test_reset_app_context(tezos_navigator: TezosNavigator, test_name: Path) -> None:
+def test_reset_app_context(
+        client: TezosClient,
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
     """Test the RESET instruction."""
 
-    reset_level: int = 0
+    reset_level: int = 1
 
     tezos_navigator.reset_app_context(reset_level, path=test_name)
+
+    received_main_chain_id, received_main_hwm, received_test_hwm = client.get_all_hwm()
+
+    main_hwm = Hwm(reset_level)
+    test_hwm = Hwm(reset_level)
+
+    assert received_main_chain_id == DEFAULT_CHAIN_ID, \
+        f"Expected main chain id {DEFAULT_CHAIN_ID} but got {received_main_chain_id}"
+
+    assert received_main_hwm == main_hwm, \
+        f"Expected main hmw {main_hwm} but got {received_main_hwm}"
+
+    assert received_test_hwm == test_hwm, \
+        f"Expected test hmw {test_hwm} but got {received_test_hwm}"
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_setup_app_context(
         account: Account,
+        client: TezosClient,
         tezos_navigator: TezosNavigator,
         test_name: Path) -> None:
     """Test the SETUP instruction."""
 
-    main_chain_id = DEFAULT_CHAIN_ID
-    main_hwm = Hwm(0)
-    test_hwm = Hwm(0)
+    main_chain_id = "NetXH12AexHqTQa"
+    main_hwm = Hwm(1)
+    test_hwm = Hwm(2)
 
     public_key = tezos_navigator.setup_app_context(
         account,
@@ -188,6 +206,17 @@ def test_setup_app_context(
     )
 
     account.check_public_key(public_key)
+
+    received_main_chain_id, received_main_hwm, received_test_hwm = client.get_all_hwm()
+
+    assert received_main_chain_id == main_chain_id, \
+        f"Expected main chain id {main_chain_id} but got {received_main_chain_id}"
+
+    assert received_main_hwm == main_hwm, \
+        f"Expected main hmw {main_hwm} but got {received_main_hwm}"
+
+    assert received_test_hwm == test_hwm, \
+        f"Expected test hmw {test_hwm} but got {received_test_hwm}"
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
