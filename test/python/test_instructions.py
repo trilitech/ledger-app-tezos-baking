@@ -11,6 +11,7 @@ from utils.message import (
     Preattestation,
     Attestation,
     AttestationDal,
+    Fitness,
     BlockHeader,
     Block,
     DEFAULT_CHAIN_ID
@@ -18,8 +19,7 @@ from utils.message import (
 from utils.navigator import TezosNavigator, Instructions
 from common import (
     DEFAULT_ACCOUNT,
-    TESTS_ROOT_DIR,
-    EMPTY_PATH
+    TESTS_ROOT_DIR
 )
 
 
@@ -75,24 +75,34 @@ def test_authorize_baking(
 
     account.check_public_key(public_key)
 
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0),
+        path=test_name
+    )
+
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_deauthorize(
         account: Account,
         client: TezosClient,
-        tezos_navigator: TezosNavigator) -> None:
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
     """Test the DEAUTHORIZE instruction."""
 
     tezos_navigator.authorize_baking(account)
 
     client.deauthorize()
 
-    # get_auth_key_with_curve raise EXC_REFERENCED_DATA_NOT_FOUND
-
-    path = client.get_auth_key()
-
-    assert path == EMPTY_PATH, \
-        f"Expected the empty path {EMPTY_PATH} but got {path}"
+    tezos_navigator.check_app_context(
+        None,
+        chain_id=DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0),
+        path=test_name
+    )
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_get_auth_key(
@@ -160,35 +170,25 @@ def test_get_public_key_prompt(
     account.check_public_key(public_key)
 
 
-def test_reset_app_context(
-        client: TezosClient,
-        tezos_navigator: TezosNavigator,
-        test_name: Path) -> None:
+def test_reset_app_context(tezos_navigator: TezosNavigator, test_name: Path) -> None:
     """Test the RESET instruction."""
 
     reset_level: int = 1
 
     tezos_navigator.reset_app_context(reset_level, path=test_name)
 
-    received_main_chain_id, received_main_hwm, received_test_hwm = client.get_all_hwm()
-
-    main_hwm = Hwm(reset_level)
-    test_hwm = Hwm(reset_level)
-
-    assert received_main_chain_id == DEFAULT_CHAIN_ID, \
-        f"Expected main chain id {DEFAULT_CHAIN_ID} but got {received_main_chain_id}"
-
-    assert received_main_hwm == main_hwm, \
-        f"Expected main hmw {main_hwm} but got {received_main_hwm}"
-
-    assert received_test_hwm == test_hwm, \
-        f"Expected test hmw {test_hwm} but got {received_test_hwm}"
+    tezos_navigator.check_app_context(
+        None,
+        chain_id=DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(reset_level),
+        test_hwm=Hwm(reset_level),
+        path=test_name
+    )
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_setup_app_context(
         account: Account,
-        client: TezosClient,
         tezos_navigator: TezosNavigator,
         test_name: Path) -> None:
     """Test the SETUP instruction."""
@@ -207,16 +207,13 @@ def test_setup_app_context(
 
     account.check_public_key(public_key)
 
-    received_main_chain_id, received_main_hwm, received_test_hwm = client.get_all_hwm()
-
-    assert received_main_chain_id == main_chain_id, \
-        f"Expected main chain id {main_chain_id} but got {received_main_chain_id}"
-
-    assert received_main_hwm == main_hwm, \
-        f"Expected main hmw {main_hwm} but got {received_main_hwm}"
-
-    assert received_test_hwm == test_hwm, \
-        f"Expected test hmw {test_hwm} but got {received_test_hwm}"
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=main_chain_id,
+        main_hwm=main_hwm,
+        test_hwm=test_hwm,
+        path=test_name
+    )
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
@@ -279,7 +276,8 @@ def test_sign_preattestation(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        tezos_navigator: TezosNavigator) -> None:
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
     """Test the SIGN(_WITH_HASH) instruction on preattestation."""
 
     main_chain_id = DEFAULT_CHAIN_ID
@@ -293,7 +291,10 @@ def test_sign_preattestation(
         test_hwm
     )
 
-    preattestation = Preattestation().forge(chain_id=main_chain_id)
+    preattestation = Preattestation(
+        op_level=1,
+        op_round=2
+    ).forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, preattestation)
@@ -304,6 +305,14 @@ def test_sign_preattestation(
             f"Expected hash {preattestation.hash.hex()} but got {preattestation_hash.hex()}"
         account.check_signature(signature, bytes(preattestation))
 
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=main_chain_id,
+        main_hwm=Hwm(1, 2),
+        test_hwm=Hwm(0, 0),
+        path=test_name
+    )
+
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 @pytest.mark.parametrize("with_hash", [False, True])
@@ -311,7 +320,8 @@ def test_sign_attestation(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        tezos_navigator: TezosNavigator) -> None:
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
 
     main_chain_id = DEFAULT_CHAIN_ID
@@ -325,7 +335,10 @@ def test_sign_attestation(
         test_hwm
     )
 
-    attestation = Attestation().forge(chain_id=main_chain_id)
+    attestation = Attestation(
+        op_level=1,
+        op_round=2
+    ).forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -335,6 +348,14 @@ def test_sign_attestation(
         assert attestation_hash == attestation.hash, \
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
+
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=main_chain_id,
+        main_hwm=Hwm(1, 2),
+        test_hwm=Hwm(0, 0),
+        path=test_name
+    )
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
@@ -343,7 +364,8 @@ def test_sign_attestation_dal(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        tezos_navigator: TezosNavigator) -> None:
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
 
     main_chain_id = DEFAULT_CHAIN_ID
@@ -357,7 +379,10 @@ def test_sign_attestation_dal(
         test_hwm
     )
 
-    attestation = AttestationDal().forge(chain_id=main_chain_id)
+    attestation = AttestationDal(
+        op_level=1,
+        op_round=2
+    ).forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -368,7 +393,13 @@ def test_sign_attestation_dal(
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
 
-
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=main_chain_id,
+        main_hwm=Hwm(1, 2),
+        test_hwm=Hwm(0, 0),
+        path=test_name
+    )
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
@@ -377,7 +408,8 @@ def test_sign_block(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        tezos_navigator: TezosNavigator) -> None:
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
     """Test the SIGN(_WITH_HASH) instruction on block."""
 
     main_chain_id = DEFAULT_CHAIN_ID
@@ -391,7 +423,12 @@ def test_sign_block(
         test_hwm
     )
 
-    block = Block(header=BlockHeader(level=1)).forge(chain_id=main_chain_id)
+    block = Block(
+        header=BlockHeader(
+            level=1,
+            fitness=Fitness(current_round=2)
+        )
+    ).forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, block)
@@ -401,6 +438,15 @@ def test_sign_block(
         assert block_hash == block.hash, \
             f"Expected hash {block.hash.hex()} but got {block_hash.hex()}"
         account.check_signature(signature, bytes(block))
+
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=main_chain_id,
+        main_hwm=Hwm(1, 2),
+        test_hwm=Hwm(0, 0),
+        path=test_name
+    )
+
 
 # Data generated by the old application itself
 HMAC_TEST_SET = [

@@ -17,7 +17,7 @@ from ragger.firmware.stax.use_cases import (
 )
 from ragger.navigator import Navigator, NavInsID, NavIns
 
-from common import TESTS_ROOT_DIR
+from common import TESTS_ROOT_DIR, EMPTY_PATH
 from utils.client import TezosClient, Hwm
 from utils.account import Account
 
@@ -171,6 +171,69 @@ class TezosNavigator(metaclass=MetaScreen):
             tmp_snap_path=tmp_path,
             golden_run=self._golden_run
         ), f"Screen does not match golden {path}."
+
+    def check_app_context(self,
+                          account: Optional[Account],
+                          chain_id: str,
+                          main_hwm: Hwm,
+                          test_hwm: Hwm,
+                          path: Path) -> None:
+        """Check that the app context."""
+        path = Path(path)
+
+        received_chain_id, received_main_hwm, received_test_hwm = self.client.get_all_hwm()
+
+        # get_auth_key_with_curve raise EXC_REFERENCED_DATA_NOT_FOUND
+        received_path = self.client.get_auth_key()
+
+        assert received_chain_id == chain_id, \
+            f"Expected main chain id {chain_id} but got {received_chain_id}"
+        assert received_main_hwm == main_hwm, \
+            f"Expected main hmw {main_hwm} but got {received_main_hwm}"
+        assert received_test_hwm == test_hwm, \
+            f"Expected test hmw {test_hwm} but got {received_test_hwm}"
+
+        if account is None:
+            # get_auth_key_with_curve raise EXC_REFERENCED_DATA_NOT_FOUND
+            received_path = self.client.get_auth_key()
+            assert received_path == EMPTY_PATH, \
+                f"Expected the empty path {EMPTY_PATH} but got {received_path}"
+        else:
+            received_sig_scheme, received_path = self.client.get_auth_key_with_curve()
+            assert received_path == account.path, \
+                f"Expected path {account.path} but got {received_path}"
+            assert received_sig_scheme == account.sig_scheme, \
+                f"Expected signature scheme {account.sig_scheme.name} "\
+                f"but got {received_sig_scheme.name}"
+
+        if self.firmware.is_nano:
+            self.navigator.navigate(
+                [NavInsID.RIGHT_CLICK] * 2,
+                screen_change_before_first_instruction=False
+            )
+            self._assert_screen(path / "chain_id.png")
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
+            if account is not None and self.firmware.device == "nanos":
+                self._assert_screen(path / "public_key_hash_1.png")
+                self.backend.right_click()
+                self.backend.wait_for_screen_change()
+                self._assert_screen(path / "public_key_hash_2.png")
+            else:
+                self._assert_screen(path / "public_key_hash.png")
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
+            self._assert_screen(path / "high_watermark.png")
+            self.navigator.navigate(
+                [NavInsID.LEFT_CLICK] * 4,
+                screen_change_before_first_instruction=False
+            )
+        else:
+            self.home.settings()
+            self.backend.wait_for_screen_change()
+            self._assert_screen(path / "app_context.png")
+            self.settings.multi_page_exit()
+            self.backend.wait_for_screen_change()
 
     def authorize_baking(self, account: Optional[Account], **kwargs) -> bytes:
         """Send an authorize baking request and navigate until accept"""
