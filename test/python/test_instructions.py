@@ -2,6 +2,8 @@
 
 from pathlib import Path
 import pytest
+from ragger.firmware import Firmware
+from ragger.navigator import Navigator, NavInsID
 from utils.client import TezosClient, Version, Hwm
 from utils.account import Account
 from utils.helper import get_current_commit
@@ -13,11 +15,32 @@ from utils.message import (
     Block,
     DEFAULT_CHAIN_ID
 )
-from utils.navigator import TezosNavigator
+from utils.navigator import TezosNavigator, Instructions
 from common import (
     DEFAULT_ACCOUNT,
+    TESTS_ROOT_DIR,
     EMPTY_PATH
 )
+
+
+def test_review_home(
+        firmware: Firmware,
+        navigator: Navigator,
+        test_name: Path) -> None:
+    """Test the display of the home/info pages."""
+
+    instructions = Instructions.get_right_clicks(5) if firmware.is_nano else \
+        [
+            NavInsID.USE_CASE_HOME_SETTINGS,
+            NavInsID.USE_CASE_SETTINGS_NEXT
+        ]
+
+    navigator.navigate_and_compare(
+        TESTS_ROOT_DIR,
+        test_name,
+        instructions,
+        screen_change_before_first_instruction=False
+    )
 
 
 def test_version(client: TezosClient) -> None:

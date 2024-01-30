@@ -41,10 +41,14 @@ class Instructions:
     """Class gathering instructions generator needed for navigator."""
 
     @staticmethod
+    def get_right_clicks(nb_right_click) -> List[Union[NavInsID, NavIns]]:
+        """Generate `nb_right_click` right clicks instructions."""
+        return [NavInsID.RIGHT_CLICK] * nb_right_click
+
+    @staticmethod
     def get_nano_review_instructions(num_screen_skip) -> List[Union[NavInsID, NavIns]]:
         """Generate the instructions needed to review on nano devices."""
-        instructions: List[Union[NavInsID, NavIns]] = []
-        instructions += [NavInsID.RIGHT_CLICK] * num_screen_skip
+        instructions = Instructions.get_right_clicks(num_screen_skip)
         instructions.append(NavInsID.BOTH_CLICK)
         return instructions
 
