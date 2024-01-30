@@ -2,7 +2,8 @@
 
 from typing import TypeVar, Callable, List, Union
 
-from multiprocessing import Process, Queue
+from multiprocessing.pool import ThreadPool
+import time
 import git
 
 from ragger.firmware import Firmware
@@ -49,29 +50,28 @@ def get_current_commit() -> str:
         commit += "*"
     return commit
 
-def run_simultaneously(processes: List[Process]) -> None:
-    """Runs several processes simultaneously."""
-
-    for process in processes:
-        process.start()
-
-    for process in processes:
-        process.join()
-        assert process.exitcode == 0, "Should have terminate successfully"
-
 RESPONSE = TypeVar('RESPONSE')
 
 def send_and_navigate(send: Callable[[], RESPONSE], navigate: Callable[[], None]) -> RESPONSE:
     """Sends a request and navigates before receiving a response."""
 
-    def _send(result_queue: Queue) -> None:
-        result_queue.put(send())
+    with ThreadPool(processes=2) as pool:
 
-    result_queue: Queue = Queue()
-    send_process = Process(target=_send, args=(result_queue,))
-    navigate_process = Process(target=navigate)
-    run_simultaneously([navigate_process, send_process])
-    return result_queue.get()
+        send_res = pool.apply_async(send)
+        navigate_res = pool.apply_async(navigate)
+
+        while True:
+            if send_res.ready():
+                result = send_res.get()
+                navigate_res.get()
+                break
+            if navigate_res.ready():
+                navigate_res.get()
+                result = send_res.get()
+                break
+            time.sleep(0.1)
+
+        return result
 
 class Instructions:
     """Class gathering instructions generator needed for navigator."""
