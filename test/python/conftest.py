@@ -4,8 +4,7 @@ import pytest
 from ragger.backend import BackendInterface
 from ragger.conftest import configuration
 from utils.client import TezosClient
-
-DEFAULT_SEED = " ".join(['zebra'] * 24)
+from common import DEFAULT_SEED
 
 configuration.OPTIONAL.CUSTOM_SEED = DEFAULT_SEED
 

@@ -5,11 +5,9 @@ import pytest
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator
 from utils.client import TezosClient, Version, Hwm
-from utils.account import Account, SigScheme, BipPath
+from utils.account import Account
 from utils.helper import (
-    get_public_key_flow_instructions,
-    get_setup_app_context_instructions,
-    get_reset_app_context_instructions,
+    Instructions,
     send_and_navigate,
     get_current_commit
 )
@@ -17,20 +15,15 @@ from utils.message import (
     Preattestation,
     Attestation,
     AttestationDal,
-    Fitness,
     BlockHeader,
-    Block
+    Block,
+    DEFAULT_CHAIN_ID
 )
-
-TESTS_ROOT_DIR = Path(__file__).parent
-
-DEFAULT_ACCOUNT = Account(
-    "m/44'/1729'/0'/0'",
-    SigScheme.ED25519,
-    "edpkuXX2VdkdXzkN11oLCb8Aurdo1BTAtQiK8ZY9UPj2YMt3AHEpcY"
+from common import (
+    TESTS_ROOT_DIR,
+    DEFAULT_ACCOUNT,
+    EMPTY_PATH
 )
-
-EMPTY_PATH = BipPath.from_string("m")
 
 
 def test_version(client: TezosClient) -> None:
@@ -64,7 +57,7 @@ def test_authorize_baking(
         test_name: Path) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     public_key = send_and_navigate(
         send=lambda: client.authorize_baking(account),
@@ -85,7 +78,7 @@ def test_deauthorize(
         navigator: Navigator) -> None:
     """Test the DEAUTHORIZE instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.authorize_baking(account),
@@ -109,7 +102,7 @@ def test_get_auth_key(
         navigator: Navigator) -> None:
     """Test the QUERY_AUTH_KEY instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.authorize_baking(account),
@@ -129,7 +122,7 @@ def test_get_auth_key_with_curve(
         navigator: Navigator) -> None:
     """Test the QUERY_AUTH_KEY_WITH_CURVE instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.authorize_baking(account),
@@ -153,7 +146,7 @@ def test_get_public_key_baking(
         test_name: Path) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.authorize_baking(account),
@@ -189,7 +182,7 @@ def test_get_public_key_prompt(
         test_name: Path) -> None:
     """Test the PROMPT_PUBLIC_KEY instruction."""
 
-    instructions = get_public_key_flow_instructions(firmware)
+    instructions = Instructions.get_public_key_flow_instructions(firmware)
 
     public_key = send_and_navigate(
         send=lambda: client.get_public_key_prompt(account),
@@ -208,7 +201,7 @@ def test_reset_app_context(
         test_name) -> None:
     """Test the RESET instruction."""
 
-    instructions = get_reset_app_context_instructions(firmware)
+    instructions = Instructions.get_reset_app_context_instructions(firmware)
 
     reset_level: int = 0
 
@@ -230,11 +223,11 @@ def test_setup_app_context(
         test_name: Path) -> None:
     """Test the SETUP instruction."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     public_key = send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -258,11 +251,11 @@ def test_get_main_hwm(
         navigator: Navigator) -> None:
     """Test the QUERY_MAIN_HWM instruction."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -286,11 +279,11 @@ def test_get_all_hwm(
         navigator: Navigator) -> None:
     """Test the QUERY_ALL_HWM instruction."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -322,11 +315,11 @@ def test_sign_preattestation(
         navigator: Navigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on preattestation."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -336,14 +329,7 @@ def test_sign_preattestation(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    preattestation = Preattestation(
-        chain_id=main_chain_id,
-        branch="0000000000000000000000000000000000000000000000000000000000000000",
-        slot=0,
-        op_level=0,
-        op_round=0,
-        block_payload_hash="0000000000000000000000000000000000000000000000000000000000000000"
-    )
+    preattestation = Preattestation().forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, preattestation)
@@ -365,11 +351,11 @@ def test_sign_attestation(
         navigator: Navigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -379,14 +365,7 @@ def test_sign_attestation(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    attestation = Attestation(
-        chain_id=main_chain_id,
-        branch="0000000000000000000000000000000000000000000000000000000000000000",
-        slot=0,
-        op_level=0,
-        op_round=0,
-        block_payload_hash="0000000000000000000000000000000000000000000000000000000000000000"
-    )
+    attestation = Attestation().forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -408,11 +387,11 @@ def test_sign_attestation_dal(
         navigator: Navigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
 
-    main_chain_id: int = 0
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -422,15 +401,7 @@ def test_sign_attestation_dal(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    attestation = AttestationDal(
-        chain_id=main_chain_id,
-        branch="0000000000000000000000000000000000000000000000000000000000000000",
-        slot=0,
-        op_level=0,
-        op_round=0,
-        block_payload_hash="0000000000000000000000000000000000000000000000000000000000000000",
-        dal_message="0000000000000000000000000000000000000000000000000000000000000000"
-    )
+    attestation = AttestationDal().forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -454,11 +425,11 @@ def test_sign_block(
         navigator: Navigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on block."""
 
-    main_chain_id: int = 23
+    main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = get_setup_app_context_instructions(firmware)
+    instructions = Instructions.get_setup_app_context_instructions(firmware)
 
     send_and_navigate(
         send=lambda: client.setup_app_context(
@@ -468,28 +439,7 @@ def test_sign_block(
             test_hwm),
         navigate=lambda: navigator.navigate(instructions))
 
-    fitness = Fitness(
-        level=3,
-        locked_round=7,
-        predecessor_round=11,
-        current_round=13
-    )
-
-    block_header = BlockHeader(
-        level=17,
-        predecessor="0000000000000000000000000000000000000000000000000000000000000000",
-        timestamp=0,
-        validation_pass=19,
-        operations_hash="0000000000000000000000000000000000000000000000000000000000000000",
-        fitness=fitness,
-        context="0000000000000000000000000000000000000000000000000000000000000000"
-    )
-
-    block = Block(
-        chain_id=main_chain_id,
-        header=block_header,
-        data=b''
-    )
+    block = Block(header=BlockHeader(level=1)).forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, block)

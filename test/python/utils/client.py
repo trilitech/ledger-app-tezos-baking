@@ -6,6 +6,7 @@ from enum import IntEnum
 from ragger.utils import RAPDU
 from ragger.backend import BackendInterface
 from ragger.error import ExceptionRAPDU
+from pytezos.michelson import forge
 from utils.account import Account, SigScheme, BipPath
 from utils.helper import BytesReader
 from utils.message import Message
@@ -83,7 +84,7 @@ class Hwm:
             self.highest_round == other.highest_round
 
     def __bytes__(self) -> bytes :
-        return self.highest_level.to_bytes(4, byteorder='big')
+        return forge.forge_int32(self.highest_level)
 
     @staticmethod
     def raw_length(migrated: bool) -> int:
@@ -244,13 +245,13 @@ class TezosClient:
 
     def setup_app_context(self,
                           account: Account,
-                          main_chain_id: int,
+                          main_chain_id: str,
                           main_hwm: Hwm,
                           test_hwm: Hwm) -> bytes:
         """Send the SETUP instruction."""
 
         data: bytes = b''
-        data += main_chain_id.to_bytes(4, byteorder='big')
+        data += forge.forge_base58(main_chain_id)
         data += bytes(main_hwm)
         data += bytes(test_hwm)
         data += bytes(account.path)
@@ -264,7 +265,7 @@ class TezosClient:
         """Send the QUERY_MAIN_HWM instruction."""
         return Hwm.from_bytes(self._exchange(ins=Ins.QUERY_MAIN_HWM))
 
-    def get_all_hwm(self) -> Tuple[int, Hwm, Hwm]:
+    def get_all_hwm(self) -> Tuple[str, Hwm, Hwm]:
         """Send the QUERY_ALL_HWM instruction."""
         raw_data = self._exchange(ins=Ins.QUERY_ALL_HWM)
 
@@ -274,7 +275,7 @@ class TezosClient:
 
         main_hwm = Hwm.from_bytes(reader.read_bytes(hwm_len))
         test_hwm = Hwm.from_bytes(reader.read_bytes(hwm_len))
-        main_chain_id = reader.read_int(4)
+        main_chain_id = forge.unforge_chain_id(reader.read_bytes(4))
 
         reader.assert_finished()
 

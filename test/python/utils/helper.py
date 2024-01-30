@@ -73,54 +73,63 @@ def send_and_navigate(send: Callable[[], RESPONSE], navigate: Callable[[], None]
     run_simultaneously([navigate_process, send_process])
     return result_queue.get()
 
-def get_nano_review_instructions(num_screen_skip) -> List[Union[NavInsID, NavIns]]:
-    """Generate the instructions needed to review on nano devices."""
-    instructions: List[Union[NavInsID, NavIns]] = []
-    instructions += [NavInsID.RIGHT_CLICK] * num_screen_skip
-    instructions.append(NavInsID.BOTH_CLICK)
-    return instructions
+class Instructions:
+    """Class gathering instructions generator needed for navigator."""
 
-def get_stax_review_instructions(num_screen_skip) -> List[Union[NavInsID, NavIns]]:
-    """Generate the instructions needed to review on stax devices."""
-    instructions: List[Union[NavInsID, NavIns]] = []
-    instructions += [NavInsID.USE_CASE_REVIEW_TAP] * num_screen_skip
-    instructions += [
-        NavInsID.USE_CASE_CHOICE_CONFIRM,
-        NavInsID.USE_CASE_STATUS_DISMISS
-    ]
-    return instructions
+    @staticmethod
+    def get_nano_review_instructions(num_screen_skip) -> List[Union[NavInsID, NavIns]]:
+        """Generate the instructions needed to review on nano devices."""
+        instructions: List[Union[NavInsID, NavIns]] = []
+        instructions += [NavInsID.RIGHT_CLICK] * num_screen_skip
+        instructions.append(NavInsID.BOTH_CLICK)
+        return instructions
 
-def get_stax_address_instructions() -> List[Union[NavInsID, NavIns]]:
-    """Generate the instructions needed to check address on stax devices."""
-    instructions: List[Union[NavInsID, NavIns]] = [
-        NavInsID.USE_CASE_REVIEW_TAP,
-        NavIns(NavInsID.TOUCH, (112, 251)),
-        NavInsID.USE_CASE_ADDRESS_CONFIRMATION_EXIT_QR,
-        NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM,
-        NavInsID.USE_CASE_STATUS_DISMISS
-    ]
-    return instructions
+    @staticmethod
+    def get_stax_review_instructions(num_screen_skip) -> List[Union[NavInsID, NavIns]]:
+        """Generate the instructions needed to review on stax devices."""
+        instructions: List[Union[NavInsID, NavIns]] = []
+        instructions += [NavInsID.USE_CASE_REVIEW_TAP] * num_screen_skip
+        instructions += [
+            NavInsID.USE_CASE_CHOICE_CONFIRM,
+            NavInsID.USE_CASE_STATUS_DISMISS
+        ]
+        return instructions
 
-def get_public_key_flow_instructions(firmware: Firmware):
-    """Generate the instructions needed to check address."""
-    if firmware.device == "nanos":
-        return get_nano_review_instructions(5)
-    if firmware.is_nano:
-        return get_nano_review_instructions(4)
-    return get_stax_address_instructions()
+    @staticmethod
+    def get_stax_address_instructions() -> List[Union[NavInsID, NavIns]]:
+        """Generate the instructions needed to check address on stax devices."""
+        instructions: List[Union[NavInsID, NavIns]] = [
+            NavInsID.USE_CASE_REVIEW_TAP,
+            NavIns(NavInsID.TOUCH, (112, 251)),
+            NavInsID.USE_CASE_ADDRESS_CONFIRMATION_EXIT_QR,
+            NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM,
+            NavInsID.USE_CASE_STATUS_DISMISS
+        ]
+        return instructions
 
-def get_setup_app_context_instructions(firmware: Firmware):
-    """Generate the instructions needed to setup app context."""
-    if firmware.device == "nanos":
-        return get_nano_review_instructions(8)
-    if firmware.is_nano:
-        return get_nano_review_instructions(7)
-    return get_stax_review_instructions(2)
+    @staticmethod
+    def get_public_key_flow_instructions(firmware: Firmware):
+        """Generate the instructions needed to check address."""
+        if firmware.device == "nanos":
+            return Instructions.get_nano_review_instructions(5)
+        if firmware.is_nano:
+            return Instructions.get_nano_review_instructions(4)
+        return Instructions.get_stax_address_instructions()
 
-def get_reset_app_context_instructions(firmware: Firmware):
-    """Generate the instructions needed to reset app context."""
-    if firmware.device == "nanos":
-        return get_nano_review_instructions(3)
-    if firmware.is_nano:
-        return get_nano_review_instructions(3)
-    return get_stax_review_instructions(2)
+    @staticmethod
+    def get_setup_app_context_instructions(firmware: Firmware):
+        """Generate the instructions needed to setup app context."""
+        if firmware.device == "nanos":
+            return Instructions.get_nano_review_instructions(8)
+        if firmware.is_nano:
+            return Instructions.get_nano_review_instructions(7)
+        return Instructions.get_stax_review_instructions(2)
+
+    @staticmethod
+    def get_reset_app_context_instructions(firmware: Firmware):
+        """Generate the instructions needed to reset app context."""
+        if firmware.device == "nanos":
+            return Instructions.get_nano_review_instructions(3)
+        if firmware.is_nano:
+            return Instructions.get_nano_review_instructions(3)
+        return Instructions.get_stax_review_instructions(2)

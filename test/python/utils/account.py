@@ -17,7 +17,7 @@
 from enum import IntEnum
 from typing import Union
 import base58
-from pytezos import pytezos
+import pytezos
 from bip_utils.bip.bip32.bip32_path import Bip32Path, Bip32PathParser
 from bip_utils.bip.bip32.bip32_key_data import Bip32KeyIndex
 from utils.helper import BytesReader
@@ -126,16 +126,31 @@ class Account:
     def __init__(self,
                  path: Union[BipPath, str, bytes],
                  sig_scheme: SigScheme,
-                 public_key: str):
+                 key: str):
         self.path: BipPath = \
             BipPath.from_string(path) if isinstance(path, str) else \
             BipPath.from_bytes(path) if isinstance(path, bytes) else \
             path
         self.sig_scheme: SigScheme = sig_scheme
-        self.public_key: str = public_key
+        self.key: pytezos.Key = pytezos.pytezos.using(key=key).key
+
+    @property
+    def public_key_hash(self) -> str:
+        """public_key_hash of the account."""
+        return self.key.public_key_hash()
+
+    @property
+    def public_key(self) -> str:
+        """public_key of the account."""
+        return self.key.public_key()
+
+    @property
+    def secret_key(self) -> str:
+        """secret_key of the account."""
+        return self.key.secret_key()
 
     def __repr__(self) -> str:
-        return self.public_key
+        return self.public_key_hash
 
     @property
     def base58_decoded(self) -> bytes:
@@ -206,8 +221,7 @@ class Account:
                         SigScheme.BIP32_ED25519
                 ] \
                 else Signature.from_tlv(signature)
-        ctxt = pytezos.using(key=self.public_key)
-        assert ctxt.key.verify(signature.value, message), \
+        assert self.key.verify(signature.value, message), \
             f"Fail to verify signature {signature}, \n\
             with account {self} \n\
             and message {message.hex()}"
