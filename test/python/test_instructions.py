@@ -305,6 +305,8 @@ def test_sign_preattestation(
             f"Expected hash {preattestation.hash.hex()} but got {preattestation_hash.hex()}"
         account.check_signature(signature, bytes(preattestation))
 
+    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
+
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
@@ -349,6 +351,8 @@ def test_sign_attestation(
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
 
+    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
+
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
@@ -392,6 +396,8 @@ def test_sign_attestation_dal(
         assert attestation_hash == attestation.hash, \
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
+
+    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
 
     tezos_navigator.check_app_context(
         account,
@@ -438,6 +444,8 @@ def test_sign_block(
         assert block_hash == block.hash, \
             f"Expected hash {block.hash.hex()} but got {block_hash.hex()}"
         account.check_signature(signature, bytes(block))
+
+    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
 
     tezos_navigator.check_app_context(
         account,

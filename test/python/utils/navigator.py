@@ -158,7 +158,7 @@ class TezosNavigator(metaclass=MetaScreen):
             )
         )
 
-    def _assert_screen(self, path: Path) -> None:
+    def assert_screen(self, path: Path) -> None:
         golden_path = self._snapshots_dir / path
         if not golden_path.parent.is_dir() and self._golden_run:
             golden_path.parent.mkdir(parents=True)
@@ -211,19 +211,19 @@ class TezosNavigator(metaclass=MetaScreen):
                 [NavInsID.RIGHT_CLICK] * 2,
                 screen_change_before_first_instruction=False
             )
-            self._assert_screen(path / "chain_id.png")
+            self.assert_screen(path / "chain_id.png")
             self.backend.right_click()
             self.backend.wait_for_screen_change()
             if account is not None and self.firmware.device == "nanos":
-                self._assert_screen(path / "public_key_hash_1.png")
+                self.assert_screen(path / "public_key_hash_1.png")
                 self.backend.right_click()
                 self.backend.wait_for_screen_change()
-                self._assert_screen(path / "public_key_hash_2.png")
+                self.assert_screen(path / "public_key_hash_2.png")
             else:
-                self._assert_screen(path / "public_key_hash.png")
+                self.assert_screen(path / "public_key_hash.png")
             self.backend.right_click()
             self.backend.wait_for_screen_change()
-            self._assert_screen(path / "high_watermark.png")
+            self.assert_screen(path / "high_watermark.png")
             self.navigator.navigate(
                 [NavInsID.LEFT_CLICK] * 4,
                 screen_change_before_first_instruction=False
@@ -231,7 +231,7 @@ class TezosNavigator(metaclass=MetaScreen):
         else:
             self.home.settings()
             self.backend.wait_for_screen_change()
-            self._assert_screen(path / "app_context.png")
+            self.assert_screen(path / "app_context.png")
             self.settings.multi_page_exit()
             self.backend.wait_for_screen_change()
 
