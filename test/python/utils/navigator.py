@@ -129,10 +129,17 @@ class TezosNavigator(metaclass=MetaScreen):
 
     _golden_run:        bool
     _root_dir:          Path
+    _test_name:         str
     _snapshots_dir:     Path
     _tmp_snapshots_dir: Path
 
-    def __init__(self, backend, firmware, client, navigator, golden_run) -> None:
+    def __init__(self,
+                 backend: BackendInterface,
+                 firmware: Firmware,
+                 client: TezosClient,
+                 navigator: Navigator,
+                 golden_run: bool,
+                 test_name: str) -> None:
         self.backend   = backend
         self.firmware  = firmware
         self.client    = client
@@ -140,29 +147,44 @@ class TezosNavigator(metaclass=MetaScreen):
 
         self._golden_run        = golden_run
         self._root_dir          = TESTS_ROOT_DIR
-        self._snapshots_dir     = self._root_dir / "snapshots" / backend.firmware.name
-        self._tmp_snapshots_dir = self._root_dir / "snapshots-tmp" / backend.firmware.name
+        self._test_name         = test_name
+        self._snapshots_dir     = \
+            self._root_dir / "snapshots" / self.firmware.name / self._test_name
+        self._tmp_snapshots_dir = \
+            self._root_dir / "snapshots-tmp" / self.firmware.name / self._test_name
+
+    def navigate_and_compare(self,
+                             snap_path: Optional[Union[Path, str]] = None,
+                             **kwargs) -> None:
+        """Same as navigator.navigate_and_compare"""
+        if snap_path is not None:
+            snap_path = Path(self._test_name) / snap_path
+        self.navigator.navigate_and_compare(
+            path=self._root_dir,
+            test_case_name=snap_path,
+            **kwargs
+        )
 
     def _send_and_navigate(self,
                           send: Callable[[], RESPONSE],
-                          instructions: List[Union[NavInsID, NavIns]],
-                          path: Optional[Path] = None,
+                          snap_path: Optional[Union[Path, str]] = None,
                           **kwargs) -> RESPONSE:
         return send_and_navigate(
             send=send,
-            navigate=lambda: self.navigator.navigate_and_compare(
-                self._root_dir,
-                path,
-                instructions,
-                **kwargs
-            )
+            navigate=lambda:
+            self.navigate_and_compare(snap_path, **kwargs)
         )
 
-    def assert_screen(self, path: Path) -> None:
-        golden_path = self._snapshots_dir / path
+    def assert_screen(self,
+                      name: str,
+                      snap_path: Path = Path("")) -> None:
+        """Assert the current screen is the golden snap_path."""
+
+        snap_path = snap_path / f"{name}.png"
+        golden_path = self._snapshots_dir / snap_path
         if not golden_path.parent.is_dir() and self._golden_run:
             golden_path.parent.mkdir(parents=True)
-        tmp_path = self._tmp_snapshots_dir / path
+        tmp_path = self._tmp_snapshots_dir / snap_path
         if not tmp_path.parent.is_dir():
             tmp_path.parent.mkdir(parents=True)
 
@@ -170,21 +192,17 @@ class TezosNavigator(metaclass=MetaScreen):
             golden_path,
             tmp_snap_path=tmp_path,
             golden_run=self._golden_run
-        ), f"Screen does not match golden {path}."
+        ), f"Screen does not match golden {snap_path}."
 
     def check_app_context(self,
                           account: Optional[Account],
                           chain_id: str,
                           main_hwm: Hwm,
                           test_hwm: Hwm,
-                          path: Path) -> None:
+                          snap_path: Path = Path("")) -> None:
         """Check that the app context."""
-        path = Path(path)
 
         received_chain_id, received_main_hwm, received_test_hwm = self.client.get_all_hwm()
-
-        # get_auth_key_with_curve raise EXC_REFERENCED_DATA_NOT_FOUND
-        received_path = self.client.get_auth_key()
 
         assert received_chain_id == chain_id, \
             f"Expected main chain id {chain_id} but got {received_chain_id}"
@@ -206,24 +224,25 @@ class TezosNavigator(metaclass=MetaScreen):
                 f"Expected signature scheme {account.sig_scheme.name} "\
                 f"but got {received_sig_scheme.name}"
 
+        snap_path = snap_path / "app_context"
         if self.firmware.is_nano:
             self.navigator.navigate(
                 [NavInsID.RIGHT_CLICK] * 2,
                 screen_change_before_first_instruction=False
             )
-            self.assert_screen(path / "chain_id.png")
+            self.assert_screen("chain_id", snap_path=snap_path)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
             if account is not None and self.firmware.device == "nanos":
-                self.assert_screen(path / "public_key_hash_1.png")
+                self.assert_screen("public_key_hash_1", snap_path=snap_path)
                 self.backend.right_click()
                 self.backend.wait_for_screen_change()
-                self.assert_screen(path / "public_key_hash_2.png")
+                self.assert_screen("public_key_hash_2", snap_path=snap_path)
             else:
-                self.assert_screen(path / "public_key_hash.png")
+                self.assert_screen("public_key_hash", snap_path=snap_path)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
-            self.assert_screen(path / "high_watermark.png")
+            self.assert_screen("high_watermark", snap_path=snap_path)
             self.navigator.navigate(
                 [NavInsID.LEFT_CLICK] * 4,
                 screen_change_before_first_instruction=False
@@ -231,7 +250,7 @@ class TezosNavigator(metaclass=MetaScreen):
         else:
             self.home.settings()
             self.backend.wait_for_screen_change()
-            self.assert_screen(path / "app_context.png")
+            self.assert_screen("app_context", snap_path=snap_path)
             self.settings.multi_page_exit()
             self.backend.wait_for_screen_change()
 

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Callable, Tuple
 import pytest
 from ragger.firmware import Firmware
-from ragger.navigator import Navigator, NavInsID
+from ragger.navigator import NavInsID
 from utils.client import TezosClient, Version, Hwm, StatusCode
 from utils.account import Account, SigScheme
 from utils.helper import get_current_commit
@@ -19,15 +19,9 @@ from utils.message import (
     DEFAULT_CHAIN_ID
 )
 from utils.navigator import TezosNavigator, Instructions
-from common import (
-    DEFAULT_ACCOUNT,
-    TESTS_ROOT_DIR
-)
+from common import DEFAULT_ACCOUNT
 
-def test_review_home(
-        firmware: Firmware,
-        navigator: Navigator,
-        test_name: Path) -> None:
+def test_review_home(firmware: Firmware, tezos_navigator: TezosNavigator) -> None:
     """Test the display of the home/info pages."""
 
     instructions = Instructions.get_right_clicks(5) if firmware.is_nano else \
@@ -36,10 +30,9 @@ def test_review_home(
             NavInsID.USE_CASE_SETTINGS_NEXT
         ]
 
-    navigator.navigate_and_compare(
-        TESTS_ROOT_DIR,
-        test_name,
-        instructions,
+    tezos_navigator.navigate_and_compare(
+        snap_path=Path(""),
+        instructions=instructions,
         screen_change_before_first_instruction=False
     )
 
@@ -66,13 +59,10 @@ def test_git(client: TezosClient) -> None:
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
-def test_authorize_baking(
-        account: Account,
-        tezos_navigator: TezosNavigator,
-        test_name: Path) -> None:
+def test_authorize_baking(account: Account, tezos_navigator: TezosNavigator) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
 
-    public_key = tezos_navigator.authorize_baking(account, path=test_name)
+    public_key = tezos_navigator.authorize_baking(account, snap_path=Path(""))
 
     account.check_public_key(public_key)
 
@@ -80,8 +70,7 @@ def test_authorize_baking(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(0),
-        test_hwm=Hwm(0),
-        path=test_name
+        test_hwm=Hwm(0)
     )
 
 
@@ -89,8 +78,7 @@ def test_authorize_baking(
 def test_deauthorize(
         account: Account,
         client: TezosClient,
-        tezos_navigator: TezosNavigator,
-        test_name: Path) -> None:
+        tezos_navigator: TezosNavigator) -> None:
     """Test the DEAUTHORIZE instruction."""
 
     tezos_navigator.authorize_baking(account)
@@ -101,8 +89,7 @@ def test_deauthorize(
         None,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(0),
-        test_hwm=Hwm(0),
-        path=test_name
+        test_hwm=Hwm(0)
     )
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
@@ -137,15 +124,12 @@ def test_get_auth_key_with_curve(
         f"Expected {account.sig_scheme.name} but got {sig_scheme.name}"
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
-def test_get_public_key_baking(
-        account: Account,
-        tezos_navigator: TezosNavigator,
-        test_name: Path) -> None:
+def test_get_public_key_baking(account: Account, tezos_navigator: TezosNavigator) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
 
     tezos_navigator.authorize_baking(account)
 
-    public_key = tezos_navigator.authorize_baking(None, path=test_name)
+    public_key = tezos_navigator.authorize_baking(None, snap_path=Path(""))
 
     account.check_public_key(public_key)
 
@@ -160,38 +144,31 @@ def test_get_public_key_silent(account: Account, client: TezosClient) -> None:
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
-def test_get_public_key_prompt(
-        account: Account,
-        tezos_navigator: TezosNavigator,
-        test_name: Path) -> None:
+def test_get_public_key_prompt(account: Account, tezos_navigator: TezosNavigator) -> None:
     """Test the PROMPT_PUBLIC_KEY instruction."""
 
-    public_key = tezos_navigator.get_public_key_prompt(account, path=test_name)
+    public_key = tezos_navigator.get_public_key_prompt(account, snap_path=Path(""))
 
     account.check_public_key(public_key)
 
 
-def test_reset_app_context(tezos_navigator: TezosNavigator, test_name: Path) -> None:
+def test_reset_app_context(tezos_navigator: TezosNavigator) -> None:
     """Test the RESET instruction."""
 
     reset_level: int = 1
 
-    tezos_navigator.reset_app_context(reset_level, path=test_name)
+    tezos_navigator.reset_app_context(reset_level, snap_path=Path(""))
 
     tezos_navigator.check_app_context(
         None,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(reset_level),
-        test_hwm=Hwm(reset_level),
-        path=test_name
+        test_hwm=Hwm(reset_level)
     )
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
-def test_setup_app_context(
-        account: Account,
-        tezos_navigator: TezosNavigator,
-        test_name: Path) -> None:
+def test_setup_app_context(account: Account, tezos_navigator: TezosNavigator) -> None:
     """Test the SETUP instruction."""
 
     main_chain_id = "NetXH12AexHqTQa"
@@ -203,7 +180,7 @@ def test_setup_app_context(
         main_chain_id,
         main_hwm,
         test_hwm,
-        path=test_name
+        snap_path=Path("")
     )
 
     account.check_public_key(public_key)
@@ -212,8 +189,7 @@ def test_setup_app_context(
         account,
         chain_id=main_chain_id,
         main_hwm=main_hwm,
-        test_hwm=test_hwm,
-        path=test_name
+        test_hwm=test_hwm
     )
 
 
@@ -308,8 +284,7 @@ def test_sign_preattestation(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        tezos_navigator: TezosNavigator,
-        test_name: Path) -> None:
+        tezos_navigator: TezosNavigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on preattestation."""
 
     main_chain_id = DEFAULT_CHAIN_ID
@@ -338,14 +313,16 @@ def test_sign_preattestation(
             f"Expected hash {preattestation.hash.hex()} but got {preattestation_hash.hex()}"
         account.check_signature(signature, bytes(preattestation))
 
-    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
+    tezos_navigator.assert_screen(
+        name="black_screen",
+        snap_path=Path("app_context")
+    )
 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        path=test_name
+        test_hwm=Hwm(0, 0)
     )
 
 
@@ -355,8 +332,7 @@ def test_sign_attestation(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        tezos_navigator: TezosNavigator,
-        test_name: Path) -> None:
+        tezos_navigator: TezosNavigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
 
     main_chain_id = DEFAULT_CHAIN_ID
@@ -385,14 +361,16 @@ def test_sign_attestation(
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
 
-    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
+    tezos_navigator.assert_screen(
+        name="black_screen",
+        snap_path=Path("app_context")
+    )
 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        path=test_name
+        test_hwm=Hwm(0, 0)
     )
 
 
@@ -402,8 +380,7 @@ def test_sign_attestation_dal(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        tezos_navigator: TezosNavigator,
-        test_name: Path) -> None:
+        tezos_navigator: TezosNavigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
 
     main_chain_id = DEFAULT_CHAIN_ID
@@ -432,14 +409,16 @@ def test_sign_attestation_dal(
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
 
-    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
+    tezos_navigator.assert_screen(
+        name="black_screen",
+        snap_path=Path("app_context")
+    )
 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        path=test_name
+        test_hwm=Hwm(0, 0)
     )
 
 
@@ -449,8 +428,7 @@ def test_sign_block(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        tezos_navigator: TezosNavigator,
-        test_name: Path) -> None:
+        tezos_navigator: TezosNavigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on block."""
 
     main_chain_id = DEFAULT_CHAIN_ID
@@ -479,14 +457,16 @@ def test_sign_block(
             f"Expected hash {block.hash.hex()} but got {block_hash.hex()}"
         account.check_signature(signature, bytes(block))
 
-    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
+    tezos_navigator.assert_screen(
+        name="black_screen",
+        snap_path=Path("app_context")
+    )
 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        path=test_name
+        test_hwm=Hwm(0, 0)
     )
 
 

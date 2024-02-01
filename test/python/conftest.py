@@ -15,15 +15,17 @@ configuration.OPTIONAL.CUSTOM_SEED = DEFAULT_SEED
 pytest_plugins = ("ragger.conftest.base_conftest", )
 
 @pytest.fixture(scope="function")
-def client(backend: BackendInterface):
+def client(backend: BackendInterface) -> TezosClient:
     """Get a tezos client."""
     return TezosClient(backend)
 
 @pytest.fixture(scope="function")
-def tezos_navigator(backend: BackendInterface,
-                    client: TezosClient,
-                    firmware: Firmware,
-                    navigator: Navigator,
-                    golden_run: bool):
+def tezos_navigator(
+        backend: BackendInterface,
+        firmware: Firmware,
+        client: TezosClient,
+        navigator: Navigator,
+        golden_run: bool,
+        test_name: str) -> TezosNavigator:
     """Get a tezos navigator."""
-    return TezosNavigator(backend, firmware, client, navigator, golden_run)
+    return TezosNavigator(backend, firmware, client, navigator, golden_run, test_name)
