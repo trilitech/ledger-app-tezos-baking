@@ -3,27 +3,44 @@
 from pathlib import Path
 import pytest
 from ragger.firmware import Firmware
-from ragger.navigator import Navigator
+from ragger.navigator import Navigator, NavInsID
 from utils.client import TezosClient, Version, Hwm
 from utils.account import Account
-from utils.helper import (
-    Instructions,
-    send_and_navigate,
-    get_current_commit
-)
+from utils.helper import get_current_commit
 from utils.message import (
     Preattestation,
     Attestation,
     AttestationDal,
+    Fitness,
     BlockHeader,
     Block,
     DEFAULT_CHAIN_ID
 )
+from utils.navigator import TezosNavigator, Instructions
 from common import (
-    TESTS_ROOT_DIR,
     DEFAULT_ACCOUNT,
-    EMPTY_PATH
+    TESTS_ROOT_DIR
 )
+
+
+def test_review_home(
+        firmware: Firmware,
+        navigator: Navigator,
+        test_name: Path) -> None:
+    """Test the display of the home/info pages."""
+
+    instructions = Instructions.get_right_clicks(5) if firmware.is_nano else \
+        [
+            NavInsID.USE_CASE_HOME_SETTINGS,
+            NavInsID.USE_CASE_SETTINGS_NEXT
+        ]
+
+    navigator.navigate_and_compare(
+        TESTS_ROOT_DIR,
+        test_name,
+        instructions,
+        screen_change_before_first_instruction=False
+    )
 
 
 def test_version(client: TezosClient) -> None:
@@ -47,67 +64,54 @@ def test_git(client: TezosClient) -> None:
         f"Expected {expected_commit} but got {commit}"
 
 
-
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_authorize_baking(
         account: Account,
-        client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator,
+        tezos_navigator: TezosNavigator,
         test_name: Path) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
 
-    instructions = Instructions.get_public_key_flow_instructions(firmware)
-
-    public_key = send_and_navigate(
-        send=lambda: client.authorize_baking(account),
-        navigate=lambda: navigator.navigate_and_compare(
-            TESTS_ROOT_DIR,
-            test_name,
-            instructions)
-    )
+    public_key = tezos_navigator.authorize_baking(account, path=test_name)
 
     account.check_public_key(public_key)
+
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0),
+        path=test_name
+    )
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_deauthorize(
         account: Account,
         client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator) -> None:
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
     """Test the DEAUTHORIZE instruction."""
 
-    instructions = Instructions.get_public_key_flow_instructions(firmware)
-
-    send_and_navigate(
-        send=lambda: client.authorize_baking(account),
-        navigate=lambda: navigator.navigate(instructions)
-    )
+    tezos_navigator.authorize_baking(account)
 
     client.deauthorize()
 
-    # get_auth_key_with_curve raise EXC_REFERENCED_DATA_NOT_FOUND
-
-    path = client.get_auth_key()
-
-    assert path == EMPTY_PATH, \
-        f"Expected the empty path {EMPTY_PATH} but got {path}"
+    tezos_navigator.check_app_context(
+        None,
+        chain_id=DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0),
+        path=test_name
+    )
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_get_auth_key(
         account: Account,
         client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator) -> None:
+        tezos_navigator: TezosNavigator) -> None:
     """Test the QUERY_AUTH_KEY instruction."""
 
-    instructions = Instructions.get_public_key_flow_instructions(firmware)
-
-    send_and_navigate(
-        send=lambda: client.authorize_baking(account),
-        navigate=lambda: navigator.navigate(instructions)
-    )
+    tezos_navigator.authorize_baking(account)
 
     path = client.get_auth_key()
 
@@ -118,16 +122,10 @@ def test_get_auth_key(
 def test_get_auth_key_with_curve(
         account: Account,
         client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator) -> None:
+        tezos_navigator: TezosNavigator) -> None:
     """Test the QUERY_AUTH_KEY_WITH_CURVE instruction."""
 
-    instructions = Instructions.get_public_key_flow_instructions(firmware)
-
-    send_and_navigate(
-        send=lambda: client.authorize_baking(account),
-        navigate=lambda: navigator.navigate(instructions)
-    )
+    tezos_navigator.authorize_baking(account)
 
     sig_scheme, path = client.get_auth_key_with_curve()
 
@@ -140,26 +138,13 @@ def test_get_auth_key_with_curve(
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_get_public_key_baking(
         account: Account,
-        client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator,
+        tezos_navigator: TezosNavigator,
         test_name: Path) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
 
-    instructions = Instructions.get_public_key_flow_instructions(firmware)
+    tezos_navigator.authorize_baking(account)
 
-    send_and_navigate(
-        send=lambda: client.authorize_baking(account),
-        navigate=lambda: navigator.navigate(instructions)
-    )
-
-    public_key = send_and_navigate(
-        send=lambda: client.authorize_baking(None),
-        navigate=lambda: navigator.navigate_and_compare(
-            TESTS_ROOT_DIR,
-            test_name,
-            instructions)
-    )
+    public_key = tezos_navigator.authorize_baking(None, path=test_name)
 
     account.check_public_key(public_key)
 
@@ -176,94 +161,78 @@ def test_get_public_key_silent(account: Account, client: TezosClient) -> None:
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_get_public_key_prompt(
         account: Account,
-        client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator,
+        tezos_navigator: TezosNavigator,
         test_name: Path) -> None:
     """Test the PROMPT_PUBLIC_KEY instruction."""
 
-    instructions = Instructions.get_public_key_flow_instructions(firmware)
-
-    public_key = send_and_navigate(
-        send=lambda: client.get_public_key_prompt(account),
-        navigate=lambda: navigator.navigate_and_compare(
-            TESTS_ROOT_DIR,
-            test_name,
-            instructions))
+    public_key = tezos_navigator.get_public_key_prompt(account, path=test_name)
 
     account.check_public_key(public_key)
 
 
-def test_reset_app_context(
-        client: TezosClient,
-        firmware,
-        navigator,
-        test_name) -> None:
+def test_reset_app_context(tezos_navigator: TezosNavigator, test_name: Path) -> None:
     """Test the RESET instruction."""
 
-    instructions = Instructions.get_reset_app_context_instructions(firmware)
+    reset_level: int = 1
 
-    reset_level: int = 0
+    tezos_navigator.reset_app_context(reset_level, path=test_name)
 
-    send_and_navigate(
-        send=lambda: client.reset_app_context(reset_level),
-        navigate=lambda: navigator.navigate_and_compare(
-            TESTS_ROOT_DIR,
-            test_name,
-            instructions)
+    tezos_navigator.check_app_context(
+        None,
+        chain_id=DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(reset_level),
+        test_hwm=Hwm(reset_level),
+        path=test_name
     )
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_setup_app_context(
         account: Account,
-        client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator,
+        tezos_navigator: TezosNavigator,
         test_name: Path) -> None:
     """Test the SETUP instruction."""
 
-    main_chain_id = DEFAULT_CHAIN_ID
-    main_hwm = Hwm(0)
-    test_hwm = Hwm(0)
+    main_chain_id = "NetXH12AexHqTQa"
+    main_hwm = Hwm(1)
+    test_hwm = Hwm(2)
 
-    instructions = Instructions.get_setup_app_context_instructions(firmware)
-
-    public_key = send_and_navigate(
-        send=lambda: client.setup_app_context(
-            account,
-            main_chain_id,
-            main_hwm,
-            test_hwm),
-        navigate=lambda: navigator.navigate_and_compare(
-            TESTS_ROOT_DIR,
-            test_name,
-            instructions))
+    public_key = tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm,
+        test_hwm,
+        path=test_name
+    )
 
     account.check_public_key(public_key)
+
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=main_chain_id,
+        main_hwm=main_hwm,
+        test_hwm=test_hwm,
+        path=test_name
+    )
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_get_main_hwm(
         account: Account,
         client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator) -> None:
+        tezos_navigator: TezosNavigator) -> None:
     """Test the QUERY_MAIN_HWM instruction."""
 
     main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = Instructions.get_setup_app_context_instructions(firmware)
-
-    send_and_navigate(
-        send=lambda: client.setup_app_context(
-            account,
-            main_chain_id,
-            main_hwm,
-            test_hwm),
-        navigate=lambda: navigator.navigate(instructions))
+    tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm,
+        test_hwm
+    )
 
     received_main_hwm = client.get_main_hwm()
 
@@ -275,23 +244,19 @@ def test_get_main_hwm(
 def test_get_all_hwm(
         account: Account,
         client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator) -> None:
+        tezos_navigator: TezosNavigator) -> None:
     """Test the QUERY_ALL_HWM instruction."""
 
     main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = Instructions.get_setup_app_context_instructions(firmware)
-
-    send_and_navigate(
-        send=lambda: client.setup_app_context(
-            account,
-            main_chain_id,
-            main_hwm,
-            test_hwm),
-        navigate=lambda: navigator.navigate(instructions))
+    tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm,
+        test_hwm
+    )
 
     received_main_chain_id, received_main_hwm, received_test_hwm = client.get_all_hwm()
 
@@ -311,25 +276,25 @@ def test_sign_preattestation(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator) -> None:
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
     """Test the SIGN(_WITH_HASH) instruction on preattestation."""
 
     main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = Instructions.get_setup_app_context_instructions(firmware)
+    tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm,
+        test_hwm
+    )
 
-    send_and_navigate(
-        send=lambda: client.setup_app_context(
-            account,
-            main_chain_id,
-            main_hwm,
-            test_hwm),
-        navigate=lambda: navigator.navigate(instructions))
-
-    preattestation = Preattestation().forge(chain_id=main_chain_id)
+    preattestation = Preattestation(
+        op_level=1,
+        op_round=2
+    ).forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, preattestation)
@@ -340,6 +305,16 @@ def test_sign_preattestation(
             f"Expected hash {preattestation.hash.hex()} but got {preattestation_hash.hex()}"
         account.check_signature(signature, bytes(preattestation))
 
+    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
+
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=main_chain_id,
+        main_hwm=Hwm(1, 2),
+        test_hwm=Hwm(0, 0),
+        path=test_name
+    )
+
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 @pytest.mark.parametrize("with_hash", [False, True])
@@ -347,25 +322,25 @@ def test_sign_attestation(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator) -> None:
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
 
     main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = Instructions.get_setup_app_context_instructions(firmware)
+    tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm,
+        test_hwm
+    )
 
-    send_and_navigate(
-        send=lambda: client.setup_app_context(
-            account,
-            main_chain_id,
-            main_hwm,
-            test_hwm),
-        navigate=lambda: navigator.navigate(instructions))
-
-    attestation = Attestation().forge(chain_id=main_chain_id)
+    attestation = Attestation(
+        op_level=1,
+        op_round=2
+    ).forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -375,6 +350,16 @@ def test_sign_attestation(
         assert attestation_hash == attestation.hash, \
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
+
+    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
+
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=main_chain_id,
+        main_hwm=Hwm(1, 2),
+        test_hwm=Hwm(0, 0),
+        path=test_name
+    )
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
@@ -383,25 +368,25 @@ def test_sign_attestation_dal(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator) -> None:
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
 
     main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = Instructions.get_setup_app_context_instructions(firmware)
+    tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm,
+        test_hwm
+    )
 
-    send_and_navigate(
-        send=lambda: client.setup_app_context(
-            account,
-            main_chain_id,
-            main_hwm,
-            test_hwm),
-        navigate=lambda: navigator.navigate(instructions))
-
-    attestation = AttestationDal().forge(chain_id=main_chain_id)
+    attestation = AttestationDal(
+        op_level=1,
+        op_round=2
+    ).forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -412,7 +397,15 @@ def test_sign_attestation_dal(
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
 
+    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
 
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=main_chain_id,
+        main_hwm=Hwm(1, 2),
+        test_hwm=Hwm(0, 0),
+        path=test_name
+    )
 
 
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
@@ -421,25 +414,27 @@ def test_sign_block(
         account: Account,
         with_hash: bool,
         client: TezosClient,
-        firmware: Firmware,
-        navigator: Navigator) -> None:
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
     """Test the SIGN(_WITH_HASH) instruction on block."""
 
     main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(0)
     test_hwm = Hwm(0)
 
-    instructions = Instructions.get_setup_app_context_instructions(firmware)
+    tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm,
+        test_hwm
+    )
 
-    send_and_navigate(
-        send=lambda: client.setup_app_context(
-            account,
-            main_chain_id,
-            main_hwm,
-            test_hwm),
-        navigate=lambda: navigator.navigate(instructions))
-
-    block = Block(header=BlockHeader(level=1)).forge(chain_id=main_chain_id)
+    block = Block(
+        header=BlockHeader(
+            level=1,
+            fitness=Fitness(current_round=2)
+        )
+    ).forge(chain_id=main_chain_id)
 
     if with_hash:
         signature = client.sign_message(account, block)
@@ -449,6 +444,17 @@ def test_sign_block(
         assert block_hash == block.hash, \
             f"Expected hash {block.hash.hex()} but got {block_hash.hex()}"
         account.check_signature(signature, bytes(block))
+
+    tezos_navigator.assert_screen(Path(test_name) / "black_screen.png")
+
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=main_chain_id,
+        main_hwm=Hwm(1, 2),
+        test_hwm=Hwm(0, 0),
+        path=test_name
+    )
+
 
 # Data generated by the old application itself
 HMAC_TEST_SET = [
