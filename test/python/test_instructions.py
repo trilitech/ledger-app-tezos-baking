@@ -1,13 +1,15 @@
 """Module gathering the baking app instruction tests."""
 
 from pathlib import Path
+from typing import Callable, Tuple
 import pytest
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
-from utils.client import TezosClient, Version, Hwm
+from utils.client import TezosClient, Version, Hwm, StatusCode
 from utils.account import Account
 from utils.helper import get_current_commit
 from utils.message import (
+    Message,
     Preattestation,
     Attestation,
     AttestationDal,
@@ -21,7 +23,6 @@ from common import (
     DEFAULT_ACCOUNT,
     TESTS_ROOT_DIR
 )
-
 
 def test_review_home(
         firmware: Firmware,
@@ -270,6 +271,37 @@ def test_get_all_hwm(
         f"Expected test hmw {test_hwm} but got {received_test_hwm}"
 
 
+def build_preattestation(op_level, op_round, chain_id):
+    """Build a preattestation."""
+    return Preattestation(
+        op_level=op_level,
+        op_round=op_round
+    ).forge(chain_id=chain_id)
+
+def build_attestation(op_level, op_round, chain_id):
+    """Build a attestation."""
+    return Attestation(
+        op_level=op_level,
+        op_round=op_round
+    ).forge(chain_id=chain_id)
+
+def build_attestation_dal(op_level, op_round, chain_id):
+    """Build a attestation_dal."""
+    return AttestationDal(
+        op_level=op_level,
+        op_round=op_round
+    ).forge(chain_id=chain_id)
+
+def build_block(level, current_round, chain_id):
+    """Build a block."""
+    return Block(
+        header=BlockHeader(
+            level=level,
+            fitness=Fitness(current_round=current_round)
+        )
+    ).forge(chain_id=chain_id)
+
+
 @pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 @pytest.mark.parametrize("with_hash", [False, True])
 def test_sign_preattestation(
@@ -291,10 +323,11 @@ def test_sign_preattestation(
         test_hwm
     )
 
-    preattestation = Preattestation(
+    preattestation = build_preattestation(
         op_level=1,
-        op_round=2
-    ).forge(chain_id=main_chain_id)
+        op_round=2,
+        chain_id=main_chain_id
+    )
 
     if with_hash:
         signature = client.sign_message(account, preattestation)
@@ -337,10 +370,11 @@ def test_sign_attestation(
         test_hwm
     )
 
-    attestation = Attestation(
+    attestation = build_attestation(
         op_level=1,
-        op_round=2
-    ).forge(chain_id=main_chain_id)
+        op_round=2,
+        chain_id=main_chain_id
+    )
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -383,10 +417,11 @@ def test_sign_attestation_dal(
         test_hwm
     )
 
-    attestation = AttestationDal(
+    attestation = build_attestation_dal(
         op_level=1,
-        op_round=2
-    ).forge(chain_id=main_chain_id)
+        op_round=2,
+        chain_id=main_chain_id
+    )
 
     if with_hash:
         signature = client.sign_message(account, attestation)
@@ -429,12 +464,11 @@ def test_sign_block(
         test_hwm
     )
 
-    block = Block(
-        header=BlockHeader(
-            level=1,
-            fitness=Fitness(current_round=2)
-        )
-    ).forge(chain_id=main_chain_id)
+    block = build_block(
+        level=1,
+        current_round=2,
+        chain_id=main_chain_id
+    )
 
     if with_hash:
         signature = client.sign_message(account, block)
@@ -454,6 +488,78 @@ def test_sign_block(
         test_hwm=Hwm(0, 0),
         path=test_name
     )
+
+PARAMETERS = [
+    (build_attestation,    (0, 0), build_preattestation,  (0, 1), True ),
+    (build_block,          (0, 1), build_attestation_dal, (1, 0), True ),
+    (build_block,          (0, 1), build_attestation_dal, (0, 0), False),
+    (build_attestation,    (1, 0), build_preattestation,  (0, 1), False),
+] + [
+    (build_preattestation,  (0, 0), build_preattestation,  (0, 0), False),
+    (build_preattestation,  (0, 0), build_block,           (0, 0), False),
+    (build_preattestation,  (0, 0), build_attestation,     (0, 0), True ),
+    (build_preattestation,  (0, 0), build_attestation_dal, (0, 0), True ),
+    (build_attestation,     (0, 0), build_preattestation,  (0, 0), False),
+    (build_attestation,     (0, 0), build_attestation,     (0, 0), False),
+    (build_attestation,     (0, 0), build_attestation_dal, (0, 0), False),
+    (build_attestation,     (0, 0), build_block,           (0, 0), False),
+    (build_attestation_dal, (0, 0), build_preattestation,  (0, 0), False),
+    (build_attestation_dal, (0, 0), build_attestation,     (0, 0), False),
+    (build_attestation_dal, (0, 0), build_attestation_dal, (0, 0), False),
+    (build_attestation_dal, (0, 0), build_block,           (0, 0), False),
+    (build_block,           (1, 1), build_preattestation,  (1, 1), True ),
+    (build_block,           (1, 1), build_attestation,     (1, 1), True ),
+    (build_block,           (1, 1), build_attestation_dal, (1, 1), True ),
+    (build_block,           (1, 1), build_block,           (1, 1), False),
+]
+
+@pytest.mark.parametrize(
+    "message_builder_1, level_round_1, " \
+    "message_builder_2, level_round_2, " \
+    "success",
+    PARAMETERS)
+@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+def test_sign_level_authorized(
+        account: Account,
+        message_builder_1: Callable[[int, int, str], Message],
+        level_round_1: Tuple[int, int],
+        message_builder_2: Callable[[int, int, str], Message],
+        level_round_2: Tuple[int, int],
+        success: bool,
+        client: TezosClient,
+        tezos_navigator: TezosNavigator) -> None:
+    """Test whether the level/round constraints behave as expected."""
+
+    main_chain_id = DEFAULT_CHAIN_ID
+    main_level = 1
+
+    tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm=Hwm(main_level),
+        test_hwm=Hwm(0)
+    )
+
+    level_1, round_1 = level_round_1
+    message_1 = message_builder_1(
+        level_1 + main_level,
+        round_1,
+        main_chain_id
+    )
+    level_2, round_2 = level_round_2
+    message_2 = message_builder_2(
+        level_2 + main_level,
+        round_2,
+        main_chain_id
+    )
+
+    client.sign_message(account, message_1)
+
+    if success:
+        client.sign_message(account, message_2)
+    else:
+        with StatusCode.WRONG_VALUES.expected():
+            client.sign_message(account, message_2)
 
 
 # Data generated by the old application itself
