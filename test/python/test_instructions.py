@@ -18,13 +18,13 @@ from utils.message import (
     Block,
     DEFAULT_CHAIN_ID
 )
-from utils.navigator import TezosNavigator, Instructions
+from utils.navigator import TezosNavigator
 from common import DEFAULT_ACCOUNT
 
 def test_review_home(firmware: Firmware, tezos_navigator: TezosNavigator) -> None:
     """Test the display of the home/info pages."""
 
-    instructions = Instructions.get_right_clicks(5) if firmware.is_nano else \
+    instructions = [NavInsID.RIGHT_CLICK] * 5 if firmware.is_nano else \
         [
             NavInsID.USE_CASE_HOME_SETTINGS,
             NavInsID.USE_CASE_SETTINGS_NEXT
