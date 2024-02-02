@@ -1,7 +1,8 @@
 """Module providing a tezos client."""
 
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Generator
 from enum import IntEnum
+from contextlib import contextmanager
 
 from ragger.utils import RAPDU
 from ragger.backend import BackendInterface
@@ -142,7 +143,30 @@ class Index(IntEnum):
 class StatusCode(IntEnum):
     """Class representing the status code."""
 
-    OK = 0x9000
+    OK                        = 0x9000
+    WRONG_PARAM               = 0x6b00
+    WRONG_LENGTH              = 0x6c00
+    INVALID_INS               = 0x6d00
+    WRONG_LENGTH_FOR_INS      = 0x917e
+    REJECT                    = 0x6985
+    PARSE_ERROR               = 0x9405
+    REFERENCED_DATA_NOT_FOUND = 0x6a88
+    WRONG_VALUES              = 0x6a80
+    SECURITY                  = 0x6982
+    HID_REQUIRED              = 0x6983
+    CLASS                     = 0x6e00
+    MEMORY_ERROR              = 0x9200
+
+    @contextmanager
+    def expected(self) -> Generator[None, None, None]:
+        """Fail if the right RAPDU code exception is not raise."""
+        try:
+            yield
+            assert False, f"Expect fail with { self.name } but succeed"
+        except ExceptionRAPDU as e:
+            failing_code = StatusCode(e.status)
+            assert self == failing_code, \
+                f"Expect fail with { self.name } but fail with { failing_code.name }"
 
 
 MAX_APDU_SIZE: int = 235
