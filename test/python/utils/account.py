@@ -150,7 +150,7 @@ class Account:
         return self.key.secret_key()
 
     def __repr__(self) -> str:
-        return self.public_key_hash
+        return f"{self.sig_scheme.name}_{self.public_key_hash}"
 
     @property
     def base58_decoded(self) -> bytes:
