@@ -6,7 +6,7 @@ import pytest
 from ragger.firmware import Firmware
 from ragger.navigator import NavInsID
 from utils.client import TezosClient, Version, Hwm, StatusCode
-from utils.account import Account, SigScheme
+from utils.account import Account
 from utils.helper import get_current_commit
 from utils.message import (
     Message,
@@ -19,7 +19,12 @@ from utils.message import (
     DEFAULT_CHAIN_ID
 )
 from utils.navigator import TezosNavigator
-from common import DEFAULT_ACCOUNT
+from common import (
+    DEFAULT_ACCOUNT,
+    DEFAULT_ACCOUNT_2,
+    ACCOUNTS,
+)
+
 
 def test_review_home(firmware: Firmware, tezos_navigator: TezosNavigator) -> None:
     """Test the display of the home/info pages."""
@@ -58,7 +63,7 @@ def test_git(client: TezosClient) -> None:
         f"Expected {expected_commit} but got {commit}"
 
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 def test_authorize_baking(account: Account, tezos_navigator: TezosNavigator) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
     snap_path = Path(f"{account}")
@@ -76,12 +81,10 @@ def test_authorize_baking(account: Account, tezos_navigator: TezosNavigator) -> 
     )
 
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
-def test_deauthorize(
-        account: Account,
-        client: TezosClient,
-        tezos_navigator: TezosNavigator) -> None:
+def test_deauthorize(client: TezosClient, tezos_navigator: TezosNavigator) -> None:
     """Test the DEAUTHORIZE instruction."""
+
+    account = DEFAULT_ACCOUNT
 
     tezos_navigator.authorize_baking(account)
 
@@ -94,7 +97,7 @@ def test_deauthorize(
         test_hwm=Hwm(0)
     )
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_auth_key(
         account: Account,
         client: TezosClient,
@@ -108,7 +111,7 @@ def test_get_auth_key(
     assert path == account.path, \
         f"Expected {account.path} but got {path}"
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_auth_key_with_curve(
         account: Account,
         client: TezosClient,
@@ -125,7 +128,7 @@ def test_get_auth_key_with_curve(
     assert sig_scheme == account.sig_scheme, \
         f"Expected {account.sig_scheme.name} but got {sig_scheme.name}"
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_public_key_baking(account: Account, tezos_navigator: TezosNavigator) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
 
@@ -136,7 +139,7 @@ def test_get_public_key_baking(account: Account, tezos_navigator: TezosNavigator
     account.check_public_key(public_key)
 
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_public_key_silent(account: Account, client: TezosClient) -> None:
     """Test the GET_PUBLIC_KEY instruction."""
 
@@ -145,7 +148,7 @@ def test_get_public_key_silent(account: Account, client: TezosClient) -> None:
     account.check_public_key(public_key)
 
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_public_key_prompt(account: Account, tezos_navigator: TezosNavigator) -> None:
     """Test the PROMPT_PUBLIC_KEY instruction."""
 
@@ -169,7 +172,7 @@ def test_reset_app_context(tezos_navigator: TezosNavigator) -> None:
     )
 
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 def test_setup_app_context(account: Account, tezos_navigator: TezosNavigator) -> None:
     """Test the SETUP instruction."""
     snap_path = Path(f"{account}")
@@ -197,7 +200,7 @@ def test_setup_app_context(account: Account, tezos_navigator: TezosNavigator) ->
     )
 
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_main_hwm(
         account: Account,
         client: TezosClient,
@@ -221,7 +224,7 @@ def test_get_main_hwm(
         f"Expected main hmw {main_hwm} but got {received_main_hwm}"
 
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_all_hwm(
         account: Account,
         client: TezosClient,
@@ -282,7 +285,7 @@ def build_block(level, current_round, chain_id):
     ).forge(chain_id=chain_id)
 
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 @pytest.mark.parametrize("with_hash", [False, True])
 def test_sign_preattestation(
         account: Account,
@@ -332,7 +335,7 @@ def test_sign_preattestation(
     )
 
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 @pytest.mark.parametrize("with_hash", [False, True])
 def test_sign_attestation(
         account: Account,
@@ -382,7 +385,7 @@ def test_sign_attestation(
     )
 
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 @pytest.mark.parametrize("with_hash", [False, True])
 def test_sign_attestation_dal(
         account: Account,
@@ -432,7 +435,7 @@ def test_sign_attestation_dal(
     )
 
 
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
+@pytest.mark.parametrize("account", ACCOUNTS)
 @pytest.mark.parametrize("with_hash", [False, True])
 def test_sign_block(
         account: Account,
@@ -539,9 +542,7 @@ PARAMETERS = [
     "message_builder_2, level_round_2, " \
     "success",
     PARAMETERS)
-@pytest.mark.parametrize("account", [DEFAULT_ACCOUNT])
 def test_sign_level_authorized(
-        account: Account,
         message_builder_1: Callable[[int, int, str], Message],
         level_round_1: Tuple[int, int],
         message_builder_2: Callable[[int, int, str], Message],
@@ -550,6 +551,8 @@ def test_sign_level_authorized(
         client: TezosClient,
         tezos_navigator: TezosNavigator) -> None:
     """Test whether the level/round constraints behave as expected."""
+
+    account: Account = DEFAULT_ACCOUNT
 
     main_chain_id = DEFAULT_CHAIN_ID
     main_level = 1
@@ -588,11 +591,7 @@ def test_sign_not_authorized_key(
     """Check that signing with a key different from the authorized key is not authorized.."""
 
     account_1 = DEFAULT_ACCOUNT
-    account_2 = Account(
-        "m/9'/12'/13'/8'/78'",
-        SigScheme.ED25519,
-        "edsk3eZBgFAf1VtdibfxoCcihxXje9S3th7jdEgVA2kHG82EKYNKNm"
-    )
+    account_2 = DEFAULT_ACCOUNT_2
 
     main_chain_id = DEFAULT_CHAIN_ID
 

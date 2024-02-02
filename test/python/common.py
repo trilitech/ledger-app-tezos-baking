@@ -7,10 +7,46 @@ TESTS_ROOT_DIR = Path(__file__).parent
 
 DEFAULT_SEED = " ".join(['zebra'] * 24)
 
-DEFAULT_ACCOUNT = Account(
+TZ1_ACCOUNT = Account(
     "m/44'/1729'/0'/0'",
     SigScheme.ED25519,
     "edsk2tUyhVvGj9B1S956ZzmaU4bC9J7t8xVBH52fkAoZL25MHEwacd"
 )
+
+TZ2_ACCOUNT = Account(
+    "m/44'/1729'/0'/0'",
+    SigScheme.SECP256K1,
+    "spsk2Pfx9chqXVbz2tW7ze4gGU4RfaiK3nSva77bp69zHhFho2zTze"
+)
+
+TZ3_ACCOUNT = Account(
+    "m/44'/1729'/0'/0'",
+    SigScheme.SECP256R1,
+    "p2sk2zPCmKo6zTSjPbDHnLiHtPAqVRFrExN3oTvKGbu3C99Jyeyura"
+)
+
+BIP32_TZ1_ACCOUNT = Account(
+    "m/44'/1729'/0'/0'",
+    SigScheme.BIP32_ED25519,
+    "edpkumJgSsSxkpiB5hmTq6eZcrmc6BsJtLAhYceFTiziFqje4mongz"
+)
+
+LONG_TZ1_ACCOUNT = Account(
+    "m/9'/12'/13'/8'/78'",
+    SigScheme.ED25519,
+    "edsk3eZBgFAf1VtdibfxoCcihxXje9S3th7jdEgVA2kHG82EKYNKNm"
+)
+
+DEFAULT_ACCOUNT = TZ1_ACCOUNT
+
+DEFAULT_ACCOUNT_2 = TZ2_ACCOUNT
+
+ACCOUNTS = [
+    TZ1_ACCOUNT,
+    TZ2_ACCOUNT,
+    TZ3_ACCOUNT,
+    BIP32_TZ1_ACCOUNT,
+    LONG_TZ1_ACCOUNT,
+]
 
 EMPTY_PATH = BipPath.from_string("m")
