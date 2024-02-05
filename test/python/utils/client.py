@@ -8,7 +8,7 @@ from ragger.utils import RAPDU
 from ragger.backend import BackendInterface
 from ragger.error import ExceptionRAPDU
 from pytezos.michelson import forge
-from utils.account import Account, SigScheme, BipPath
+from utils.account import Account, SigScheme, BipPath, Signature
 from utils.helper import BytesReader
 from utils.message import Message
 
@@ -307,7 +307,7 @@ class TezosClient:
 
     def sign_message(self,
                      account: Account,
-                     message: Message) -> bytes:
+                     message: Message) -> Signature:
         """Send the SIGN instruction."""
 
         self._exchange(
@@ -320,15 +320,11 @@ class TezosClient:
             index=Index.LAST,
             payload=bytes(message))
 
-        assert len(signature) == 64, \
-            f"Signatures should be {64} bytes long " \
-            f"but {signature.hex()} is {len(signature)} bytes long"
-
-        return signature
+        return Signature.from_bytes(signature, account.sig_scheme)
 
     def sign_message_with_hash(self,
                      account: Account,
-                     message: Message) -> Tuple[bytes, bytes]:
+                     message: Message) -> Tuple[bytes, Signature]:
         """Send the SIGN_WITH_HASH instruction."""
 
         self._exchange(
@@ -341,14 +337,12 @@ class TezosClient:
             index=Index.LAST,
             payload=bytes(message))
 
-        assert len(data) == Message.HASH_SIZE + 64, \
-            f"The data is expected to be a hash followed by a signature.\n" \
-            f"Combined, it should be {Message.HASH_SIZE + 64} bytes long " \
-            f"but {data.hex()} is {len(data)} bytes long"
-
         return (
             data[:Message.HASH_SIZE],
-            data[Message.HASH_SIZE:]
+            Signature.from_bytes(
+                data[Message.HASH_SIZE:],
+                account.sig_scheme
+            )
         )
 
     def hmac(self,

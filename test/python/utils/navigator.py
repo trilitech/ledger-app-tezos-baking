@@ -15,6 +15,7 @@ from ragger.firmware.stax.use_cases import (
     UseCaseReview,
     UseCaseAddressConfirmation
 )
+from ragger.firmware.stax.positions import CENTER
 from ragger.navigator import Navigator, NavInsID, NavIns
 
 from common import TESTS_ROOT_DIR, EMPTY_PATH
@@ -44,70 +45,15 @@ def send_and_navigate(send: Callable[[], RESPONSE], navigate: Callable[[], None]
 
         return result
 
-class Instructions:
-    """Class gathering instructions generator needed for navigator."""
+class TezosUseCaseAddressConfirmation(UseCaseAddressConfirmation):
+    """Extension of UseCaseAddressConfirmation for our app."""
 
-    @staticmethod
-    def get_right_clicks(nb_right_click) -> List[Union[NavInsID, NavIns]]:
-        """Generate `nb_right_click` right clicks instructions."""
-        return [NavInsID.RIGHT_CLICK] * nb_right_click
+    # Y-285 = common space shared by buttons under a key displayed on 2 or 3 lines
+    SHOW_QR = (CENTER.x, 285)
 
-    @staticmethod
-    def get_nano_review_instructions(num_screen_skip) -> List[Union[NavInsID, NavIns]]:
-        """Generate the instructions needed to review on nano devices."""
-        instructions = Instructions.get_right_clicks(num_screen_skip)
-        instructions.append(NavInsID.BOTH_CLICK)
-        return instructions
-
-    @staticmethod
-    def get_stax_review_instructions(num_screen_skip) -> List[Union[NavInsID, NavIns]]:
-        """Generate the instructions needed to review on stax devices."""
-        instructions: List[Union[NavInsID, NavIns]] = []
-        instructions += [NavInsID.USE_CASE_REVIEW_TAP] * num_screen_skip
-        instructions += [
-            NavInsID.USE_CASE_CHOICE_CONFIRM,
-            NavInsID.USE_CASE_STATUS_DISMISS
-        ]
-        return instructions
-
-    @staticmethod
-    def get_stax_address_instructions() -> List[Union[NavInsID, NavIns]]:
-        """Generate the instructions needed to check address on stax devices."""
-        instructions: List[Union[NavInsID, NavIns]] = [
-            NavInsID.USE_CASE_REVIEW_TAP,
-            NavIns(NavInsID.TOUCH, (112, 251)),
-            NavInsID.USE_CASE_ADDRESS_CONFIRMATION_EXIT_QR,
-            NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM,
-            NavInsID.USE_CASE_STATUS_DISMISS
-        ]
-        return instructions
-
-    @staticmethod
-    def get_public_key_flow_instructions(firmware: Firmware):
-        """Generate the instructions needed to check address."""
-        if firmware.device == "nanos":
-            return Instructions.get_nano_review_instructions(5)
-        if firmware.is_nano:
-            return Instructions.get_nano_review_instructions(4)
-        return Instructions.get_stax_address_instructions()
-
-    @staticmethod
-    def get_setup_app_context_instructions(firmware: Firmware):
-        """Generate the instructions needed to setup app context."""
-        if firmware.device == "nanos":
-            return Instructions.get_nano_review_instructions(8)
-        if firmware.is_nano:
-            return Instructions.get_nano_review_instructions(7)
-        return Instructions.get_stax_review_instructions(2)
-
-    @staticmethod
-    def get_reset_app_context_instructions(firmware: Firmware):
-        """Generate the instructions needed to reset app context."""
-        if firmware.device == "nanos":
-            return Instructions.get_nano_review_instructions(3)
-        if firmware.is_nano:
-            return Instructions.get_nano_review_instructions(3)
-        return Instructions.get_stax_review_instructions(2)
+    def show_qr(self):
+        """Tap to show qr code."""
+        self.client.finger_touch(*TezosUseCaseAddressConfirmation.SHOW_QR)
 
 class TezosNavigator(metaclass=MetaScreen):
     """Class representing the tezos app navigator."""
@@ -120,7 +66,7 @@ class TezosNavigator(metaclass=MetaScreen):
     home:       UseCaseHome
     settings:   UseCaseSettings
     review:     UseCaseReview
-    provide_pk: UseCaseAddressConfirmation
+    provide_pk: TezosUseCaseAddressConfirmation
 
     backend:   BackendInterface
     firmware:  Firmware
@@ -129,10 +75,17 @@ class TezosNavigator(metaclass=MetaScreen):
 
     _golden_run:        bool
     _root_dir:          Path
+    _test_name:         str
     _snapshots_dir:     Path
     _tmp_snapshots_dir: Path
 
-    def __init__(self, backend, firmware, client, navigator, golden_run) -> None:
+    def __init__(self,
+                 backend: BackendInterface,
+                 firmware: Firmware,
+                 client: TezosClient,
+                 navigator: Navigator,
+                 golden_run: bool,
+                 test_name: str) -> None:
         self.backend   = backend
         self.firmware  = firmware
         self.client    = client
@@ -140,29 +93,51 @@ class TezosNavigator(metaclass=MetaScreen):
 
         self._golden_run        = golden_run
         self._root_dir          = TESTS_ROOT_DIR
-        self._snapshots_dir     = self._root_dir / "snapshots" / backend.firmware.name
-        self._tmp_snapshots_dir = self._root_dir / "snapshots-tmp" / backend.firmware.name
+        self._test_name         = test_name
+        self._snapshots_dir     = \
+            self._root_dir / "snapshots" / self.firmware.name / self._test_name
+        self._tmp_snapshots_dir = \
+            self._root_dir / "snapshots-tmp" / self.firmware.name / self._test_name
 
-    def _send_and_navigate(self,
-                          send: Callable[[], RESPONSE],
-                          instructions: List[Union[NavInsID, NavIns]],
-                          path: Optional[Path] = None,
-                          **kwargs) -> RESPONSE:
-        return send_and_navigate(
-            send=send,
-            navigate=lambda: self.navigator.navigate_and_compare(
-                self._root_dir,
-                path,
-                instructions,
+    def navigate_and_compare(self,
+                             snap_path: Optional[Union[Path, str]] = None,
+                             **kwargs) -> None:
+        """Same as navigator.navigate_and_compare"""
+        if snap_path is not None:
+            snap_path = Path(self._test_name) / snap_path
+        if 'instructions' in kwargs:
+            self.navigator.navigate_and_compare(
+                path=self._root_dir,
+                test_case_name=snap_path,
                 **kwargs
             )
-        )
+        else:
+            # Need 'navigate_instruction', 'validation_instructions' and 'text' in kwargs
+            self.navigator.navigate_until_text_and_compare(
+                path=self._root_dir,
+                test_case_name=snap_path,
+                **kwargs
+            )
 
-    def assert_screen(self, path: Path) -> None:
-        golden_path = self._snapshots_dir / path
+    @staticmethod
+    def _can_navigate(**kwargs) -> bool:
+        can_navigate = 'instructions' in kwargs
+        can_navigate_until = \
+            'navigate_instruction' in kwargs and \
+            'validation_instructions' in kwargs and \
+            'text' in kwargs
+        return can_navigate or can_navigate_until
+
+    def assert_screen(self,
+                      name: str,
+                      snap_path: Path = Path("")) -> None:
+        """Assert the current screen is the golden snap_path."""
+
+        snap_path = snap_path / f"{name}.png"
+        golden_path = self._snapshots_dir / snap_path
         if not golden_path.parent.is_dir() and self._golden_run:
             golden_path.parent.mkdir(parents=True)
-        tmp_path = self._tmp_snapshots_dir / path
+        tmp_path = self._tmp_snapshots_dir / snap_path
         if not tmp_path.parent.is_dir():
             tmp_path.parent.mkdir(parents=True)
 
@@ -170,21 +145,17 @@ class TezosNavigator(metaclass=MetaScreen):
             golden_path,
             tmp_snap_path=tmp_path,
             golden_run=self._golden_run
-        ), f"Screen does not match golden {path}."
+        ), f"Screen does not match golden {snap_path}."
 
     def check_app_context(self,
                           account: Optional[Account],
                           chain_id: str,
                           main_hwm: Hwm,
                           test_hwm: Hwm,
-                          path: Path) -> None:
+                          snap_path: Path = Path("")) -> None:
         """Check that the app context."""
-        path = Path(path)
 
         received_chain_id, received_main_hwm, received_test_hwm = self.client.get_all_hwm()
-
-        # get_auth_key_with_curve raise EXC_REFERENCED_DATA_NOT_FOUND
-        received_path = self.client.get_auth_key()
 
         assert received_chain_id == chain_id, \
             f"Expected main chain id {chain_id} but got {received_chain_id}"
@@ -206,24 +177,25 @@ class TezosNavigator(metaclass=MetaScreen):
                 f"Expected signature scheme {account.sig_scheme.name} "\
                 f"but got {received_sig_scheme.name}"
 
+        snap_path = snap_path / "app_context"
         if self.firmware.is_nano:
             self.navigator.navigate(
                 [NavInsID.RIGHT_CLICK] * 2,
                 screen_change_before_first_instruction=False
             )
-            self.assert_screen(path / "chain_id.png")
+            self.assert_screen("chain_id", snap_path=snap_path)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
             if account is not None and self.firmware.device == "nanos":
-                self.assert_screen(path / "public_key_hash_1.png")
+                self.assert_screen("public_key_hash_1", snap_path=snap_path)
                 self.backend.right_click()
                 self.backend.wait_for_screen_change()
-                self.assert_screen(path / "public_key_hash_2.png")
+                self.assert_screen("public_key_hash_2", snap_path=snap_path)
             else:
-                self.assert_screen(path / "public_key_hash.png")
+                self.assert_screen("public_key_hash", snap_path=snap_path)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
-            self.assert_screen(path / "high_watermark.png")
+            self.assert_screen("high_watermark", snap_path=snap_path)
             self.navigator.navigate(
                 [NavInsID.LEFT_CLICK] * 4,
                 screen_change_before_first_instruction=False
@@ -231,56 +203,124 @@ class TezosNavigator(metaclass=MetaScreen):
         else:
             self.home.settings()
             self.backend.wait_for_screen_change()
-            self.assert_screen(path / "app_context.png")
+            self.assert_screen("app_context", snap_path=snap_path)
             self.settings.multi_page_exit()
             self.backend.wait_for_screen_change()
 
-    def authorize_baking(self, account: Optional[Account], **kwargs) -> bytes:
+    def accept_key_navigate(self, **kwargs):
+        """Navigate until accept key"""
+        if self.firmware.is_nano:
+            self.navigate_and_compare(
+                navigate_instruction = NavInsID.RIGHT_CLICK,
+                validation_instructions = [NavInsID.BOTH_CLICK],
+                text = 'Accept',
+                **kwargs
+            )
+        else:
+            self.navigate_and_compare(
+                navigate_instruction = NavInsID.USE_CASE_ADDRESS_CONFIRMATION_TAP,
+                validation_instructions = [
+                    NavIns(NavInsID.TOUCH, TezosUseCaseAddressConfirmation.SHOW_QR),
+                    NavInsID.USE_CASE_ADDRESS_CONFIRMATION_EXIT_QR,
+                    NavInsID.USE_CASE_CHOICE_CONFIRM,
+                    NavInsID.USE_CASE_STATUS_DISMISS
+                ],
+                text = 'Confirm',
+                **kwargs
+            )
+
+    def authorize_baking(self,
+                         account: Optional[Account],
+                         navigate: Optional[Callable] = None,
+                         **kwargs) -> bytes:
         """Send an authorize baking request and navigate until accept"""
-        if 'instructions' not in kwargs:
-            kwargs['instructions'] = \
-                Instructions.get_public_key_flow_instructions(self.firmware)
-        return self._send_and_navigate(
+        if navigate is None:
+            navigate = self.accept_key_navigate
+        return send_and_navigate(
             send=lambda: self.client.authorize_baking(account),
-            **kwargs
+            navigate=lambda: navigate(**kwargs)
         )
 
-    def get_public_key_prompt(self, account: Account, **kwargs) -> bytes:
+    def get_public_key_prompt(self,
+                              account: Account,
+                              navigate: Optional[Callable] = None,
+                              **kwargs) -> bytes:
         """Send a get public key request and navigate until accept"""
-        if 'instructions' not in kwargs:
-            kwargs['instructions'] = \
-                Instructions.get_public_key_flow_instructions(self.firmware)
-        return self._send_and_navigate(
+        if navigate is None:
+            navigate = self.accept_key_navigate
+        return send_and_navigate(
             send=lambda: self.client.get_public_key_prompt(account),
-            **kwargs
+            navigate=lambda: navigate(**kwargs)
         )
 
-    def reset_app_context(self, reset_level: int, **kwargs) -> None:
+    def accept_reset_navigate(self, **kwargs):
+        """Navigate until accept reset"""
+        if self.firmware.is_nano:
+            self.navigate_and_compare(
+                navigate_instruction = NavInsID.RIGHT_CLICK,
+                validation_instructions = [NavInsID.BOTH_CLICK],
+                text = 'Accept',
+                **kwargs
+            )
+        else:
+            self.navigate_and_compare(
+                navigate_instruction = NavInsID.USE_CASE_REVIEW_TAP,
+                validation_instructions = [
+                    NavInsID.USE_CASE_CHOICE_CONFIRM,
+                    NavInsID.USE_CASE_STATUS_DISMISS
+                ],
+                text = 'Approve',
+                **kwargs
+            )
+
+    def reset_app_context(self,
+                          reset_level: int,
+                          navigate: Optional[Callable] = None,
+                          **kwargs) -> None:
         """Send a reset request and navigate until accept"""
-        if 'instructions' not in kwargs:
-            kwargs['instructions'] = \
-                Instructions.get_reset_app_context_instructions(self.firmware)
-        return self._send_and_navigate(
+        if navigate is None:
+            navigate = self.accept_reset_navigate
+        return send_and_navigate(
             send=lambda: self.client.reset_app_context(reset_level),
-            **kwargs
+            navigate=lambda: navigate(**kwargs)
         )
+
+    def accept_setup_navigate(self, **kwargs):
+        """Navigate until accept setup"""
+        if self.firmware.is_nano:
+            self.navigate_and_compare(
+                navigate_instruction = NavInsID.RIGHT_CLICK,
+                validation_instructions = [NavInsID.BOTH_CLICK],
+                text = 'Accept',
+                **kwargs
+            )
+        else:
+            self.navigate_and_compare(
+                navigate_instruction = NavInsID.USE_CASE_REVIEW_TAP,
+                validation_instructions = [
+                    NavInsID.USE_CASE_CHOICE_CONFIRM,
+                    NavInsID.USE_CASE_STATUS_DISMISS
+                ],
+                text = 'Approve',
+                **kwargs
+            )
 
     def setup_app_context(self,
                           account: Account,
                           main_chain_id: str,
                           main_hwm: Hwm,
                           test_hwm: Hwm,
+                          navigate: Optional[Callable] = None,
                           **kwargs) -> bytes:
         """Send a setup request and navigate until accept"""
-        if 'instructions' not in kwargs:
-            kwargs['instructions'] = \
-                Instructions.get_setup_app_context_instructions(self.firmware)
-        return self._send_and_navigate(
+        if navigate is None:
+            navigate = self.accept_setup_navigate
+        return send_and_navigate(
             send=lambda: self.client.setup_app_context(
                 account,
                 main_chain_id,
                 main_hwm,
                 test_hwm
             ),
-            **kwargs
+            navigate=lambda: navigate(**kwargs)
         )

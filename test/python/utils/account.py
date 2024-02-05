@@ -120,6 +120,13 @@ class Signature:
             return data[-size:].rjust(size, b'\x00')
         return Signature(adjust_size(r, 32) + adjust_size(s, 32))
 
+    @classmethod
+    def from_bytes(cls, data: bytes, sig_scheme: SigScheme) -> 'Signature':
+        """Get the signature according to the SigScheme."""
+        if sig_scheme in { SigScheme.ED25519, SigScheme.BIP32_ED25519 }:
+            return Signature(data)
+        return Signature.from_tlv(data)
+
 class Account:
     """Class representing account."""
 
@@ -150,7 +157,7 @@ class Account:
         return self.key.secret_key()
 
     def __repr__(self) -> str:
-        return self.public_key_hash
+        return f"{self.sig_scheme.name}_{self.public_key_hash}"
 
     @property
     def base58_decoded(self) -> bytes:
@@ -215,12 +222,7 @@ class Account:
         if isinstance(message, str):
             message = bytes.fromhex(message)
         if isinstance(signature, bytes):
-            signature = Signature(signature) \
-                if self.sig_scheme in [
-                        SigScheme.ED25519,
-                        SigScheme.BIP32_ED25519
-                ] \
-                else Signature.from_tlv(signature)
+            signature = Signature.from_bytes(signature, self.sig_scheme)
         assert self.key.verify(signature.value, message), \
             f"Fail to verify signature {signature}, \n\
             with account {self} \n\
