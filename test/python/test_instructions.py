@@ -489,6 +489,35 @@ def test_sign_block(
         path=test_name
     )
 
+
+def test_sign_block_at_reset_level(client: TezosClient, tezos_navigator: TezosNavigator) -> None:
+    """Test that signing block at reset level fails."""
+
+    account = DEFAULT_ACCOUNT
+
+    reset_level: int = 1
+
+    main_chain_id = DEFAULT_CHAIN_ID
+    main_hwm = Hwm(reset_level)
+    test_hwm = Hwm(0)
+
+    tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm,
+        test_hwm
+    )
+
+    block = build_block(
+        level=reset_level,
+        current_round=0,
+        chain_id=main_chain_id
+    )
+
+    with StatusCode.WRONG_VALUES.expected():
+        client.sign_message(account, block)
+
+
 PARAMETERS = [
     (build_attestation,    (0, 0), build_preattestation,  (0, 1), True ),
     (build_block,          (0, 1), build_attestation_dal, (1, 0), True ),
