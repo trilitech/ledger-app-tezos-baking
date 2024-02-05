@@ -164,9 +164,12 @@ class StatusCode(IntEnum):
             yield
             assert False, f"Expect fail with { self.name } but succeed"
         except ExceptionRAPDU as e:
-            failing_code = StatusCode(e.status)
-            assert self == failing_code, \
-                f"Expect fail with { self.name } but fail with { failing_code.name }"
+            try:
+                name = f"{StatusCode(e.status).name}"
+            except ValueError:
+                name = f"0x{e.status:x}"
+            assert self == e.status, \
+                f"Expect fail with { self.name } but fail with {name}"
 
 
 MAX_APDU_SIZE: int = 235
