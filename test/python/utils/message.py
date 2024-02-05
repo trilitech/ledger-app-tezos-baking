@@ -17,6 +17,8 @@ from abc import ABC, abstractmethod
 from enum import IntEnum
 from hashlib import blake2b
 from typing import Optional, Union
+from pytezos import pytezos
+from pytezos.operation.group import OperationGroup
 from pytezos.block.forge import forge_int_fixed, forge_fitness
 from pytezos.michelson import forge
 
@@ -100,6 +102,35 @@ DEFAULT_OPERATIONS_HASH = "LLoZKi1iMzbeJrfrGWPFYmkLebcsha6vGskQ4rAXt2uMwQtBfRcjL
 DEFAULT_TIMESTAMP = "1970-01-01T00:00:00-00:00"
 # Context_hash.zero
 DEFAULT_CONTEXT_HASH = "CoUeJrcPBj3T3iJL3PY4jZHnmZa5rRZ87VQPdSBNBcwZRMWJGh9j"
+
+class UnsafeOp:
+    """Class representing an unsafe operation."""
+
+    operation: OperationGroup
+
+    def __init__(self, operation: OperationGroup):
+        self.operation = operation
+
+    def forge(self, branch: str = DEFAULT_BLOCK_HASH) -> Message:
+        """Forge the operation."""
+        watermark = forge_int_fixed(MagicByte.UNSAFE_OP, 1)
+        self.operation.branch = branch
+        raw = watermark + bytes.fromhex(self.operation.forge())
+        return RawMessage(raw)
+
+class Delegation(UnsafeOp):
+    """Class representing a delegation."""
+
+    def __init__(self,
+                 delegate: str,
+                 source: str,
+                 counter: int = 0,
+                 fee: int = 0,
+                 gas_limit: int = 0,
+                 storage_limit: int = 0):
+        ctxt = pytezos.using()
+        delegation = ctxt.delegation(delegate, source, counter, fee, gas_limit, storage_limit)
+        super().__init__(delegation)
 
 class Preattestation:
     """Class representing a preattestation."""
@@ -263,6 +294,7 @@ class BlockHeader:
     """Class representing a block header."""
 
     level: int
+    proto_level: int
     predecessor: str
     timestamp: str
     validation_pass: int

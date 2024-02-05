@@ -10,6 +10,7 @@ from utils.account import Account
 from utils.helper import get_current_commit
 from utils.message import (
     Message,
+    Delegation,
     Preattestation,
     Attestation,
     AttestationDal,
@@ -584,6 +585,50 @@ def test_sign_level_authorized(
     else:
         with StatusCode.WRONG_VALUES.expected():
             client.sign_message(account, message_2)
+
+
+@pytest.mark.parametrize("account", ACCOUNTS)
+@pytest.mark.parametrize("with_hash", [False, True])
+def test_sign_delegation(
+        account: Account,
+        with_hash: bool,
+        tezos_navigator: TezosNavigator,
+        test_name: Path) -> None:
+    """Test the SIGN(_WITH_HASH) instruction on delegation."""
+    snap_path = Path(f"{account}")
+
+    tezos_navigator.setup_app_context(
+        account,
+        DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0)
+    )
+
+    delegation = Delegation(
+        delegate=account.public_key_hash,
+        source=account.public_key_hash,
+    )
+
+    raw_delegation = delegation.forge()
+
+    if with_hash:
+        signature = tezos_navigator.sign_delegation(
+            account,
+            delegation,
+            snap_path=snap_path
+        )
+        account.check_signature(signature, bytes(raw_delegation))
+    else:
+        delegation_hash, signature = \
+            tezos_navigator.sign_delegation_with_hash(
+                account,
+                delegation,
+                snap_path=snap_path
+            )
+        assert delegation_hash == raw_delegation.hash, \
+            f"Expected hash {raw_delegation.hash.hex()} but got {delegation_hash.hex()}"
+        account.check_signature(signature, bytes(raw_delegation))
+
 
 def test_sign_not_authorized_key(
         client: TezosClient,
