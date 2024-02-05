@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Callable, Tuple
 import pytest
+from pytezos import pytezos
 from ragger.firmware import Firmware
 from ragger.navigator import NavInsID
 from utils.client import TezosClient, Version, Hwm, StatusCode
@@ -10,6 +11,7 @@ from utils.account import Account
 from utils.helper import get_current_commit
 from utils.message import (
     Message,
+    UnsafeOp,
     Delegation,
     Preattestation,
     Attestation,
@@ -707,6 +709,36 @@ def test_sign_not_authorized_key(
 
     with StatusCode.SECURITY.expected():
         client.sign_message(account_2, attestation)
+
+
+def test_sign_transaction(
+        client: TezosClient,
+        tezos_navigator: TezosNavigator) -> None:
+    """Check that signing a transaction is not allowed."""
+
+    account_1 = DEFAULT_ACCOUNT
+    account_2 = DEFAULT_ACCOUNT_2
+
+    main_chain_id = DEFAULT_CHAIN_ID
+
+    tezos_navigator.setup_app_context(
+        account_1,
+        main_chain_id,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0)
+    )
+
+    ctxt = pytezos.using()
+    transaction = UnsafeOp(
+        ctxt.transaction(
+            source=account_1.public_key_hash,
+            destination=account_2.public_key_hash,
+            amount=10_000,
+        )
+    ).forge()
+
+    with StatusCode.PARSE_ERROR.expected():
+        client.sign_message(account_1, transaction)
 
 
 def test_sign_when_no_chain_setup(
