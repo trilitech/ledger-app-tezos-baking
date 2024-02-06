@@ -13,6 +13,7 @@ from utils.message import (
     Message,
     UnsafeOp,
     Delegation,
+    Reveal,
     Preattestation,
     Attestation,
     AttestationDal,
@@ -686,6 +687,44 @@ def test_sign_delegation_constraints(
             signer_account,
             delegation
         )
+
+
+@pytest.mark.parametrize("account", ACCOUNTS)
+@pytest.mark.parametrize("with_hash", [False, True])
+def test_sign_reveal(
+        account: Account,
+        with_hash: bool,
+        client: TezosClient,
+        tezos_navigator: TezosNavigator) -> None:
+    """Test the SIGN(_WITH_HASH) instruction on reveal."""
+
+    tezos_navigator.setup_app_context(
+        account,
+        DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0)
+    )
+
+    reveal = Reveal(
+        public_key=account.public_key,
+        source=account.public_key_hash,
+    ).forge()
+
+    if not with_hash:
+        signature = client.sign_message(
+            account,
+            reveal
+        )
+        account.check_signature(signature, bytes(reveal))
+    else:
+        reveal_hash, signature = \
+            client.sign_message_with_hash(
+                account,
+                reveal
+            )
+        assert reveal_hash == reveal.hash, \
+            f"Expected hash {reveal.hash.hex()} but got {reveal_hash.hex()}"
+        account.check_signature(signature, bytes(reveal))
 
 
 def test_sign_not_authorized_key(
