@@ -10,6 +10,7 @@ from utils.account import Account
 from utils.helper import get_current_commit
 from utils.message import (
     Message,
+    Delegation,
     Preattestation,
     Attestation,
     AttestationDal,
@@ -312,7 +313,7 @@ def test_sign_preattestation(
         chain_id=main_chain_id
     )
 
-    if with_hash:
+    if not with_hash:
         signature = client.sign_message(account, preattestation)
         account.check_signature(signature, bytes(preattestation))
     else:
@@ -362,7 +363,7 @@ def test_sign_attestation(
         chain_id=main_chain_id
     )
 
-    if with_hash:
+    if not with_hash:
         signature = client.sign_message(account, attestation)
         account.check_signature(signature, bytes(attestation))
     else:
@@ -412,7 +413,7 @@ def test_sign_attestation_dal(
         chain_id=main_chain_id
     )
 
-    if with_hash:
+    if not with_hash:
         signature = client.sign_message(account, attestation)
         account.check_signature(signature, bytes(attestation))
     else:
@@ -462,7 +463,7 @@ def test_sign_block(
         chain_id=main_chain_id
     )
 
-    if with_hash:
+    if not with_hash:
         signature = client.sign_message(account, block)
         account.check_signature(signature, bytes(block))
     else:
@@ -513,7 +514,7 @@ def test_sign_block_at_reset_level(client: TezosClient, tezos_navigator: TezosNa
         client.sign_message(account, block)
 
 
-PARAMETERS = [
+PARAMETERS_SIGN_LEVEL_AUTHORIZED = [
     (build_attestation,    (0, 0), build_preattestation,  (0, 1), True ),
     (build_block,          (0, 1), build_attestation_dal, (1, 0), True ),
     (build_block,          (0, 1), build_attestation_dal, (0, 0), False),
@@ -541,7 +542,7 @@ PARAMETERS = [
     "message_builder_1, level_round_1, " \
     "message_builder_2, level_round_2, " \
     "success",
-    PARAMETERS)
+    PARAMETERS_SIGN_LEVEL_AUTHORIZED)
 def test_sign_level_authorized(
         message_builder_1: Callable[[int, int, str], Message],
         level_round_1: Tuple[int, int],
@@ -584,6 +585,106 @@ def test_sign_level_authorized(
     else:
         with StatusCode.WRONG_VALUES.expected():
             client.sign_message(account, message_2)
+
+
+@pytest.mark.parametrize("account", ACCOUNTS)
+@pytest.mark.parametrize("with_hash", [False, True])
+def test_sign_delegation(
+        account: Account,
+        with_hash: bool,
+        tezos_navigator: TezosNavigator) -> None:
+    """Test the SIGN(_WITH_HASH) instruction on delegation."""
+    snap_path = Path(f"{account}")
+
+    tezos_navigator.setup_app_context(
+        account,
+        DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0)
+    )
+
+    delegation = Delegation(
+        delegate=account.public_key_hash,
+        source=account.public_key_hash,
+    )
+
+    raw_delegation = delegation.forge()
+
+    if not with_hash:
+        signature = tezos_navigator.sign_delegation(
+            account,
+            delegation,
+            snap_path=snap_path
+        )
+        account.check_signature(signature, bytes(raw_delegation))
+    else:
+        delegation_hash, signature = \
+            tezos_navigator.sign_delegation_with_hash(
+                account,
+                delegation,
+                snap_path=snap_path
+            )
+        assert delegation_hash == raw_delegation.hash, \
+            f"Expected hash {raw_delegation.hash.hex()} but got {delegation_hash.hex()}"
+        account.check_signature(signature, bytes(raw_delegation))
+
+
+PARAMETERS_SIGN_DELEGATION_CONSTRAINTS = [
+    (
+        DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT,
+        StatusCode.SECURITY
+    ),
+    (
+        DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT,
+        StatusCode.SECURITY
+    ),
+    (
+        DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT,
+        # Warning: operation PARSE_ERROR are not available on DEBUG-mode
+        StatusCode.PARSE_ERROR
+    ),
+    (
+        DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2,
+        # Warning: operation PARSE_ERROR are not available on DEBUG-mode
+        StatusCode.PARSE_ERROR
+    )
+]
+
+@pytest.mark.parametrize(
+    "setup_account," \
+    "delegate_account," \
+    "source_account," \
+    "signer_account," \
+    "status_code",
+    PARAMETERS_SIGN_DELEGATION_CONSTRAINTS
+)
+def test_sign_delegation_constraints(
+        setup_account: Account,
+        delegate_account: Account,
+        source_account: Account,
+        signer_account: Account,
+        status_code: StatusCode,
+        tezos_navigator: TezosNavigator) -> None:
+    """Test delegation signining constraints."""
+
+    tezos_navigator.setup_app_context(
+        setup_account,
+        DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0)
+    )
+
+    delegation = Delegation(
+        delegate=delegate_account.public_key_hash,
+        source=source_account.public_key_hash,
+    )
+
+    with status_code.expected():
+        tezos_navigator.sign_delegation(
+            signer_account,
+            delegation
+        )
+
 
 def test_sign_not_authorized_key(
         client: TezosClient,

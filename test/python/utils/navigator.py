@@ -1,7 +1,7 @@
 """Module providing a tezos navigator."""
 
 from pathlib import Path
-from typing import TypeVar, Callable, List, Optional, Union
+from typing import TypeVar, Callable, Optional, Tuple, Union
 import time
 
 from multiprocessing.pool import ThreadPool
@@ -20,7 +20,11 @@ from ragger.navigator import Navigator, NavInsID, NavIns
 
 from common import TESTS_ROOT_DIR, EMPTY_PATH
 from utils.client import TezosClient, Hwm
-from utils.account import Account
+from utils.account import Account, Signature
+from utils.message import (
+    Delegation,
+    DEFAULT_BLOCK_HASH
+)
 
 RESPONSE = TypeVar('RESPONSE')
 
@@ -321,6 +325,60 @@ class TezosNavigator(metaclass=MetaScreen):
                 main_chain_id,
                 main_hwm,
                 test_hwm
+            ),
+            navigate=lambda: navigate(**kwargs)
+        )
+
+    def accept_sign_navigate(self, **kwargs):
+        """Navigate until accept signing"""
+        if self.firmware.is_nano:
+            self.navigate_and_compare(
+                navigate_instruction = NavInsID.RIGHT_CLICK,
+                validation_instructions = [NavInsID.BOTH_CLICK],
+                text = 'Accept',
+                **kwargs
+            )
+        else:
+            self.navigate_and_compare(
+                navigate_instruction = NavInsID.USE_CASE_REVIEW_TAP,
+                validation_instructions = [
+                    NavInsID.USE_CASE_CHOICE_CONFIRM,
+                    NavInsID.USE_CASE_STATUS_DISMISS
+                ],
+                text = 'Approve',
+                **kwargs
+            )
+
+    def sign_delegation(self,
+                        account: Account,
+                        delegation: Delegation,
+                        branch: str = DEFAULT_BLOCK_HASH,
+                        navigate: Optional[Callable] = None,
+                        **kwargs) -> Signature:
+        """Send a sign request on delegation and navigate until accept"""
+        if navigate is None:
+            navigate = self.accept_sign_navigate
+        return send_and_navigate(
+            send=lambda: self.client.sign_message(
+                account,
+                delegation.forge(branch)
+            ),
+            navigate=lambda: navigate(**kwargs)
+        )
+
+    def sign_delegation_with_hash(self,
+                                  account: Account,
+                                  delegation: Delegation,
+                                  branch: str = DEFAULT_BLOCK_HASH,
+                        navigate: Optional[Callable] = None,
+                                  **kwargs) -> Tuple[bytes, Signature]:
+        """Send a sign and get hash request on delegation and navigate until accept"""
+        if navigate is None:
+            navigate = self.accept_sign_navigate
+        return send_and_navigate(
+            send=lambda: self.client.sign_message_with_hash(
+                account,
+                delegation.forge(branch)
             ),
             navigate=lambda: navigate(**kwargs)
         )
