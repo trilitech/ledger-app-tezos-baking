@@ -727,6 +727,7 @@ def test_sign_reveal(
         account.check_signature(signature, bytes(reveal))
 
 
+# Warning: operation PARSE_ERROR are not available on DEBUG-mode
 PARAMETERS_SIGN_REVEAL_CONSTRAINTS = [
     (
         DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT,
@@ -734,16 +735,14 @@ PARAMETERS_SIGN_REVEAL_CONSTRAINTS = [
     ),
     (
         DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT,
-        # Warning: operation PARSE_ERROR are not available on DEBUG-mode
         StatusCode.PARSE_ERROR
     ),
     (
         DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT,
-        StatusCode.SECURITY
+        StatusCode.PARSE_ERROR
     ),
     (
         DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2,
-        # Warning: operation PARSE_ERROR are not available on DEBUG-mode
         StatusCode.PARSE_ERROR
     )
 ]
@@ -893,12 +892,12 @@ PARAMETERS_SIGN_MULTIPLE_OPERATIONS = [
     (build_delegation,   build_reveal,           None,              True,  StatusCode.OK         ),
     (build_reveal,       build_delegation,       build_reveal,      True,  StatusCode.OK         ),
 ] + [
-    (build_bad_reveal_1, build_reveal,           None,              False, StatusCode.OK         ),
-    (build_bad_reveal_1, build_delegation,       None,              True,  StatusCode.OK         ),
+    (build_bad_reveal_1, build_reveal,           None,              False, StatusCode.PARSE_ERROR),
+    (build_bad_reveal_1, build_delegation,       None,              True,  StatusCode.PARSE_ERROR),
     (build_bad_reveal_2, build_reveal,           None,              False, StatusCode.PARSE_ERROR),
     (build_bad_reveal_2, build_delegation,       None,              True,  StatusCode.PARSE_ERROR),
-    (build_reveal,       build_bad_reveal_1,     None,              False, StatusCode.SECURITY   ),
-    (build_delegation,   build_bad_reveal_1,     None,              True,  StatusCode.SECURITY   ),
+    (build_reveal,       build_bad_reveal_1,     None,              False, StatusCode.PARSE_ERROR),
+    (build_delegation,   build_bad_reveal_1,     None,              True,  StatusCode.PARSE_ERROR),
     (build_reveal,       build_bad_reveal_2,     None,              False, StatusCode.PARSE_ERROR),
     (build_delegation,   build_bad_reveal_2,     None,              True,  StatusCode.PARSE_ERROR),
     (build_reveal,       build_bad_delegation_1, None,              True,  StatusCode.PARSE_ERROR),

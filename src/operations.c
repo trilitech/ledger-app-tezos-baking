@@ -468,6 +468,13 @@ static inline bool parse_byte(uint8_t byte,
                     PARSE_ERROR();
             }
 
+            // If the source is an implicit contract,...
+            if (out->operation.source.originated == 0) {
+                // ... it had better match our key, otherwise why are we signing it?
+                if (COMPARE(&out->operation.source, &out->signing) != 0) PARSE_ERROR();
+            }
+            // OK, it passes muster.
+
             OP_JMPIF(STEP_AFTER_MANAGER_FIELDS,
                      (state->tag == OPERATION_TAG_PROPOSAL || state->tag == OPERATION_TAG_BALLOT));
 
@@ -493,9 +500,6 @@ static inline bool parse_byte(uint8_t byte,
             // We know this is a reveal
 
             // Public key up next! Ensure it matches signing key.
-            // Ignore source :-) and do not parse it from hdr.
-            // We don't much care about reveals, they have very little in the way of bad security
-            // implications and any fees have already been accounted for
             {
                 raw_tezos_header_signature_type_t const *const sig_type =
                     NEXT_TYPE(raw_tezos_header_signature_type_t);
@@ -529,13 +533,6 @@ static inline bool parse_byte(uint8_t byte,
             // This is the one allowable non-reveal operation per set
 
             out->operation.tag = (uint8_t) state->tag;
-
-            // If the source is an implicit contract,...
-            if (out->operation.source.originated == 0) {
-                // ... it had better match our key, otherwise why are we signing it?
-                if (COMPARE(&out->operation.source, &out->signing) != 0) PARSE_ERROR();
-            }
-            // OK, it passes muster.
 
             // This should by default be blanked out
             out->operation.delegate.signature_type = SIGNATURE_TYPE_UNSET;
