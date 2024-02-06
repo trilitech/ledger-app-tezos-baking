@@ -668,7 +668,7 @@ def test_sign_delegation_constraints(
         signer_account: Account,
         status_code: StatusCode,
         tezos_navigator: TezosNavigator) -> None:
-    """Test delegation signining constraints."""
+    """Test delegation signing constraints."""
 
     tezos_navigator.setup_app_context(
         setup_account,
@@ -725,6 +725,64 @@ def test_sign_reveal(
         assert reveal_hash == reveal.hash, \
             f"Expected hash {reveal.hash.hex()} but got {reveal_hash.hex()}"
         account.check_signature(signature, bytes(reveal))
+
+
+PARAMETERS_SIGN_REVEAL_CONSTRAINTS = [
+    (
+        DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT,
+        StatusCode.SECURITY
+    ),
+    (
+        DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT,
+        # Warning: operation PARSE_ERROR are not available on DEBUG-mode
+        StatusCode.PARSE_ERROR
+    ),
+    (
+        DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT,
+        StatusCode.SECURITY
+    ),
+    (
+        DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2,
+        # Warning: operation PARSE_ERROR are not available on DEBUG-mode
+        StatusCode.PARSE_ERROR
+    )
+]
+
+@pytest.mark.parametrize(
+    "setup_account," \
+    "public_key_account," \
+    "source_account," \
+    "signer_account," \
+    "status_code",
+    PARAMETERS_SIGN_REVEAL_CONSTRAINTS
+)
+def test_sign_reveal_constraints(
+        setup_account: Account,
+        public_key_account: Account,
+        source_account: Account,
+        signer_account: Account,
+        status_code: StatusCode,
+        client: TezosClient,
+        tezos_navigator: TezosNavigator) -> None:
+    """Test reveal signing constraints."""
+
+    tezos_navigator.setup_app_context(
+        setup_account,
+        DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0)
+    )
+
+    reveal = Reveal(
+        public_key=public_key_account.public_key,
+        source=source_account.public_key_hash,
+    ).forge()
+
+    with status_code.expected():
+        client.sign_message(
+            signer_account,
+            reveal
+        )
 
 
 def test_sign_not_authorized_key(
