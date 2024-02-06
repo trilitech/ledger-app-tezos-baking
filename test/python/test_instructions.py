@@ -313,7 +313,7 @@ def test_sign_preattestation(
         chain_id=main_chain_id
     )
 
-    if with_hash:
+    if not with_hash:
         signature = client.sign_message(account, preattestation)
         account.check_signature(signature, bytes(preattestation))
     else:
@@ -363,7 +363,7 @@ def test_sign_attestation(
         chain_id=main_chain_id
     )
 
-    if with_hash:
+    if not with_hash:
         signature = client.sign_message(account, attestation)
         account.check_signature(signature, bytes(attestation))
     else:
@@ -413,7 +413,7 @@ def test_sign_attestation_dal(
         chain_id=main_chain_id
     )
 
-    if with_hash:
+    if not with_hash:
         signature = client.sign_message(account, attestation)
         account.check_signature(signature, bytes(attestation))
     else:
@@ -463,7 +463,7 @@ def test_sign_block(
         chain_id=main_chain_id
     )
 
-    if with_hash:
+    if not with_hash:
         signature = client.sign_message(account, block)
         account.check_signature(signature, bytes(block))
     else:
@@ -610,7 +610,7 @@ def test_sign_delegation(
 
     raw_delegation = delegation.forge()
 
-    if with_hash:
+    if not with_hash:
         signature = tezos_navigator.sign_delegation(
             account,
             delegation,
