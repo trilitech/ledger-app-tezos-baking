@@ -118,6 +118,12 @@ class UnsafeOp:
         raw = watermark + bytes.fromhex(self.operation.forge())
         return RawMessage(raw)
 
+    def merge(self, unsafe_op: 'UnsafeOp') -> 'UnsafeOp':
+        res = self.operation
+        for content in unsafe_op.operation.contents:
+            res = res.operation(content)
+        return UnsafeOp(res)
+
 class Delegation(UnsafeOp):
     """Class representing a delegation."""
 
