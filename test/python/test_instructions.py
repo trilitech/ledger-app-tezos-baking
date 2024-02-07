@@ -512,7 +512,7 @@ def test_sign_block_at_reset_level(client: TezosClient, tezos_navigator: TezosNa
         chain_id=main_chain_id
     )
 
-    with StatusCode.WRONG_VALUES.expected():
+    with StatusCode.OK.expected():
         client.sign_message(account, block)
 
 
@@ -534,10 +534,10 @@ PARAMETERS_SIGN_LEVEL_AUTHORIZED = [
     (build_attestation_dal, (0, 0), build_attestation,     (0, 0), False),
     (build_attestation_dal, (0, 0), build_attestation_dal, (0, 0), False),
     (build_attestation_dal, (0, 0), build_block,           (0, 0), False),
-    (build_block,           (1, 1), build_preattestation,  (1, 1), True ),
-    (build_block,           (1, 1), build_attestation,     (1, 1), True ),
-    (build_block,           (1, 1), build_attestation_dal, (1, 1), True ),
-    (build_block,           (1, 1), build_block,           (1, 1), False),
+    (build_block,           (0, 0), build_preattestation,  (0, 0), True ),
+    (build_block,           (0, 0), build_attestation,     (0, 0), True ),
+    (build_block,           (0, 0), build_attestation_dal, (0, 0), True ),
+    (build_block,           (0, 0), build_block,           (0, 0), False),
 ]
 
 @pytest.mark.parametrize(

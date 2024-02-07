@@ -76,6 +76,13 @@ static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
                (baking_info->level == hwm->highest_level &&
                 baking_info->round == hwm->highest_round &&
                 baking_info->type == BAKING_TYPE_TENDERBAKE_PREENDORSEMENT &&
+                !hwm->had_endorsement && !hwm->had_preendorsement) ||
+
+               // It is ok to sign a block if we have not already signed neither an
+               // endorsement nor a preendorsement nor a block for the level/round
+               (baking_info->level == hwm->highest_level &&
+                baking_info->round == hwm->highest_round &&
+                baking_info->type == BAKING_TYPE_TENDERBAKE_BLOCK && !hwm->had_block &&
                 !hwm->had_endorsement && !hwm->had_preendorsement);
 
     } else {
