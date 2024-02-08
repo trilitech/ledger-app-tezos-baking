@@ -1,7 +1,7 @@
 """Module gathering the baking app instruction tests."""
 
 from pathlib import Path
-from typing import Callable, Tuple
+from typing import Callable, Optional, Tuple
 import pytest
 from pytezos import pytezos
 from ragger.firmware import Firmware
@@ -13,6 +13,7 @@ from utils.message import (
     Message,
     UnsafeOp,
     Delegation,
+    Reveal,
     Preattestation,
     Attestation,
     AttestationDal,
@@ -21,7 +22,7 @@ from utils.message import (
     Block,
     DEFAULT_CHAIN_ID
 )
-from utils.navigator import TezosNavigator
+from utils.navigator import TezosNavigator, send_and_navigate
 from common import (
     DEFAULT_ACCOUNT,
     DEFAULT_ACCOUNT_2,
@@ -667,7 +668,7 @@ def test_sign_delegation_constraints(
         signer_account: Account,
         status_code: StatusCode,
         tezos_navigator: TezosNavigator) -> None:
-    """Test delegation signining constraints."""
+    """Test delegation signing constraints."""
 
     tezos_navigator.setup_app_context(
         setup_account,
@@ -685,6 +686,101 @@ def test_sign_delegation_constraints(
         tezos_navigator.sign_delegation(
             signer_account,
             delegation
+        )
+
+
+@pytest.mark.parametrize("account", ACCOUNTS)
+@pytest.mark.parametrize("with_hash", [False, True])
+def test_sign_reveal(
+        account: Account,
+        with_hash: bool,
+        client: TezosClient,
+        tezos_navigator: TezosNavigator) -> None:
+    """Test the SIGN(_WITH_HASH) instruction on reveal."""
+
+    tezos_navigator.setup_app_context(
+        account,
+        DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0)
+    )
+
+    reveal = Reveal(
+        public_key=account.public_key,
+        source=account.public_key_hash,
+    ).forge()
+
+    if not with_hash:
+        signature = client.sign_message(
+            account,
+            reveal
+        )
+        account.check_signature(signature, bytes(reveal))
+    else:
+        reveal_hash, signature = \
+            client.sign_message_with_hash(
+                account,
+                reveal
+            )
+        assert reveal_hash == reveal.hash, \
+            f"Expected hash {reveal.hash.hex()} but got {reveal_hash.hex()}"
+        account.check_signature(signature, bytes(reveal))
+
+
+# Warning: operation PARSE_ERROR are not available on DEBUG-mode
+PARAMETERS_SIGN_REVEAL_CONSTRAINTS = [
+    (
+        DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT,
+        StatusCode.SECURITY
+    ),
+    (
+        DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT,
+        StatusCode.PARSE_ERROR
+    ),
+    (
+        DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT,
+        StatusCode.PARSE_ERROR
+    ),
+    (
+        DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT_2,
+        StatusCode.PARSE_ERROR
+    )
+]
+
+@pytest.mark.parametrize(
+    "setup_account," \
+    "public_key_account," \
+    "source_account," \
+    "signer_account," \
+    "status_code",
+    PARAMETERS_SIGN_REVEAL_CONSTRAINTS
+)
+def test_sign_reveal_constraints(
+        setup_account: Account,
+        public_key_account: Account,
+        source_account: Account,
+        signer_account: Account,
+        status_code: StatusCode,
+        client: TezosClient,
+        tezos_navigator: TezosNavigator) -> None:
+    """Test reveal signing constraints."""
+
+    tezos_navigator.setup_app_context(
+        setup_account,
+        DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0)
+    )
+
+    reveal = Reveal(
+        public_key=public_key_account.public_key,
+        source=source_account.public_key_hash,
+    ).forge()
+
+    with status_code.expected():
+        client.sign_message(
+            signer_account,
+            reveal
         )
 
 
@@ -739,6 +835,138 @@ def test_sign_transaction(
 
     with StatusCode.PARSE_ERROR.expected():
         client.sign_message(account_1, transaction)
+
+
+def build_reveal(account: Account) -> Reveal:
+    """Build a reveal."""
+    return Reveal(
+        public_key=account.public_key,
+        source=account.public_key_hash,
+    )
+def build_delegation(account: Account) -> Delegation:
+    """Build a delegation."""
+    return Delegation(
+        delegate=account.public_key_hash,
+        source=account.public_key_hash,
+    )
+def build_transaction(account: Account) -> UnsafeOp:
+    """Build a transaction."""
+    ctxt = pytezos.using()
+    return UnsafeOp(
+        ctxt.transaction(
+            source=account.public_key_hash,
+            destination=DEFAULT_ACCOUNT_2.public_key_hash,
+            amount=10_000,
+        )
+    )
+def build_bad_reveal_1(account: Account) -> Reveal:
+    """Build a bad reveal."""
+    return Reveal(
+        public_key=account.public_key,
+        source=DEFAULT_ACCOUNT_2.public_key_hash,
+    )
+def build_bad_reveal_2(account: Account) -> Reveal:
+    """Build an other bad reveal."""
+    return Reveal(
+        public_key=DEFAULT_ACCOUNT_2.public_key,
+        source=account.public_key_hash,
+    )
+def build_bad_delegation_1(account: Account) -> Delegation:
+    """Build a bad delegation."""
+    return Delegation(
+        delegate=account.public_key_hash,
+        source=DEFAULT_ACCOUNT_2.public_key_hash,
+    )
+def build_bad_delegation_2(account: Account) -> Delegation:
+    """Build a other bad delegation."""
+    return Delegation(
+        delegate=DEFAULT_ACCOUNT_2.public_key_hash,
+        source=account.public_key_hash,
+    )
+
+
+# Warning: operation PARSE_ERROR are not available on DEBUG-mode
+PARAMETERS_SIGN_MULTIPLE_OPERATIONS = [
+    (build_reveal,       build_reveal,           None,              False, StatusCode.OK         ),
+    (build_reveal,       build_delegation,       None,              True,  StatusCode.OK         ),
+    (build_delegation,   build_reveal,           None,              True,  StatusCode.OK         ),
+    (build_reveal,       build_delegation,       build_reveal,      True,  StatusCode.OK         ),
+] + [
+    (build_bad_reveal_1, build_reveal,           None,              False, StatusCode.PARSE_ERROR),
+    (build_bad_reveal_1, build_delegation,       None,              True,  StatusCode.PARSE_ERROR),
+    (build_bad_reveal_2, build_reveal,           None,              False, StatusCode.PARSE_ERROR),
+    (build_bad_reveal_2, build_delegation,       None,              True,  StatusCode.PARSE_ERROR),
+    (build_reveal,       build_bad_reveal_1,     None,              False, StatusCode.PARSE_ERROR),
+    (build_delegation,   build_bad_reveal_1,     None,              True,  StatusCode.PARSE_ERROR),
+    (build_reveal,       build_bad_reveal_2,     None,              False, StatusCode.PARSE_ERROR),
+    (build_delegation,   build_bad_reveal_2,     None,              True,  StatusCode.PARSE_ERROR),
+    (build_reveal,       build_bad_delegation_1, None,              True,  StatusCode.PARSE_ERROR),
+    (build_reveal,       build_bad_delegation_2, None,              True,  StatusCode.SECURITY   ),
+    (build_bad_delegation_1, build_reveal,       None,              True,  StatusCode.PARSE_ERROR),
+    (build_bad_delegation_2, build_reveal,       None,              True,  StatusCode.SECURITY   ),
+    (build_reveal,       build_transaction,      None,              False, StatusCode.PARSE_ERROR),
+    (build_transaction,  build_reveal,           None,              False, StatusCode.PARSE_ERROR),
+    (build_delegation,   build_delegation,       None,              True,  StatusCode.PARSE_ERROR),
+    (build_delegation,   build_delegation,       None,              True,  StatusCode.PARSE_ERROR),
+    (build_reveal,       build_delegation,       build_delegation,  True,  StatusCode.PARSE_ERROR),
+    (build_delegation,   build_delegation,       build_reveal,      True,  StatusCode.PARSE_ERROR),
+    (build_reveal,       build_delegation,       build_transaction, True,  StatusCode.PARSE_ERROR),
+    (build_transaction,  build_delegation,       build_reveal,      True,  StatusCode.PARSE_ERROR),
+]
+
+@pytest.mark.parametrize(
+    "operation_builder_1," \
+    "operation_builder_2," \
+    "operation_builder_3," \
+    "operation_display," \
+    "status_code",
+    PARAMETERS_SIGN_MULTIPLE_OPERATIONS
+)
+def test_sign_multiple_operation(
+        operation_builder_1: Callable[[Account], UnsafeOp],
+        operation_builder_2: Callable[[Account], UnsafeOp],
+        operation_builder_3: Optional[Callable[[Account], UnsafeOp]],
+        status_code: StatusCode,
+        operation_display: bool,
+        client: TezosClient,
+        tezos_navigator: TezosNavigator) -> None:
+    """Test multiple operations signing constraints."""
+
+    account = DEFAULT_ACCOUNT
+
+    tezos_navigator.setup_app_context(
+        account,
+        DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0)
+    )
+
+    operation = operation_builder_1(account)
+    operation = operation.merge(
+        operation_builder_2(account)
+    )
+    if operation_builder_3 is not None:
+        operation = operation.merge(
+            operation_builder_3(account)
+        )
+
+    message = operation.forge()
+
+    with status_code.expected():
+        if operation_display:
+            signature = send_and_navigate(
+                send=lambda: client.sign_message(
+                    account,
+                    message
+                ),
+                navigate=tezos_navigator.accept_sign_navigate
+            )
+        else:
+            signature = client.sign_message(
+                account,
+                message
+            )
+        account.check_signature(signature, bytes(message))
 
 
 def test_sign_when_no_chain_setup(

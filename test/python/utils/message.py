@@ -118,6 +118,12 @@ class UnsafeOp:
         raw = watermark + bytes.fromhex(self.operation.forge())
         return RawMessage(raw)
 
+    def merge(self, unsafe_op: 'UnsafeOp') -> 'UnsafeOp':
+        res = self.operation
+        for content in unsafe_op.operation.contents:
+            res = res.operation(content)
+        return UnsafeOp(res)
+
 class Delegation(UnsafeOp):
     """Class representing a delegation."""
 
@@ -131,6 +137,20 @@ class Delegation(UnsafeOp):
         ctxt = pytezos.using()
         delegation = ctxt.delegation(delegate, source, counter, fee, gas_limit, storage_limit)
         super().__init__(delegation)
+
+class Reveal(UnsafeOp):
+    """Class representing a reveal."""
+
+    def __init__(self,
+                 public_key: str,
+                 source: str,
+                 counter: int = 0,
+                 fee: int = 0,
+                 gas_limit: int = 0,
+                 storage_limit: int = 0):
+        ctxt = pytezos.using()
+        reveal = ctxt.reveal(public_key, source, counter, fee, gas_limit, storage_limit)
+        super().__init__(reveal)
 
 class Preattestation:
     """Class representing a preattestation."""

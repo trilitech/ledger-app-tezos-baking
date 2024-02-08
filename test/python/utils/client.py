@@ -162,7 +162,8 @@ class StatusCode(IntEnum):
         """Fail if the right RAPDU code exception is not raise."""
         try:
             yield
-            assert False, f"Expect fail with { self.name } but succeed"
+            assert self == StatusCode.OK, \
+                f"Expect fail with { self.name } but succeed"
         except ExceptionRAPDU as e:
             try:
                 name = f"{StatusCode(e.status).name}"

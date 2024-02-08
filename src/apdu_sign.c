@@ -160,16 +160,35 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
         case MAGIC_BYTE_UNSAFE_OP: {
             if (!G.maybe_ops.is_valid) PARSE_ERROR();
 
-            // Must be self-delegation signed by the *authorized* baking key
-            if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
-
-                // ops->signing is generated from G.bip32_path and G.curve
-                COMPARE(&G.maybe_ops.v.operation.source, &G.maybe_ops.v.signing) == 0 &&
-                COMPARE(&G.maybe_ops.v.operation.destination, &G.maybe_ops.v.signing) == 0) {
-                ui_callback_t const ok_c = send_hash ? sign_with_hash_ok : sign_without_hash_ok;
-                prompt_register_delegate(ok_c, sign_reject);
-                *flags = IO_ASYNCH_REPLY;
-                return 0;
+            switch (G.maybe_ops.v.operation.tag) {
+                case OPERATION_TAG_ATHENS_DELEGATION:
+                case OPERATION_TAG_BABYLON_DELEGATION:
+                    // Must be self-delegation signed by the *authorized* baking key
+                    if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
+                        // ops->signing is generated from G.bip32_path and G.curve
+                        COMPARE(&G.maybe_ops.v.operation.source, &G.maybe_ops.v.signing) == 0 &&
+                        COMPARE(&G.maybe_ops.v.operation.destination, &G.maybe_ops.v.signing) ==
+                            0) {
+                        ui_callback_t const ok_c =
+                            send_hash ? sign_with_hash_ok : sign_without_hash_ok;
+                        prompt_register_delegate(ok_c, sign_reject);
+                        *flags = IO_ASYNCH_REPLY;
+                        return 0;
+                    }
+                    THROW(EXC_SECURITY);
+                    break;
+                case OPERATION_TAG_ATHENS_REVEAL:
+                case OPERATION_TAG_BABYLON_REVEAL:
+                case OPERATION_TAG_NONE:
+                    // Reveal cases
+                    if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
+                        // ops->signing is generated from G.bip32_path and G.curve
+                        COMPARE(&G.maybe_ops.v.operation.source, &G.maybe_ops.v.signing) == 0)
+                        return perform_signature(true, send_hash);
+                    THROW(EXC_SECURITY);
+                    break;
+                default:
+                    THROW(EXC_SECURITY);
             }
             THROW(EXC_SECURITY);
             break;

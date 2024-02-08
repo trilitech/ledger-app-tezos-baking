@@ -370,7 +370,7 @@ class TezosNavigator(metaclass=MetaScreen):
                                   account: Account,
                                   delegation: Delegation,
                                   branch: str = DEFAULT_BLOCK_HASH,
-                        navigate: Optional[Callable] = None,
+                                  navigate: Optional[Callable] = None,
                                   **kwargs) -> Tuple[bytes, Signature]:
         """Send a sign and get hash request on delegation and navigate until accept"""
         if navigate is None:
