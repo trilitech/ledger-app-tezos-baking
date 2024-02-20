@@ -10,10 +10,6 @@ void io_seproxyhal_display(const bagl_element_t *element);
 void io_seproxyhal_display(const bagl_element_t *element) {
     return io_seproxyhal_display_default((bagl_element_t *) element);
 }
-
-void ui_refresh(void) {
-    ux_stack_display(0);
-}
 #endif  // HAVE_BAGL
 
 // CALLED BY THE SDK
