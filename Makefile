@@ -3,15 +3,8 @@ $(error Environment variable BOLOS_SDK is not set)
 endif
 include $(BOLOS_SDK)/Makefile.defines
 
-ifeq ($(APP),)
-APP=tezos_wallet
-endif
-
-ifeq ($(APP),tezos_baking)
 APPNAME = "Tezos Baking"
-else ifeq ($(APP),tezos_wallet)
-APPNAME = "Tezos Wallet"
-endif
+
 
 ifeq ($(TARGET_NAME), TARGET_NANOS)
 APP_LOAD_FLAGS=--appFlags 0x800  # APPLICATION_FLAG_LIBRARY
@@ -140,15 +133,7 @@ endif
 
 CC       := $(CLANGPATH)clang
 
-ifeq ($(APP),tezos_wallet)
-CFLAGS   += -O3 -Os -Wall -Wextra -Wno-incompatible-pointer-types-discards-qualifiers
-else ifeq ($(APP),tezos_baking)
 CFLAGS   += -DBAKING_APP -O3 -Os -Wall -Wextra -Wno-incompatible-pointer-types-discards-qualifiers
-else
-ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported APP - use tezos_wallet, tezos_baking)
-endif
-endif
 
 AS     := $(GCCPATH)arm-none-eabi-gcc
 
