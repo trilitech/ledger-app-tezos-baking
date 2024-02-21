@@ -100,6 +100,8 @@ typedef struct {
         char screen_title[PROMPT_WIDTH + 1];
         // Value to be displayed on the screen.
         char screen_value[VALUE_WIDTH + 1];
+        // Screen saver is actived
+        bool screen_saver_on;
     } dynamic_display;
 
     void *stack_root;

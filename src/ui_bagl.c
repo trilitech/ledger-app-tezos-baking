@@ -78,6 +78,7 @@ typedef struct {
 } ux_layout_screensaver_params_t;
 
 void exit_screensaver(void) {
+    G_display.screen_saver_on = false;
     ui_initial_screen();
 }
 
@@ -130,6 +131,10 @@ UX_STEP_NOCB(ux_screensaver_step, screensaver, {});
 UX_FLOW(ux_screensaver_flow, &ux_screensaver_step);  // Screen saver flow
 
 void ui_save_screen(void) {
+    if (G_display.screen_saver_on) {
+        return;
+    }
+    G_display.screen_saver_on = true;
     ux_flow_init(0, ux_screensaver_flow, NULL);
 }
 
@@ -287,6 +292,7 @@ void ui_initial_screen(void) {
         ux_stack_push();
     }
 
+    G_display.screen_saver_on = false;
     init_screen_stack();
 #ifdef BAKING_APP
     calculate_baking_idle_screens_data();
