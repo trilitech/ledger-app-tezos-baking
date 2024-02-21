@@ -286,12 +286,3 @@ struct parsed_operation_group {
         __typeof__(b) ____b_ = (b);        \
         ____a_ < ____b_ ? ____a_ : ____b_; \
     })
-
-typedef struct {
-    uint64_t amount;
-    uint64_t fees;
-    char destination[57];
-} swap_values_t;
-
-extern bool called_from_swap;
-extern swap_values_t swap_values;

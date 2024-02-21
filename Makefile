@@ -167,15 +167,6 @@ ifneq ($(TARGET_NAME),TARGET_STAX)
 SDK_SOURCE_PATH += lib_ux
 endif
 
-### U2F support (wallet app only)
-ifeq ($(APP), tezos_wallet)
-SDK_SOURCE_PATH  += lib_u2f lib_stusb_impl
-
-DEFINES   += USB_SEGMENT_SIZE=64
-
-DEFINES   += U2F_PROXY_MAGIC=\"XTZ\"
-DEFINES   += HAVE_IO_U2F HAVE_U2F
-endif
 
 DEFINES   += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 
@@ -189,7 +180,7 @@ delete:
 include $(BOLOS_SDK)/Makefile.rules
 
 listvariants:
-	@echo VARIANTS APP tezos_wallet tezos_baking
+	@echo VARIANTS APP tezos_baking
 
 # Define DEP_DIR to keep compatibility with old SDK
 ifeq ($(DEP_DIR),)

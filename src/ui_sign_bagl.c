@@ -10,9 +10,6 @@
 #include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
-#include "swap/swap_lib_calls.h"
-#include "swap/handle_swap_commands.h"
-
 #include "cx.h"
 
 #include <string.h>
@@ -73,21 +70,6 @@ bool prompt_transaction(struct parsed_operation_group const *const ops,
                         ui_callback_t cxl) {
     check_null(ops);
     check_null(key);
-
-    if (called_from_swap) {
-        bool valid = is_safe_to_swap();
-        if (valid) {
-            // We're called from swap and we've verified that the data is correct. Sign it.
-            ok();
-            // Clear all data.
-            clear_data();
-        } else {
-            // Send the error message back in response.
-            cxl();
-        }
-        finalize_exchange_sign_transaction(valid);
-    }
-
     switch (ops->operation.tag) {
         default:
             PARSE_ERROR();

@@ -3,10 +3,6 @@
 // Order matters
 #include "os.h"
 #include "cx.h"
-
-#include "swap/swap_lib_calls.h"
-#include "handle_swap_commands.h"
-
 #include "globals.h"
 
 __attribute__((noreturn)) void app_main(void);
@@ -20,17 +16,11 @@ __attribute__((section(".boot"))) int main(arg0) {
 
     if (arg0 != 0) {
         // Called as library from another app
-        libargs_t *args = (libargs_t *) arg0;
-        if (args->id == 0x100) {
-            library_main(args);
-        } else {
-            exit_app();
-        }
+        exit_app();
     } else {
         uint8_t tag;
         init_globals();
         global.stack_root = &tag;
-        called_from_swap = false;
 
         for (;;) {
             BEGIN_TRY {
