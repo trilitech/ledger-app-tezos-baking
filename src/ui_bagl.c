@@ -78,6 +78,7 @@ typedef struct {
 } ux_layout_screensaver_params_t;
 
 void exit_screensaver(void) {
+    require_pin();
     G_display.screen_saver_on = false;
     ui_initial_screen();
 }
