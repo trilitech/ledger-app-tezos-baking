@@ -72,6 +72,69 @@ UX_STEP_NOCB(ux_app_is_ready_step,
                  "is ready",
              });
 
+/** Layout "screensaver":
+ * ux_layout_screensaver_params_t: parameters available during display
+ * ux_layout_screensaver_init: initialize the layout
+ */
+typedef struct {
+} ux_layout_screensaver_params_t;
+
+void exit_screensaver(void) {
+    ui_initial_screen();
+}
+
+unsigned int ux_screensaver_callback(unsigned int button_mask, unsigned int button_mask_counter) {
+    UNUSED(button_mask_counter);
+    switch (button_mask) {
+        case BUTTON_EVT_RELEASED | BUTTON_LEFT:
+        case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
+        case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
+            // At the press of any button, exit screensaver
+            exit_screensaver();
+            break;
+    }
+    return 0;
+}
+
+// clang-format off
+const bagl_element_t black_screen_elements[] = {
+    {
+        .component = {
+            .type    = BAGL_RECTANGLE,
+            .userid  = BAGL_NONE,
+            .x       = 0,
+            .y       = 0,
+            .width   = BAGL_WIDTH,
+            .height  = BAGL_HEIGHT,
+            .stroke  = 0,
+            .radius  = 0,
+            .fill    = BAGL_FILL,
+            .fgcolor = 0x000000, // Black
+            .bgcolor = 0xFFFFFF, // White
+            .font_id = 0,
+            .icon_id = 0
+        },
+        .text = NULL
+    }
+};
+// clang-format on
+
+void ux_layout_screensaver_init(unsigned int stack_slot) {
+    ux_stack_init(stack_slot);
+    G_ux.stack[stack_slot].element_arrays[0].element_array = black_screen_elements;
+    G_ux.stack[stack_slot].element_arrays[0].element_array_count = ARRAYLEN(black_screen_elements);
+    G_ux.stack[stack_slot].element_arrays_count = 1;
+    G_ux.stack[stack_slot].button_push_callback = ux_screensaver_callback;
+    ux_stack_display(stack_slot);
+}
+
+UX_STEP_NOCB(ux_screensaver_step, screensaver, {});
+UX_FLOW(ux_screensaver_flow, &ux_screensaver_step);  // Screen saver flow
+
+void ui_save_screen(void) {
+    ux_flow_init(0, ux_screensaver_flow, NULL);
+}
+
 UX_STEP_CB(ux_idle_quit_step,
            pb,
            exit_app(),
