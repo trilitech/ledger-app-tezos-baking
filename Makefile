@@ -3,20 +3,12 @@ $(error Environment variable BOLOS_SDK is not set)
 endif
 include $(BOLOS_SDK)/Makefile.defines
 
-ifeq ($(APP),)
-APP=tezos_wallet
-endif
-
-ifeq ($(APP),tezos_baking)
 APPNAME = "Tezos Baking"
-else ifeq ($(APP),tezos_wallet)
-APPNAME = "Tezos Wallet"
-endif
 
 ifeq ($(TARGET_NAME), TARGET_NANOS)
 APP_LOAD_FLAGS=--appFlags 0x800  # APPLICATION_FLAG_LIBRARY
 else
-APP_LOAD_FLAGS=--appFlags 0xa40  # APPLICATION_FLAG_LIBRARY + APPLICATION_FLAG_BOLOS_SETTINGS + BLE SUPPORT
+APP_LOAD_FLAGS=--appFlags 0xa40  # APPLICATION_FLAG_LIBRARY + APPLICATION_FLAG_BOLOS_SETTINGS + APPLICATION_FLAG_GLOBAL_PIN
 endif
 APP_LOAD_PARAMS=$(APP_LOAD_FLAGS) --curve ed25519 --curve secp256k1 --curve secp256r1 --path "44'/1729'" $(COMMON_LOAD_PARAMS)
 
@@ -60,7 +52,7 @@ all: show-app default
 
 .PHONY: show-app
 show-app:
-	@echo ">>>>> Building $(APP) at commit $(COMMIT)"
+	@echo ">>>>> Building at commit $(COMMIT)"
 
 
 ############
@@ -140,15 +132,7 @@ endif
 
 CC       := $(CLANGPATH)clang
 
-ifeq ($(APP),tezos_wallet)
 CFLAGS   += -O3 -Os -Wall -Wextra -Wno-incompatible-pointer-types-discards-qualifiers
-else ifeq ($(APP),tezos_baking)
-CFLAGS   += -DBAKING_APP -O3 -Os -Wall -Wextra -Wno-incompatible-pointer-types-discards-qualifiers
-else
-ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported APP - use tezos_wallet, tezos_baking)
-endif
-endif
 
 AS     := $(GCCPATH)arm-none-eabi-gcc
 
@@ -167,16 +151,6 @@ ifneq ($(TARGET_NAME),TARGET_STAX)
 SDK_SOURCE_PATH += lib_ux
 endif
 
-### U2F support (wallet app only)
-ifeq ($(APP), tezos_wallet)
-SDK_SOURCE_PATH  += lib_u2f lib_stusb_impl
-
-DEFINES   += USB_SEGMENT_SIZE=64
-
-DEFINES   += U2F_PROXY_MAGIC=\"XTZ\"
-DEFINES   += HAVE_IO_U2F HAVE_U2F
-endif
-
 DEFINES   += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 
 load: all
@@ -189,7 +163,7 @@ delete:
 include $(BOLOS_SDK)/Makefile.rules
 
 listvariants:
-	@echo VARIANTS APP tezos_wallet tezos_baking
+	@echo VARIANTS APP tezos_baking
 
 # Define DEP_DIR to keep compatibility with old SDK
 ifeq ($(DEP_DIR),)
