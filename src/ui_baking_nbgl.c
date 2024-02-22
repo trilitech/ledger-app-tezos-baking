@@ -1,5 +1,4 @@
 #ifdef HAVE_NBGL
-#ifdef BAKING_APP
 
 #include "apdu_baking.h"
 
@@ -72,5 +71,4 @@ void ui_baking_reset(volatile uint32_t* flags) {
     *flags = IO_ASYNCH_REPLY;
 }
 
-#endif  // #ifdef BAKING_APP
 #endif  // HAVE_NBGL

@@ -1,5 +1,4 @@
 #ifdef HAVE_NBGL
-#ifdef BAKING_APP
 
 #include "nbgl_use_case.h"
 #include "apdu_setup.h"
@@ -98,5 +97,4 @@ void prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
                             cancel_callback);
 }
 
-#endif  // #ifdef BAKING_APP
 #endif  // HAVE_NBGL

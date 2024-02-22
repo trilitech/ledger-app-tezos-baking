@@ -20,8 +20,6 @@
 
 #define B2B_BLOCKBYTES 128
 
-#ifdef BAKING_APP  // ----------------------------------------------------------
-
 __attribute__((noreturn)) void prompt_register_delegate(ui_callback_t const ok_cb,
                                                         ui_callback_t const cxl_cb) {
     if (!G.maybe_ops.is_valid) THROW(EXC_MEMORY_ERROR);
@@ -35,5 +33,4 @@ __attribute__((noreturn)) void prompt_register_delegate(ui_callback_t const ok_c
     __builtin_unreachable();
 }
 
-#endif  // ifdef BAKING_APP ----------------------------------------------------
 #endif  // HAVE_BAGL
