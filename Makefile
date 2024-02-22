@@ -4,7 +4,7 @@ endif
 include $(BOLOS_SDK)/Makefile.defines
 
 ifeq ($(APP),)
-APP=tezos_wallet
+APP=tezos_baking
 endif
 
 ifeq ($(APP),tezos_baking)
