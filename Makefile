@@ -100,8 +100,6 @@ endif
 DEBUG ?= 0
 ifneq ($(DEBUG),0)
 
-        DEFINES += TEZOS_DEBUG
-
         ifeq ($(TARGET_NAME),TARGET_NANOS)
                 DEFINES   += HAVE_PRINTF PRINTF=screen_printf
         else
