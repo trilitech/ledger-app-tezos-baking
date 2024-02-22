@@ -74,7 +74,6 @@ static inline void clear_data(void) {
     memset(&G, 0, sizeof(G));
 }
 
-#ifdef BAKING_APP
 static bool sign_without_hash_ok(void) {
     delayed_send(perform_signature(true, false));
     return true;
@@ -90,7 +89,6 @@ static bool sign_reject(void) {
     delay_reject();
     return true;  // Return to idle
 }
-#endif
 
 static bool is_operation_allowed(enum operation_tag tag) {
     switch (tag) {
@@ -107,7 +105,6 @@ static bool is_operation_allowed(enum operation_tag tag) {
     }
 }
 
-#ifdef BAKING_APP
 static bool parse_allowed_operations(struct parsed_operation_group *const out,
                                      uint8_t const *const in,
                                      size_t const in_size,
@@ -173,7 +170,6 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
             PARSE_ERROR();
     }
 }
-#endif  // ifdef BAKING_APP ----------------------------------------------------
 
 #define P1_FIRST          0x00
 #define P1_NEXT           0x01
@@ -183,14 +179,12 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
 static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const buff_size) {
     uint8_t const magic_byte = get_magic_byte(buff, buff_size);
     switch (magic_byte) {
-#ifdef BAKING_APP
         case MAGIC_BYTE_TENDERBAKE_BLOCK:
         case MAGIC_BYTE_TENDERBAKE_PREENDORSEMENT:
         case MAGIC_BYTE_TENDERBAKE_ENDORSEMENT:
         case MAGIC_BYTE_BLOCK:
         case MAGIC_BYTE_BAKING_OP:
         case MAGIC_BYTE_UNSAFE_OP:  // Only for self-delegations
-#endif
             return magic_byte;
 
         case MAGIC_BYTE_UNSAFE_OP2:
@@ -229,7 +223,6 @@ static size_t handle_apdu(bool const enable_hashing,
     }
 
     if (enable_parsing) {
-#ifdef BAKING_APP
         if (G.packet_index != 1) PARSE_ERROR();  // Only parse a single packet when baking
 
         G.magic_byte = get_magic_byte_or_throw(buff, buff_size);
@@ -241,7 +234,6 @@ static size_t handle_apdu(bool const enable_hashing,
             // This should be a baking operation so parse it.
             if (!parse_baking_data(&G.parsed_baking_data, buff, buff_size)) PARSE_ERROR();
         }
-#endif
     }
 
     if (enable_hashing) {
@@ -274,10 +266,7 @@ static size_t handle_apdu(bool const enable_hashing,
 
         G.maybe_ops.is_valid = parse_operations_final(&G.parse_state, &G.maybe_ops.v);
 
-        return
-#ifdef BAKING_APP
-            baking_sign_complete(instruction == INS_SIGN_WITH_HASH, flags);
-#endif
+        return baking_sign_complete(instruction == INS_SIGN_WITH_HASH, flags);
     } else {
         return finalize_successful_send(0);
     }
@@ -296,9 +285,7 @@ size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t *flags)
 }
 
 int perform_signature(bool const on_hash, bool const send_hash) {
-#ifdef BAKING_APP
     write_high_water_mark(&G.parsed_baking_data);
-#endif
 
     size_t tx = 0;
     if (send_hash && on_hash) {

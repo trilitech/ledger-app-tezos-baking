@@ -58,7 +58,7 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
             break;
 
         case SEPROXYHAL_TAG_TICKER_EVENT:
-#if defined(HAVE_BAGL) && defined(BAKING_APP)
+#if defined(HAVE_BAGL)
             // Disable ticker event handling to prevent screen saver from starting.
 #else
             UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
@@ -88,9 +88,7 @@ void require_pin(void) {
 }
 
 void exit_app(void) {
-#ifdef BAKING_APP
     require_pin();
-#endif
     BEGIN_TRY_L(exit) {
         TRY_L(exit) {
             os_sched_exit(-1);

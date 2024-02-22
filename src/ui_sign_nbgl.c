@@ -66,8 +66,6 @@ static void continue_light_callback(void) {
                                   confirmation_callback);
 }
 
-#ifdef BAKING_APP  // ----------------------------------------------------------
-
 void prompt_register_delegate(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     if (!G.maybe_ops.is_valid) THROW(EXC_MEMORY_ERROR);
 
@@ -103,5 +101,4 @@ void prompt_register_delegate(ui_callback_t const ok_cb, ui_callback_t const cxl
                             cancel_callback);
 }
 
-#endif  // ifdef BAKING_APP ----------------------------------------------------
 #endif  // HAVE_NBGL

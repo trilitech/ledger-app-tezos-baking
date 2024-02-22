@@ -1,5 +1,3 @@
-#ifdef BAKING_APP
-
 #include "apdu_setup.h"
 
 #include "apdu.h"
@@ -80,5 +78,3 @@ size_t handle_apdu_setup(__attribute__((unused)) uint8_t instruction, volatile u
     *flags = IO_ASYNCH_REPLY;
     return 0;
 }
-
-#endif  // #ifdef BAKING_APP

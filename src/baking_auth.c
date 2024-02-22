@@ -1,5 +1,3 @@
-#ifdef BAKING_APP
-
 #include "baking_auth.h"
 
 #include "apdu.h"
@@ -230,5 +228,3 @@ bool parse_baking_data(parsed_baking_data_t *const out,
             return false;
     }
 }
-
-#endif  // #ifdef BAKING_APP

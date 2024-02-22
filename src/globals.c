@@ -35,8 +35,6 @@ void init_globals(void) {
     memset(G_io_seproxyhal_spi_buffer, 0, sizeof(G_io_seproxyhal_spi_buffer));
 }
 
-#ifdef BAKING_APP
-
 // DO NOT TRY TO INIT THIS. This can only be written via an system call.
 // The "N_" is *significant*. It tells the linker to put this in NVRAM.
 nvram_data const N_data_real;
@@ -86,5 +84,3 @@ void copy_hwm(char *out, size_t out_size, void *data) {
         number_to_string(out, hwm->highest_level);
     }
 }
-
-#endif  // #ifdef BAKING_APP

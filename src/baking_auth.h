@@ -1,7 +1,5 @@
 #pragma once
 
-#ifdef BAKING_APP
-
 #include "apdu.h"
 #include "operations.h"
 #include "protocol.h"
@@ -23,5 +21,3 @@ void write_high_water_mark(parsed_baking_data_t const *const in);
 bool parse_baking_data(parsed_baking_data_t *const out,
                        void const *const data,
                        size_t const length);
-
-#endif  // #ifdef BAKING_APP

@@ -910,7 +910,6 @@ static inline bool parse_byte(uint8_t byte,
 }
 
 #define G global.apdu.u.sign
-#ifdef BAKING_APP
 
 static void parse_operations_throws_parse_error(struct parsed_operation_group *const out,
                                                 void const *const data,
@@ -959,4 +958,3 @@ bool parse_operations(struct parsed_operation_group *const out,
     END_TRY;
     return true;
 }
-#endif
