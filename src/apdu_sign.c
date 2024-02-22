@@ -154,7 +154,9 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
         case MAGIC_BYTE_BLOCK:
         case MAGIC_BYTE_BAKING_OP:
             guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve);
-            return perform_signature(true, send_hash);
+            size_t tx = perform_signature(true, send_hash);
+            ui_save_screen();
+            return tx;
             break;
 
         case MAGIC_BYTE_UNSAFE_OP: {
