@@ -7,16 +7,12 @@ APPNAME = "Tezos Baking"
 
 
 HAVE_APPLICATION_FLAG_LIBRARY = 1
-ifeq ($(TARGET_NAME), TARGET_NANOS)
-APP_LOAD_FLAGS=--appFlags 0x800  # APPLICATION_FLAG_LIBRARY
-else
+ifneq ($(TARGET_NAME), TARGET_NANOS)
 HAVE_APPLICATION_FLAG_GLOBAL_PIN = 1
 HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
-APP_LOAD_FLAGS=--appFlags 0xa40  # APPLICATION_FLAG_LIBRARY + APPLICATION_FLAG_BOLOS_SETTINGS + BLE SUPPORT
 endif
 CURVE_APP_LOAD_PARAMS = ed25519 secp256k1 secp256r1
 PATH_APP_LOAD_PARAMS  = "44'/1729'"
-APP_LOAD_PARAMS=$(APP_LOAD_FLAGS) --curve ed25519 --curve secp256k1 --curve secp256r1 --path "44'/1729'" $(COMMON_LOAD_PARAMS)
 
 GIT_DESCRIBE ?= $(shell git describe --tags --abbrev=8 --always --long --dirty 2>/dev/null)
 
@@ -47,14 +43,6 @@ ICON_NANOX  = icons/nano-x-tezos.gif
 ICON_NANOSP = $(ICON_NANOX)
 ICON_STAX   = icons/stax_tezos.gif
 
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-ICONNAME=$(ICON_NANOS)
-else ifeq ($(TARGET_NAME),TARGET_STAX)
-ICONNAME=$(ICON_STAX)
-else
-ICONNAME=$(ICON_NANOX)
-endif
-
 ################
 # Default rule #
 ################
@@ -72,51 +60,14 @@ show-app:
 
 DISABLE_STANDARD_APP_SYNC_RAPDU = 1
 DISABLE_STANDARD_APP_FILES = 1
-DEFINES   += OS_IO_SEPROXYHAL
-DEFINES   += HAVE_SPRINTF
 DISABLE_STANDARD_USB = 1
 DEFINES   += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=6 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
 DEFINES   += HAVE_LEGACY_PID
 DEFINES   += VERSION=\"$(APPVERSION)\" APPVERSION_M=$(APPVERSION_M)
 DEFINES   += COMMIT=\"$(COMMIT)\" APPVERSION_N=$(APPVERSION_N) APPVERSION_P=$(APPVERSION_P)
-# DEFINES   += _Static_assert\(...\)=
 
 ENABLE_BLUETOOTH = 1
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX))
-DEFINES   += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
-DEFINES   += HAVE_BLE_APDU # basic ledger apdu transport over BLE
-
-SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
-endif
-
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=128
-else
-DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=300
-endif
-
 ENABLE_NBGL_QRCODE = 1
-ifeq ($(TARGET_NAME),TARGET_STAX)
-    DEFINES += NBGL_QRCODE
-    SDK_SOURCE_PATH += qrcode
-else
-    DEFINES += HAVE_BAGL HAVE_UX_FLOW
-endif
-
-# Enabling debug PRINTF
-DEBUG ?= 0
-ifneq ($(DEBUG),0)
-
-        ifeq ($(TARGET_NAME),TARGET_NANOS)
-                DEFINES   += HAVE_PRINTF PRINTF=screen_printf
-        else
-                DEFINES   += HAVE_PRINTF PRINTF=mcu_usb_printf
-        endif
-else
-        DEFINES   += PRINTF\(...\)=
-endif
-
-
 
 ##############
 # Compiler #
@@ -136,44 +87,16 @@ ifeq ($(GCCPATH),)
 $(info GCCPATH is not set: arm-none-eabi-* will be used from PATH)
 endif
 
-CC       := $(CLANGPATH)clang
-
 CFLAGS   += -Wno-incompatible-pointer-types-discards-qualifiers
-
-AS     := $(GCCPATH)arm-none-eabi-gcc
-
-LD       := $(GCCPATH)arm-none-eabi-gcc
-
-LDLIBS   += -lm -lgcc -lc
-
-# import rules to compile glyphs(/pone)
-include $(BOLOS_SDK)/Makefile.glyphs
 
 ### computed variables
 APP_SOURCE_PATH  += src
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl
 
-ifneq ($(TARGET_NAME),TARGET_STAX)
-SDK_SOURCE_PATH += lib_ux
-endif
-
-
-DEFINES   += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
-
-load: all
-	python3 -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
-
-delete:
-	python3 -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
-
-# import generic rules from the sdk
-include $(BOLOS_SDK)/Makefile.rules
-
 VARIANT_PARAM  = APP
 VARIANT_VALUES = tezos_baking
 
-listvariants:
-	@echo VARIANTS $(VARIANT_PARAM) $(VARIANT_VALUES)
+include $(BOLOS_SDK)/Makefile.standard_app
 
 # Generate delegates from baker list
 src/delegates.h: tools/gen-delegates.sh tools/BakersRegistryCoreUnfilteredData.json
