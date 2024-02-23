@@ -13,21 +13,12 @@
 #define STEP_HARD_FAIL -2
 
 // Argument is to distinguish between different parse errors for debugging purposes only
-__attribute__((noreturn)) static void parse_error(
-#ifndef TEZOS_DEBUG
-    __attribute__((unused))
-#endif
-    uint32_t lineno) {
-
+__attribute__((noreturn)) static void parse_error(void) {
     global.apdu.u.sign.parse_state.op_step = STEP_HARD_FAIL;
-#ifdef TEZOS_DEBUG
-    THROW(0x9000 + lineno);
-#else
     THROW(EXC_PARSE_ERROR);
-#endif
 }
 
-#define PARSE_ERROR() parse_error(__LINE__)
+#define PARSE_ERROR() parse_error()
 
 // Conversion/check functions
 
