@@ -53,7 +53,7 @@ all: show-app default
 
 .PHONY: show-app
 show-app:
-	@echo ">>>>> Building $(APP) at commit $(COMMIT)"
+	@echo ">>>>> Building at commit $(COMMIT)"
 
 
 ############
@@ -131,7 +131,7 @@ endif
 
 CC       := $(CLANGPATH)clang
 
-CFLAGS   += -DBAKING_APP -O3 -Os -Wall -Wextra -Wno-incompatible-pointer-types-discards-qualifiers
+CFLAGS   += -O3 -Os -Wall -Wextra -Wno-incompatible-pointer-types-discards-qualifiers
 
 AS     := $(GCCPATH)arm-none-eabi-gcc
 
