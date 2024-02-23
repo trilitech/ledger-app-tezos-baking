@@ -11,7 +11,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "base58.h"
+#include "base58_encoding.h"
 
 #define MAX_ENC_INPUT_SIZE 120
 

@@ -1,7 +1,7 @@
 #include "to_string.h"
 
 #include "apdu.h"
-#include "base58.h"
+#include "base58_encoding.h"
 #include "keys.h"
 #include "delegates.h"
 
