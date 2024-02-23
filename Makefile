@@ -154,8 +154,11 @@ delete:
 # import generic rules from the sdk
 include $(BOLOS_SDK)/Makefile.rules
 
+VARIANT_PARAM  = APP
+VARIANT_VALUES = tezos_baking
+
 listvariants:
-	@echo VARIANTS APP tezos_baking
+	@echo VARIANTS $(VARIANT_PARAM) $(VARIANT_VALUES)
 
 # Generate delegates from baker list
 src/delegates.h: tools/gen-delegates.sh tools/BakersRegistryCoreUnfilteredData.json
