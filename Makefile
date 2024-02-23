@@ -37,12 +37,17 @@ else
   $(info COMMIT=$(COMMIT))
 endif
 
+ICON_NANOS  = icons/nano-s-tezos.gif
+ICON_NANOX  = icons/nano-x-tezos.gif
+ICON_NANOSP = $(ICON_NANOX)
+ICON_STAX   = icons/stax_tezos.gif
+
 ifeq ($(TARGET_NAME),TARGET_NANOS)
-ICONNAME=icons/nano-s-tezos.gif
+ICONNAME=$(ICON_NANOS)
 else ifeq ($(TARGET_NAME),TARGET_STAX)
-ICONNAME=icons/stax_tezos.gif
+ICONNAME=$(ICON_STAX)
 else
-ICONNAME=icons/nano-x-tezos.gif
+ICONNAME=$(ICON_NANOX)
 endif
 
 ################
