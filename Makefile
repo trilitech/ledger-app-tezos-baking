@@ -86,13 +86,6 @@ ifeq ($(TARGET_NAME),TARGET_STAX)
     SDK_SOURCE_PATH += qrcode
 else
     DEFINES += HAVE_BAGL HAVE_UX_FLOW
-    ifneq ($(TARGET_NAME),TARGET_NANOS)
-        DEFINES   += BAGL_WIDTH=128 BAGL_HEIGHT=64
-        DEFINES   += HAVE_BAGL_ELLIPSIS # long label truncation feature
-        DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
-        DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
-        DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
-    endif
 endif
 
 # Enabling debug PRINTF
@@ -130,12 +123,12 @@ endif
 
 CC       := $(CLANGPATH)clang
 
-CFLAGS   += -O3 -Os -Wall -Wextra -Wno-incompatible-pointer-types-discards-qualifiers
+CFLAGS   += -Wno-incompatible-pointer-types-discards-qualifiers
 
 AS     := $(GCCPATH)arm-none-eabi-gcc
 
 LD       := $(GCCPATH)arm-none-eabi-gcc
-LDFLAGS  += -O3 -Os
+
 LDLIBS   += -lm -lgcc -lc
 
 # import rules to compile glyphs(/pone)
@@ -163,11 +156,6 @@ include $(BOLOS_SDK)/Makefile.rules
 
 listvariants:
 	@echo VARIANTS APP tezos_baking
-
-# Define DEP_DIR to keep compatibility with old SDK
-ifeq ($(DEP_DIR),)
-	DEP_DIR := dep
-endif
 
 # Generate delegates from baker list
 src/delegates.h: tools/gen-delegates.sh tools/BakersRegistryCoreUnfilteredData.json
