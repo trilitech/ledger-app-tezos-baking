@@ -1,8 +1,4 @@
-#ifdef BAKING_APP
 #define CLASS 1
-#else
-#define CLASS 0
-#endif
 
 #define MAJOR APPVERSION_M
 #define MINOR APPVERSION_N

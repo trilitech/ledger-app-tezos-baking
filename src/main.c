@@ -18,7 +18,6 @@ __attribute__((noreturn)) void app_main(void) {
     global.handlers[APDU_INS(INS_SIGN)] = handle_apdu_sign;
     global.handlers[APDU_INS(INS_GIT)] = handle_apdu_git;
     global.handlers[APDU_INS(INS_SIGN_WITH_HASH)] = handle_apdu_sign_with_hash;
-#ifdef BAKING_APP
     global.handlers[APDU_INS(INS_AUTHORIZE_BAKING)] = handle_apdu_get_public_key;
     global.handlers[APDU_INS(INS_RESET)] = handle_apdu_reset;
     global.handlers[APDU_INS(INS_QUERY_AUTH_KEY)] = handle_apdu_query_auth_key;
@@ -29,8 +28,5 @@ __attribute__((noreturn)) void app_main(void) {
     global.handlers[APDU_INS(INS_QUERY_AUTH_KEY_WITH_CURVE)] =
         handle_apdu_query_auth_key_with_curve;
     global.handlers[APDU_INS(INS_HMAC)] = handle_apdu_hmac;
-#else
-    global.handlers[APDU_INS(INS_SIGN_UNSAFE)] = handle_apdu_sign;
-#endif
     main_loop(global.handlers, NUM_ELEMENTS(global.handlers));
 }

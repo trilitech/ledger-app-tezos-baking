@@ -24,7 +24,6 @@ void ui_initial_screen(void) {
     ux_idle_screen(NULL, NULL);
 }
 
-#ifdef BAKING_APP
 #define MAX_LENGTH 200
 static char* bakeInfoContents[3];
 static char buffer[3][MAX_LENGTH];
@@ -74,41 +73,11 @@ void ui_menu_about_baking(void) {
                          NULL);
 }
 
-#else
-static bool navigation_cb_wallet(uint8_t page, nbgl_pageContent_t* content) {
-    UNUSED(page);
-
-    if (page == 0) {
-        content->type = INFOS_LIST;
-        content->infosList.nbInfos = 3;
-        content->infosList.infoTypes = infoTypes;
-        content->infosList.infoContents = infoContents;
-    }
-
-    return true;
-}
-
-void ui_menu_about_wallet(void) {
-    nbgl_useCaseSettings("Tezos wallet",
-                         0,
-                         1,
-                         false,
-                         ui_initial_screen,
-                         navigation_cb_wallet,
-                         NULL);
-}
-
-#endif
-
 void ux_idle_screen(ui_callback_t ok_c, ui_callback_t cxl_c) {
     (void) ok_c;
     (void) cxl_c;
 
-#ifdef BAKING_APP
     nbgl_useCaseHome("Tezos Baking", &C_tezos, NULL, false, ui_menu_about_baking, exit_app);
-#else
-    nbgl_useCaseHome("Tezos", &C_tezos, NULL, false, ui_menu_about_wallet, exit_app);
-#endif
 }
 
 #endif  // HAVE_NBGL

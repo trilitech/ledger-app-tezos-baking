@@ -19,7 +19,6 @@
 
 void display_next_state(bool is_left_ux_step);
 
-#ifdef BAKING_APP
 void calculate_baking_idle_screens_data(void) {
     push_ui_callback("Tezos Baking", copy_string, VERSION);
     push_ui_callback("Chain", copy_chain, &N_data.main_chain_id);
@@ -32,7 +31,6 @@ void update_baking_idle_screens(void) {
     calculate_baking_idle_screens_data();
     ui_refresh();
 }
-#endif  // BAKING_APP
 
 // User MUST call `init_screen_stack()` before the first call to this function.
 void push_ui_callback(char *title, string_generation_callback cb, void *data) {
@@ -230,11 +228,7 @@ void ui_initial_screen(void) {
     }
 
     init_screen_stack();
-#ifdef BAKING_APP
     calculate_baking_idle_screens_data();
-#else
-    push_ui_callback("Tezos Wallet", copy_string, VERSION);
-#endif
 
     ux_idle_screen(NULL, NULL);
 }

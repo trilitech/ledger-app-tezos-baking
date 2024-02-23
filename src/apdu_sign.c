@@ -73,7 +73,6 @@ static inline void clear_data(void) {
     memset(&G, 0, sizeof(G));
 }
 
-#ifdef BAKING_APP
 static bool sign_without_hash_ok(void) {
     delayed_send(perform_signature(true, false));
     return true;
@@ -89,7 +88,6 @@ static bool sign_reject(void) {
     delay_reject();
     return true;  // Return to idle
 }
-#endif
 
 static bool is_operation_allowed(enum operation_tag tag) {
     switch (tag) {
@@ -101,26 +99,11 @@ static bool is_operation_allowed(enum operation_tag tag) {
             return true;
         case OPERATION_TAG_BABYLON_REVEAL:
             return true;
-#ifndef BAKING_APP
-        case OPERATION_TAG_PROPOSAL:
-            return true;
-        case OPERATION_TAG_BALLOT:
-            return true;
-        case OPERATION_TAG_ATHENS_ORIGINATION:
-            return true;
-        case OPERATION_TAG_ATHENS_TRANSACTION:
-            return true;
-        case OPERATION_TAG_BABYLON_ORIGINATION:
-            return true;
-        case OPERATION_TAG_BABYLON_TRANSACTION:
-            return true;
-#endif
         default:
             return false;
     }
 }
 
-#ifdef BAKING_APP
 static bool parse_allowed_operations(struct parsed_operation_group *const out,
                                      uint8_t const *const in,
                                      size_t const in_size,
@@ -132,18 +115,6 @@ static bool parse_allowed_operations(struct parsed_operation_group *const out,
                             &key->bip32_path,
                             &is_operation_allowed);
 }
-
-#else
-
-static bool parse_allowed_operation_packet(struct parsed_operation_group *const out,
-                                           uint8_t const *const in,
-                                           size_t const in_size) {
-    return parse_operations_packet(out, in, in_size, &is_operation_allowed);
-}
-
-#endif
-
-#ifdef BAKING_APP  // ----------------------------------------------------------
 
 size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
     switch (G.magic_byte) {
@@ -198,7 +169,6 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
             PARSE_ERROR();
     }
 }
-#endif  // ifdef BAKING_APP ----------------------------------------------------
 
 #define P1_FIRST          0x00
 #define P1_NEXT           0x01
@@ -208,17 +178,12 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
 static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const buff_size) {
     uint8_t const magic_byte = get_magic_byte(buff, buff_size);
     switch (magic_byte) {
-#ifdef BAKING_APP
         case MAGIC_BYTE_TENDERBAKE_BLOCK:
         case MAGIC_BYTE_TENDERBAKE_PREENDORSEMENT:
         case MAGIC_BYTE_TENDERBAKE_ENDORSEMENT:
         case MAGIC_BYTE_BLOCK:
         case MAGIC_BYTE_BAKING_OP:
         case MAGIC_BYTE_UNSAFE_OP:  // Only for self-delegations
-#else
-        case MAGIC_BYTE_UNSAFE_OP:
-        case MAGIC_BYTE_UNSAFE_OP3:
-#endif
             return magic_byte;
 
         case MAGIC_BYTE_UNSAFE_OP2:
@@ -244,12 +209,6 @@ static size_t handle_apdu(bool const enable_hashing,
             global.path_with_curve.derivation_type =
                 parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
             return finalize_successful_send(0);
-#ifndef BAKING_APP
-        case P1_HASH_ONLY_NEXT:
-            // This is a debugging Easter egg
-            G.hash_only = true;
-            __attribute__((fallthrough));
-#endif
         case P1_NEXT:
             if (global.path_with_curve.bip32_path.length == 0) THROW(EXC_WRONG_LENGTH_FOR_INS);
 
@@ -263,7 +222,6 @@ static size_t handle_apdu(bool const enable_hashing,
     }
 
     if (enable_parsing) {
-#ifdef BAKING_APP
         if (G.packet_index != 1) PARSE_ERROR();  // Only parse a single packet when baking
 
         G.magic_byte = get_magic_byte_or_throw(buff, buff_size);
@@ -275,32 +233,6 @@ static size_t handle_apdu(bool const enable_hashing,
             // This should be a baking operation so parse it.
             if (!parse_baking_data(&G.parsed_baking_data, buff, buff_size)) PARSE_ERROR();
         }
-#else
-        if (G.packet_index == 1) {
-            G.maybe_ops.is_valid = false;
-            G.magic_byte = get_magic_byte_or_throw(buff, buff_size);
-
-            // If it is an "operation" (starting with the 0x03 magic byte), set up parsing
-            // If it is arbitrary Michelson (starting with 0x05), dont bother parsing and show
-            // the "Sign Hash" prompt
-            if (G.magic_byte == MAGIC_BYTE_UNSAFE_OP) {
-                parse_operations_init(&G.maybe_ops.v,
-                                      global.path_with_curve.derivation_type,
-                                      &global.path_with_curve.bip32_path,
-                                      &G.parse_state);
-            }
-            // If magic byte is not 0x03 or 0x05, fail
-            else if (G.magic_byte != MAGIC_BYTE_UNSAFE_OP3) {
-                PARSE_ERROR();
-            }
-        }
-
-        // Only parse if the message is an "Operation"
-        if (G.magic_byte == MAGIC_BYTE_UNSAFE_OP) {
-            parse_allowed_operation_packet(&G.maybe_ops.v, buff, buff_size);
-        }
-
-#endif
     }
 
     if (enable_hashing) {
@@ -333,12 +265,7 @@ static size_t handle_apdu(bool const enable_hashing,
 
         G.maybe_ops.is_valid = parse_operations_final(&G.parse_state, &G.maybe_ops.v);
 
-        return
-#ifdef BAKING_APP
-            baking_sign_complete(instruction == INS_SIGN_WITH_HASH, flags);
-#else
-            wallet_sign_complete(instruction, G.magic_byte, flags);
-#endif
+        return baking_sign_complete(instruction == INS_SIGN_WITH_HASH, flags);
     } else {
         return finalize_successful_send(0);
     }
@@ -357,15 +284,7 @@ size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t *flags)
 }
 
 int perform_signature(bool const on_hash, bool const send_hash) {
-#ifdef BAKING_APP
     write_high_water_mark(&G.parsed_baking_data);
-#else
-    if (on_hash && G.hash_only) {
-        memcpy(G_io_apdu_buffer, G.final_hash, sizeof(G.final_hash));
-        clear_data();
-        return finalize_successful_send(sizeof(G.final_hash));
-    }
-#endif
 
     size_t tx = 0;
     if (send_hash && on_hash) {

@@ -1,5 +1,4 @@
 #ifdef HAVE_BAGL
-#ifdef BAKING_APP
 
 #include "apdu_setup.h"
 
@@ -26,5 +25,4 @@ __attribute__((noreturn)) void prompt_setup(ui_callback_t const ok_cb, ui_callba
     __builtin_unreachable();
 }
 
-#endif  // #ifdef BAKING_APP
 #endif  // HAVE_BAGL

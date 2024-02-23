@@ -9,9 +9,7 @@
 #include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
-#ifdef BAKING_APP
 #include "baking_auth.h"
-#endif  // BAKING_APP
 
 #include <string.h>
 
@@ -47,14 +45,7 @@ static void verify_address(void) {
     nbgl_useCaseAddressConfirmation(transactionContext.buffer, confirmation_callback);
 }
 
-void prompt_address(
-#ifndef BAKING_APP
-    __attribute__((unused))
-#endif
-    bool baking,
-    ui_callback_t ok_cb,
-    ui_callback_t cxl_cb) {
-
+void prompt_address(bool baking, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
     transactionContext.ok_cb = ok_cb;
     transactionContext.cxl_cb = cxl_cb;
 
@@ -63,15 +54,11 @@ void prompt_address(
                                         &global.path_with_curve);
 
     const char* text;
-#ifdef BAKING_APP
     if (baking) {
         text = "Authorize Tezos\nBaking address";
     } else {
-#endif
         text = "Verify Tezos\naddress";
-#ifdef BAKING_APP
     }
-#endif
     nbgl_useCaseReviewStart(&C_tezos, text, NULL, "Cancel", verify_address, cancel_callback);
 }
 #endif  // HAVE_NBGL

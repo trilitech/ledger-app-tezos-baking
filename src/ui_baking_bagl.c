@@ -1,5 +1,4 @@
 #ifdef HAVE_BAGL
-#ifdef BAKING_APP
 
 #include "apdu_baking.h"
 
@@ -22,5 +21,4 @@ void ui_baking_reset(__attribute__((unused)) volatile uint32_t* flags) {
     ux_confirm_screen(reset_ok, delay_reject);
 }
 
-#endif  // #ifdef BAKING_APP
 #endif  // HAVE_BAGL

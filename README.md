@@ -1,5 +1,23 @@
 # Tezos Ledger Applications
 
+## Investigation
+
+### Building
+
+Use the docker container (built by `make docker_ledger_app_builder` in the wallet app repo.)
+
+```
+docker run --rm -ti -v $(pwd):/app ledger-app-builder:latest
+```
+
+Then build the baking app:
+
+```
+BOLOS_SDK=$NANOS_SDK make
+```
+
+You can replace `NANOS` with `NANOSP`, `NANOX`, `STAX` for the other devices.
+
 ## Overview
 
 Whether you're baking or just trading XTZ, you want to store your keys securely.

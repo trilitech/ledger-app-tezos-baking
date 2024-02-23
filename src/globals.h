@@ -25,13 +25,11 @@ void init_globals(void);
 
 #define MAX_SIGNATURE_SIZE 100
 
-#ifdef BAKING_APP
 typedef struct {
     uint8_t signed_hmac_key[MAX_SIGNATURE_SIZE];
     uint8_t hashed_signed_hmac_key[CX_SHA512_SIZE];
     uint8_t hmac[CX_SHA256_SIZE];
 } apdu_hmac_state_t;
-#endif
 
 typedef struct {
     cx_blake2b_t state;
@@ -41,9 +39,7 @@ typedef struct {
 typedef struct {
     uint8_t packet_index;  // 0-index is the initial setup packet, 1 is first packet to hash, etc.
 
-#ifdef BAKING_APP
     parsed_baking_data_t parsed_baking_data;
-#endif
 
     struct {
         bool is_valid;
@@ -110,7 +106,6 @@ typedef struct {
         union {
             apdu_sign_state_t sign;
 
-#ifdef BAKING_APP
             struct {
                 level_t reset_level;
             } baking;
@@ -124,14 +119,11 @@ typedef struct {
             } setup;
 
             apdu_hmac_state_t hmac;
-#endif
         } u;
 
-#ifdef BAKING_APP
         struct {
             nvram_data new_data;  // Staging area for setting N_data
         } baking_auth;
-#endif
     } apdu;
 } globals_t;
 
@@ -141,7 +133,6 @@ extern unsigned int app_stack_canary;  // From SDK
 
 extern unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
-#ifdef BAKING_APP
 extern nvram_data const N_data_real;
 #define N_data (*(volatile nvram_data *) PIC(&N_data_real))
 
@@ -162,4 +153,3 @@ high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
         nvm_write((void *) &N_data, &global.apdu.baking_auth.new_data, sizeof(N_data)); \
         update_baking_idle_screens();                                                   \
     })
-#endif
