@@ -4,10 +4,10 @@
 
 ### Building
 
-Use the docker container (built by `make docker_ledger_app_builder` in the wallet app repo.)
+Use the docker container `ledger-app-dev-tools` to access to the SDK
 
 ```
-docker run --rm -ti -v $(pwd):/app ledger-app-builder:latest
+docker run --rm -ti -v $(pwd):/app ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
 ```
 
 Then build the baking app:

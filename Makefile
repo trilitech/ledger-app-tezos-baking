@@ -5,6 +5,21 @@ include $(BOLOS_SDK)/Makefile.defines
 
 APPNAME = "Tezos Baking"
 
+APP_SOURCE_PATH = src
+
+VARIANT_PARAM  = APP
+VARIANT_VALUES = tezos_baking
+
+# OPTION
+
+DISABLE_STANDARD_APP_SYNC_RAPDU = 1
+DISABLE_STANDARD_APP_FILES = 1
+DEFINES += HAVE_LEGACY_PID
+
+ENABLE_BLUETOOTH = 1
+ENABLE_NBGL_QRCODE = 1
+
+# APP_LOAD_PARAMS
 
 HAVE_APPLICATION_FLAG_LIBRARY = 1
 ifneq ($(TARGET_NAME), TARGET_NANOS)
@@ -14,13 +29,22 @@ endif
 CURVE_APP_LOAD_PARAMS = ed25519 secp256k1 secp256r1
 PATH_APP_LOAD_PARAMS  = "44'/1729'"
 
-GIT_DESCRIBE ?= $(shell git describe --tags --abbrev=8 --always --long --dirty 2>/dev/null)
+# VERSION
 
-VERSION_TAG ?= $(shell echo "$(GIT_DESCRIBE)" | cut -f1 -d-)
 APPVERSION_M=2
 APPVERSION_N=4
 APPVERSION_P=7
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
+
+DEFINES   += VERSION=\"$(APPVERSION)\"
+
+# COMMIT
+
+GIT_DESCRIBE ?= $(shell git describe --tags --abbrev=8 --always --long --dirty 2>/dev/null)
+VERSION_TAG ?= $(shell echo "$(GIT_DESCRIBE)" | cut -f1 -d-)
+COMMIT ?= $(shell echo "$(GIT_DESCRIBE)" | awk -F'-g' '{print $2}' | sed 's/-dirty/*/')
+
+DEFINES   += COMMIT=\"$(COMMIT)\"
 
 # Only warn about version tags if specified/inferred
 ifeq ($(VERSION_TAG),)
@@ -31,12 +55,13 @@ else
   endif
 endif
 
-COMMIT ?= $(shell echo "$(GIT_DESCRIBE)" | awk -F'-g' '{print $2}' | sed 's/-dirty/*/')
 ifeq ($(COMMIT),)
   $(warning COMMIT not specified and could not be determined with git from "$(GIT_DESCRIBE)")
 else
   $(info COMMIT=$(COMMIT))
 endif
+
+# ICONS
 
 ICON_NANOS  = icons/nano-s-tezos.gif
 ICON_NANOX  = icons/nano-x-tezos.gif
@@ -53,23 +78,10 @@ all: show-app default
 show-app:
 	@echo ">>>>> Building at commit $(COMMIT)"
 
-
-############
-# Platform #
-############
-
-DISABLE_STANDARD_APP_SYNC_RAPDU = 1
-DISABLE_STANDARD_APP_FILES = 1
-DEFINES   += HAVE_LEGACY_PID
-DEFINES   += VERSION=\"$(APPVERSION)\"
-DEFINES   += COMMIT=\"$(COMMIT)\"
-
-ENABLE_BLUETOOTH = 1
-ENABLE_NBGL_QRCODE = 1
-
 ##############
 # Compiler #
 ##############
+
 ifneq ($(BOLOS_ENV),)
 $(info BOLOS_ENV=$(BOLOS_ENV))
 CLANGPATH := $(BOLOS_ENV)/clang-arm-fropi/bin/
@@ -87,15 +99,9 @@ endif
 
 CFLAGS   += -Wno-incompatible-pointer-types-discards-qualifiers
 
-### computed variables
-APP_SOURCE_PATH  += src
-
-VARIANT_PARAM  = APP
-VARIANT_VALUES = tezos_baking
-
-include $(BOLOS_SDK)/Makefile.standard_app
-
 # Generate delegates from baker list
 src/delegates.h: tools/gen-delegates.sh tools/BakersRegistryCoreUnfilteredData.json
 	bash ./tools/gen-delegates.sh ./tools/BakersRegistryCoreUnfilteredData.json
 $(DEP_DIR)/to_string.d $(DEP_DIR)/app/src/to_string.d: src/delegates.h
+
+include $(BOLOS_SDK)/Makefile.standard_app
