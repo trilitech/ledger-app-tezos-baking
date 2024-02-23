@@ -3,7 +3,7 @@
 
 #include "apdu.h"
 #include "baking_auth.h"
-#include "base58.h"
+#include "base58_encoding.h"
 #include "globals.h"
 #include "keys.h"
 #include "memory.h"
