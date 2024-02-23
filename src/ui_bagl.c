@@ -64,12 +64,13 @@ UX_STEP_NOCB(ux_variable_display,
              });
 UX_STEP_INIT(ux_init_lower_border, NULL, NULL, { display_next_state(false); });
 
-UX_STEP_NOCB(ux_app_is_ready_step,
-             nn,
-             {
-                 "Application",
-                 "is ready",
-             });
+UX_STEP_CB(ux_app_is_ready_step,
+           nn,
+           ux_empty_screen(),
+           {
+               "Application",
+               "is ready",
+           });
 
 UX_STEP_CB(ux_idle_quit_step,
            pb,
