@@ -16,7 +16,12 @@
 
 from enum import IntEnum
 from typing import Union
+
 import base58
+import pysodium
+import secp256k1
+import fastecdsa
+
 import pytezos
 from bip_utils.bip.bip32.bip32_path import Bip32Path, Bip32PathParser
 from bip_utils.bip.bip32.bip32_key_data import Bip32KeyIndex
@@ -158,6 +163,37 @@ class Account:
 
     def __repr__(self) -> str:
         return f"{self.sig_scheme.name}_{self.public_key_hash}"
+
+    def sign(self, message: Union[str, bytes], generic: bool = False) -> bytes:
+        """Sign a raw sequence of bytes."""
+        return self.key.sign(message, generic)
+
+    def sign_prehashed_message(self, prehashed_message: bytes) -> bytes:
+        """Sign a raw sequence of bytes already hashed."""
+        if self.sig_scheme in [
+                SigScheme.ED25519,
+                SigScheme.BIP32_ED25519
+        ]:
+            return pysodium.crypto_sign_detached(
+                prehashed_message,
+                self.key.secret_exponent
+            )
+        if self.sig_scheme == SigScheme.SECP256K1:
+            pk = secp256k1.PrivateKey(self.key.secret_exponent)
+            return pk.ecdsa_serialize_compact(
+                pk.ecdsa_sign(
+                    prehashed_message,
+                    raw=True
+                )
+            )
+        if self.sig_scheme == SigScheme.SECP256R1:
+            r, s = fastecdsa.ecdsa.sign(
+                msg=prehashed_message,
+                d=fastecdsa.encoding.util.bytes_to_int(self.key.secret_exponent),
+                prehashed=True
+            )
+            return r.to_bytes(32, 'big') + s.to_bytes(32, 'big')
+        raise ValueError(f"Account do not have a right signature type: {self.sig_scheme}")
 
     @property
     def base58_decoded(self) -> bytes:
