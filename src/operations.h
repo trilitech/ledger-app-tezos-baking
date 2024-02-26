@@ -10,8 +10,6 @@
 #include "cx.h"
 #include "types.h"
 
-typedef bool (*is_operation_allowed_t)(enum operation_tag);
-
 // Wire format that gets parsed into `signature_type`.
 typedef struct {
     uint8_t v;
@@ -71,8 +69,7 @@ bool parse_operations(struct parsed_operation_group *const out,
                       uint8_t const *const data,
                       size_t length,
                       derivation_type_t curve,
-                      bip32_path_t const *const bip32_path,
-                      is_operation_allowed_t is_operation_allowed);
+                      bip32_path_t const *const bip32_path);
 
 bool parse_operations_final(struct parse_state *const state,
                             struct parsed_operation_group *const out);

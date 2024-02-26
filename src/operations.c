@@ -167,8 +167,7 @@ bool parse_operations_final(struct parse_state *const state,
 
 static inline bool parse_byte(uint8_t byte,
                               struct parse_state *const state,
-                              struct parsed_operation_group *const out,
-                              is_operation_allowed_t is_operation_allowed) {
+                              struct parsed_operation_group *const out) {
 // OP_STEP finishes the current state transition, setting the state, and introduces the next state.
 // For linear chains of states, this keeps the code structurally similar to equivalent imperative
 // parsing code.
@@ -214,8 +213,6 @@ static inline bool parse_byte(uint8_t byte,
             OP_NAMED_STEP(1)
 
             state->tag = NEXT_BYTE;
-
-            if (!is_operation_allowed(state->tag)) PARSE_ERROR();
 
             OP_STEP
 
@@ -344,15 +341,14 @@ static void parse_operations_throws_parse_error(struct parsed_operation_group *c
                                                 void const *const data,
                                                 size_t length,
                                                 derivation_type_t derivation_type,
-                                                bip32_path_t const *const bip32_path,
-                                                is_operation_allowed_t is_operation_allowed) {
+                                                bip32_path_t const *const bip32_path) {
     size_t ix = 0;
 
     parse_operations_init(out, derivation_type, bip32_path, &G.parse_state);
 
     while (ix < length) {
         uint8_t byte = ((uint8_t *) data)[ix];
-        parse_byte(byte, &G.parse_state, out, is_operation_allowed);
+        parse_byte(byte, &G.parse_state, out);
         PRINTF("Byte: %x - Next op_step state: %d\n", byte, G.parse_state.op_step);
         ix++;
     }
@@ -364,16 +360,10 @@ bool parse_operations(struct parsed_operation_group *const out,
                       uint8_t const *const data,
                       size_t length,
                       derivation_type_t derivation_type,
-                      bip32_path_t const *const bip32_path,
-                      is_operation_allowed_t is_operation_allowed) {
+                      bip32_path_t const *const bip32_path) {
     BEGIN_TRY {
         TRY {
-            parse_operations_throws_parse_error(out,
-                                                data,
-                                                length,
-                                                derivation_type,
-                                                bip32_path,
-                                                is_operation_allowed);
+            parse_operations_throws_parse_error(out, data, length, derivation_type, bip32_path);
         }
         CATCH(EXC_PARSE_ERROR) {
             return false;
