@@ -113,15 +113,6 @@ struct block_wire {
     // ... beyond this we don't care
 } __attribute__((packed));
 
-struct consensus_op_wire {
-    uint8_t magic_byte;
-    uint32_t chain_id;
-    uint8_t branch[32];
-    uint8_t tag;
-    uint32_t level;
-    // ... beyond this we don't care
-} __attribute__((packed));
-
 struct tenderbake_consensus_op_wire {
     uint8_t magic_byte;
     uint32_t chain_id;
@@ -133,7 +124,15 @@ struct tenderbake_consensus_op_wire {
     uint8_t block_payload_hash[32];
 } __attribute__((packed));
 
-#define EMMY_FITNESS_SIZE               17
+/**
+ * Fitness =
+ *  - tag_size(4)               + tag(1)               +
+ *  - level_size(4)             + level(4)             +
+ *  - locked_round_size(4)      + locked_round(0|4)    +
+ *  - predecessor_round_size(4) + predecessor_round(4) +
+ *  - current_round_size(4)     + current_round(4)
+ */
+#define MINIMUM_TENDERBAKE_FITNESS_SIZE 33  // When 'locked_round' == none
 #define MAXIMUM_TENDERBAKE_FITNESS_SIZE 37  // When 'locked_round' != none
 
 #define TENDERBAKE_PROTO_FITNESS_VERSION 2
@@ -149,67 +148,51 @@ uint8_t get_proto_version(void const *const fitness) {
 }
 
 bool parse_block(parsed_baking_data_t *const out, void const *const data, size_t const length) {
-    if (length < sizeof(struct block_wire) + EMMY_FITNESS_SIZE) return false;
+    if (length < sizeof(struct block_wire) + MINIMUM_TENDERBAKE_FITNESS_SIZE) return false;
     struct block_wire const *const block = data;
-    out->chain_id.v = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &block->chain_id);
-    out->level = READ_UNALIGNED_BIG_ENDIAN(level_t, &block->level);
-
     void const *const fitness = data + sizeof(struct block_wire);
     uint8_t proto_version = get_proto_version(fitness);
-    switch (proto_version) {
-        case 0:  // Emmy 0 to 4
-        case 1:  // Emmy 5 to 11
-            out->type = BAKING_TYPE_BLOCK;
-            out->is_tenderbake = false;
-            out->round = 0;  // irrelevant
-            return true;
-        case 2:  // Tenderbake
-            out->type = BAKING_TYPE_TENDERBAKE_BLOCK;
-            out->is_tenderbake = true;
-            uint32_t fitness_size = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &block->fitness_size);
-            if (fitness_size < (4 + sizeof(uint32_t)) || fitness + fitness_size > data + length ||
-                fitness_size > MAXIMUM_TENDERBAKE_FITNESS_SIZE) {
-                return false;
-            }
-            out->round = READ_UNALIGNED_BIG_ENDIAN(uint32_t, (fitness + fitness_size - 4));
-            return true;
-        default:
-            return false;
+    if (proto_version != TENDERBAKE_PROTO_FITNESS_VERSION) {
+        return false;
     }
+    uint32_t fitness_size = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &block->fitness_size);
+    if (fitness_size < MINIMUM_TENDERBAKE_FITNESS_SIZE || fitness + fitness_size > data + length ||
+        fitness_size > MAXIMUM_TENDERBAKE_FITNESS_SIZE) {
+        return false;
+    }
+
+    out->chain_id.v = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &block->chain_id);
+    out->level = READ_UNALIGNED_BIG_ENDIAN(level_t, &block->level);
+    out->type = BAKING_TYPE_TENDERBAKE_BLOCK;
+    out->is_tenderbake = true;
+    out->round = READ_UNALIGNED_BIG_ENDIAN(uint32_t, (fitness + fitness_size - 4));
+
+    return true;
 }
 
 bool parse_consensus_operation(parsed_baking_data_t *const out,
                                void const *const data,
                                size_t const length) {
-    if (length < sizeof(struct consensus_op_wire)) return false;
-    struct consensus_op_wire const *const op = data;
+    if (length < sizeof(struct tenderbake_consensus_op_wire)) return false;
+    struct tenderbake_consensus_op_wire const *const op = data;
 
     out->chain_id.v = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &op->chain_id);
+    out->is_tenderbake = true;
     out->level = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &op->level);
+    out->round = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &op->round);
 
     switch (op->tag) {
-        case 0:  // emmy endorsement (without slot)
-            out->type = BAKING_TYPE_ENDORSEMENT;
-            out->is_tenderbake = false;
-            out->round = 0;  // irrelevant
-            return true;
-        case 20:  // tenderbake preendorsement
-        case 21:  // tenderbake endorsement
-        case 23:  // tenderbake endorsement + DAL
-            if (length < sizeof(struct tenderbake_consensus_op_wire)) return false;
-            struct tenderbake_consensus_op_wire const *const tb_op = data;
-            out->is_tenderbake = true;
-            out->level = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &tb_op->level);
-            out->round = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &tb_op->round);
-            if (tb_op->tag == 20) {
-                out->type = BAKING_TYPE_TENDERBAKE_PREENDORSEMENT;
-            } else {
-                out->type = BAKING_TYPE_TENDERBAKE_ENDORSEMENT;
-            }
-            return true;
+        case 20:  // preendorsement
+            out->type = BAKING_TYPE_TENDERBAKE_PREENDORSEMENT;
+            break;
+        case 21:  // endorsement
+        case 23:  // endorsement + DAL
+            out->type = BAKING_TYPE_TENDERBAKE_ENDORSEMENT;
+            break;
         default:
             return false;
     }
+    return true;
 }
 
 bool parse_baking_data(parsed_baking_data_t *const out,
