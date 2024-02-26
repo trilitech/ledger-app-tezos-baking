@@ -3,7 +3,6 @@
 #include "apdu.h"
 #include "base58_encoding.h"
 #include "keys.h"
-#include "delegates.h"
 
 #include <string.h>
 
@@ -28,43 +27,6 @@ void pkh_to_string(char *const buff,
 
 // These functions output terminating null bytes, and return the ending offset.
 static size_t microtez_to_string(char *dest, uint64_t number);
-
-void parsed_contract_to_string(char *const buff,
-                               size_t const buff_size,
-                               parsed_contract_t const *const contract) {
-    // If hash_ptr exists, show it to us now. Otherwise, we unpack the
-    // packed hash.
-    if (contract->hash_ptr != NULL) {
-        if (buff_size < HASH_SIZE_B58) THROW(EXC_WRONG_LENGTH);
-        memcpy(buff, contract->hash_ptr, HASH_SIZE_B58);
-    } else if (contract->originated == 0 && contract->signature_type == SIGNATURE_TYPE_UNSET) {
-        if (buff_size < sizeof(NO_CONTRACT_STRING)) THROW(EXC_WRONG_LENGTH);
-        strlcpy(buff, NO_CONTRACT_STRING, buff_size);
-    } else {
-        signature_type_t const signature_type =
-            contract->originated != 0 ? SIGNATURE_TYPE_UNSET : contract->signature_type;
-        pkh_to_string(buff, buff_size, signature_type, contract->hash);
-    }
-}
-
-void lookup_parsed_contract_name(char *const buff,
-                                 size_t const buff_size,
-                                 parsed_contract_t const *const contract) {
-    parsed_contract_to_string(buff, buff_size, contract);
-
-    for (uint16_t i = 0; i < sizeof(named_delegates) / sizeof(named_delegate_t); i++) {
-        if (memcmp(named_delegates[i].bakerAccount, buff, HASH_SIZE_B58) == 0) {
-            // Found a matching baker, display it.
-            const char *name = (const char *) pic(named_delegates[i].bakerName);
-            if (buff_size <= strlen(name)) THROW(EXC_WRONG_LENGTH);
-            strlcpy(buff, name, buff_size);
-            return;
-        }
-    }
-
-    if (buff_size <= strlen(NO_CONTRACT_NAME_STRING)) THROW(EXC_WRONG_LENGTH);
-    strlcpy(buff, NO_CONTRACT_NAME_STRING, buff_size);
-}
 
 void pubkey_to_pkh_string(char *const out,
                           size_t const out_size,
@@ -96,23 +58,6 @@ void compute_hash_checksum(uint8_t out[TEZOS_HASH_CHECKSUM_SIZE],
     cx_hash_sha256(data, size, checksum, sizeof(checksum));
     cx_hash_sha256(checksum, sizeof(checksum), checksum, sizeof(checksum));
     memcpy(out, checksum, TEZOS_HASH_CHECKSUM_SIZE);
-}
-
-void bin_to_base58(char *const out,
-                   size_t const out_size,
-                   uint8_t const *const in,
-                   size_t const in_size) {
-    check_null(out);
-    check_null(in);
-    size_t buff_size = out_size;
-    if (!b58enc(out, &buff_size, (uint8_t const *) PIC(in), in_size)) THROW(EXC_WRONG_LENGTH);
-}
-
-void buffer_to_base58(char *const out, size_t const out_size, buffer_t const *const in) {
-    check_null(out);
-    check_null(in);
-    buffer_t const *const src = (buffer_t const *) PIC(in);
-    bin_to_base58(out, out_size, src->bytes, src->length);
 }
 
 void pkh_to_string(char *const buff,
@@ -157,27 +102,6 @@ void pkh_to_string(char *const buff,
     }
 
     // hash
-    memcpy(data.hash, hash, sizeof(data.hash));
-    compute_hash_checksum(data.checksum, &data, sizeof(data) - sizeof(data.checksum));
-
-    size_t out_size = buff_size;
-    if (!b58enc(buff, &out_size, &data, sizeof(data))) THROW(EXC_WRONG_LENGTH);
-}
-
-void protocol_hash_to_string(char *buff,
-                             const size_t buff_size,
-                             const uint8_t hash[PROTOCOL_HASH_SIZE]) {
-    check_null(buff);
-    check_null(hash);
-    if (buff_size < PROTOCOL_HASH_BASE58_STRING_SIZE) THROW(EXC_WRONG_LENGTH);
-
-    // Data to encode
-    struct __attribute__((packed)) {
-        uint8_t prefix[2];
-        uint8_t hash[PROTOCOL_HASH_SIZE];
-        uint8_t checksum[TEZOS_HASH_CHECKSUM_SIZE];
-    } data = {.prefix = {2, 170}};
-
     memcpy(data.hash, hash, sizeof(data.hash));
     compute_hash_checksum(data.checksum, &data, sizeof(data) - sizeof(data.checksum));
 
@@ -245,15 +169,6 @@ static inline size_t convert_number(char dest[MAX_INT_DIGITS],
     return 0;
 }
 
-void number_to_string_indirect64(char *const dest,
-                                 size_t const buff_size,
-                                 uint64_t const *const number) {
-    check_null(dest);
-    check_null(number);
-    if (buff_size < MAX_INT_DIGITS + 1) THROW(EXC_WRONG_LENGTH);  // terminating null
-    number_to_string(dest, *number);
-}
-
 void number_to_string_indirect32(char *const dest,
                                  size_t const buff_size,
                                  uint32_t const *const number) {
@@ -271,22 +186,6 @@ void microtez_to_string_indirect(char *const dest,
     if (buff_size < MAX_INT_DIGITS + sizeof(TICKER_WITH_SPACE) + 1)
         THROW(EXC_WRONG_LENGTH);  // + terminating null + decimal point
     microtez_to_string(dest, *number);
-}
-
-// Like `microtez_to_strind_indirect` but returns an error code
-int microtez_to_string_indirect_no_throw(char *const dest,
-                                         size_t const buff_size,
-                                         uint64_t const *const number) {
-    if (!dest || !number) {
-        return (0);
-    }
-    if (buff_size <
-        MAX_INT_DIGITS + sizeof(TICKER_WITH_SPACE) + 1) {  // + terminating null + decimal point
-        return (0);
-    }
-    // Can safely call `microtez_to_string` because we know dest is not NULL.
-    microtez_to_string(dest, *number);
-    return (1);
 }
 
 size_t number_to_string(char *const dest, uint64_t number) {
@@ -350,29 +249,4 @@ void copy_string(char *const dest, size_t const buff_size, char const *const src
     // I don't care that we will loop through the string twice, latency is not an issue
     if (strlen(src_in) >= buff_size) THROW(EXC_WRONG_LENGTH);
     strlcpy(dest, src_in, buff_size);
-}
-
-void bin_to_hex(char *const out,
-                size_t const out_size,
-                uint8_t const *const in,
-                size_t const in_size) {
-    check_null(out);
-    check_null(in);
-
-    size_t const out_len = in_size * 2;
-    if (out_size < out_len + 1) THROW(EXC_MEMORY_ERROR);
-
-    char const *const src = (char const *) PIC(in);
-    for (size_t i = 0; i < in_size; i++) {
-        out[i * 2] = "0123456789ABCDEF"[src[i] >> 4];
-        out[i * 2 + 1] = "0123456789ABCDEF"[src[i] & 0x0F];
-    }
-    out[out_len] = '\0';
-}
-
-void buffer_to_hex(char *const out, size_t const out_size, buffer_t const *const in) {
-    check_null(out);
-    check_null(in);
-    buffer_t const *const src = (buffer_t const *) PIC(in);
-    bin_to_hex(out, out_size, src->bytes, src->length);
 }
