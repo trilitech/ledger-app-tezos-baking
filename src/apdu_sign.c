@@ -113,11 +113,9 @@ static bool parse_allowed_operations(struct parsed_operation_group *const out,
 
 size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
     switch (G.magic_byte) {
-        case MAGIC_BYTE_TENDERBAKE_BLOCK:
-        case MAGIC_BYTE_TENDERBAKE_PREENDORSEMENT:
-        case MAGIC_BYTE_TENDERBAKE_ENDORSEMENT:
         case MAGIC_BYTE_BLOCK:
-        case MAGIC_BYTE_BAKING_OP:
+        case MAGIC_BYTE_PREENDORSEMENT:
+        case MAGIC_BYTE_ENDORSEMENT:
             guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve);
             return perform_signature(true, send_hash);
             break;
@@ -156,8 +154,6 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
             THROW(EXC_SECURITY);
             break;
         }
-        case MAGIC_BYTE_UNSAFE_OP2:
-        case MAGIC_BYTE_UNSAFE_OP3:
         default:
             PARSE_ERROR();
     }
@@ -171,15 +167,12 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
 static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const buff_size) {
     uint8_t const magic_byte = get_magic_byte(buff, buff_size);
     switch (magic_byte) {
-        case MAGIC_BYTE_TENDERBAKE_BLOCK:
-        case MAGIC_BYTE_TENDERBAKE_PREENDORSEMENT:
-        case MAGIC_BYTE_TENDERBAKE_ENDORSEMENT:
         case MAGIC_BYTE_BLOCK:
-        case MAGIC_BYTE_BAKING_OP:
+        case MAGIC_BYTE_PREENDORSEMENT:
+        case MAGIC_BYTE_ENDORSEMENT:
         case MAGIC_BYTE_UNSAFE_OP:  // Only for self-delegations
             return magic_byte;
 
-        case MAGIC_BYTE_UNSAFE_OP2:
         default:
             PARSE_ERROR();
     }

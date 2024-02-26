@@ -216,12 +216,10 @@ bool parse_baking_data(parsed_baking_data_t *const out,
                        void const *const data,
                        size_t const length) {
     switch (get_magic_byte(data, length)) {
-        case MAGIC_BYTE_BAKING_OP:
-        case MAGIC_BYTE_TENDERBAKE_PREENDORSEMENT:
-        case MAGIC_BYTE_TENDERBAKE_ENDORSEMENT:
+        case MAGIC_BYTE_PREENDORSEMENT:
+        case MAGIC_BYTE_ENDORSEMENT:
             return parse_consensus_operation(out, data, length);
         case MAGIC_BYTE_BLOCK:
-        case MAGIC_BYTE_TENDERBAKE_BLOCK:
             return parse_block(out, data, length);
         case MAGIC_BYTE_INVALID:
         default:
