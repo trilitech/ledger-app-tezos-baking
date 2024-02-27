@@ -19,7 +19,9 @@ size_t handle_apdu_reset(__attribute__((unused)) uint8_t instruction, volatile u
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
     level_t const lvl = READ_UNALIGNED_BIG_ENDIAN(level_t, dataBuffer);
-    if (!is_valid_level(lvl)) THROW(EXC_PARSE_ERROR);
+    if (!is_valid_level(lvl)) {
+        THROW(EXC_PARSE_ERROR);
+    }
 
     G.reset_level = lvl;
     ui_baking_reset(flags);
@@ -61,9 +63,13 @@ size_t handle_apdu_all_hwm(__attribute__((unused)) uint8_t instruction,
     tx = send_word_big_endian(tx, N_data.hwm.main.highest_level);
     int has_a_chain_migrated =
         N_data.hwm.main.migrated_to_tenderbake || N_data.hwm.test.migrated_to_tenderbake;
-    if (has_a_chain_migrated) tx = send_word_big_endian(tx, N_data.hwm.main.highest_round);
+    if (has_a_chain_migrated) {
+        tx = send_word_big_endian(tx, N_data.hwm.main.highest_round);
+    }
     tx = send_word_big_endian(tx, N_data.hwm.test.highest_level);
-    if (has_a_chain_migrated) tx = send_word_big_endian(tx, N_data.hwm.test.highest_round);
+    if (has_a_chain_migrated) {
+        tx = send_word_big_endian(tx, N_data.hwm.test.highest_round);
+    }
     tx = send_word_big_endian(tx, N_data.main_chain_id.v);
     return finalize_successful_send(tx);
 }
@@ -72,8 +78,9 @@ size_t handle_apdu_main_hwm(__attribute__((unused)) uint8_t instruction,
                             __attribute__((unused)) volatile uint32_t* flags) {
     size_t tx = 0;
     tx = send_word_big_endian(tx, N_data.hwm.main.highest_level);
-    if (N_data.hwm.main.migrated_to_tenderbake)
+    if (N_data.hwm.main.migrated_to_tenderbake) {
         tx = send_word_big_endian(tx, N_data.hwm.main.highest_round);
+    }
     return finalize_successful_send(tx);
 }
 
@@ -107,8 +114,12 @@ size_t handle_apdu_query_auth_key_with_curve(__attribute__((unused)) uint8_t ins
 
 size_t handle_apdu_deauthorize(__attribute__((unused)) uint8_t instruction,
                                __attribute__((unused)) volatile uint32_t* flags) {
-    if (G_io_apdu_buffer[OFFSET_P1] != 0) THROW(EXC_WRONG_PARAM);
-    if (G_io_apdu_buffer[OFFSET_LC] != 0) THROW(EXC_PARSE_ERROR);
+    if (G_io_apdu_buffer[OFFSET_P1] != 0) {
+        THROW(EXC_WRONG_PARAM);
+    }
+    if (G_io_apdu_buffer[OFFSET_LC] != 0) {
+        THROW(EXC_PARSE_ERROR);
+    }
     UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });
 
     return finalize_successful_send(0);

@@ -40,7 +40,9 @@ static void blake2b_incremental_hash(
 
     uint8_t *current = out;
     while (*out_length > B2B_BLOCKBYTES) {
-        if (current - out > (int) out_size) THROW(EXC_MEMORY_ERROR);
+        if (current - out > (int) out_size) {
+            THROW(EXC_MEMORY_ERROR);
+        }
         conditional_init_hash_state(state);
         CX_THROW(
             cx_hash_no_throw((cx_hash_t *) &state->state, 0, current, B2B_BLOCKBYTES, NULL, 0));
@@ -101,7 +103,9 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
             break;
 
         case MAGIC_BYTE_UNSAFE_OP: {
-            if (!G.maybe_ops.is_valid) PARSE_ERROR();
+            if (!G.maybe_ops.is_valid) {
+                PARSE_ERROR();
+            }
 
             switch (G.maybe_ops.v.operation.tag) {
                 case OPERATION_TAG_DELEGATION:
@@ -171,7 +175,9 @@ static size_t handle_apdu(bool const enable_hashing,
     uint8_t *const buff = &G_io_apdu_buffer[OFFSET_CDATA];
     uint8_t const p1 = G_io_apdu_buffer[OFFSET_P1];
     uint8_t const buff_size = G_io_apdu_buffer[OFFSET_LC];
-    if (buff_size > MAX_APDU_SIZE) THROW(EXC_WRONG_LENGTH_FOR_INS);
+    if (buff_size > MAX_APDU_SIZE) {
+        THROW(EXC_WRONG_LENGTH_FOR_INS);
+    }
 
     bool last = (p1 & P1_LAST_MARKER) != 0;
     switch (p1 & ~P1_LAST_MARKER) {
@@ -182,10 +188,14 @@ static size_t handle_apdu(bool const enable_hashing,
                 parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
             return finalize_successful_send(0);
         case P1_NEXT:
-            if (global.path_with_curve.bip32_path.length == 0) THROW(EXC_WRONG_LENGTH_FOR_INS);
+            if (global.path_with_curve.bip32_path.length == 0) {
+                THROW(EXC_WRONG_LENGTH_FOR_INS);
+            }
 
             // Guard against overflow
-            if (G.packet_index >= 0xFF) PARSE_ERROR();
+            if (G.packet_index >= 0xFF) {
+                PARSE_ERROR();
+            }
             G.packet_index++;
 
             break;
@@ -194,7 +204,9 @@ static size_t handle_apdu(bool const enable_hashing,
     }
 
     if (enable_parsing) {
-        if (G.packet_index != 1) PARSE_ERROR();  // Only parse a single packet when baking
+        if (G.packet_index != 1) {
+            PARSE_ERROR();  // Only parse a single packet when baking
+        }
 
         G.magic_byte = get_magic_byte_or_throw(buff, buff_size);
         if (G.magic_byte == MAGIC_BYTE_UNSAFE_OP) {
@@ -206,7 +218,9 @@ static size_t handle_apdu(bool const enable_hashing,
                                                     &global.path_with_curve.bip32_path);
         } else {
             // This should be a baking operation so parse it.
-            if (!parse_baking_data(&G.parsed_baking_data, buff, buff_size)) PARSE_ERROR();
+            if (!parse_baking_data(&G.parsed_baking_data, buff, buff_size)) {
+                PARSE_ERROR();
+            }
         }
     }
 
@@ -218,7 +232,9 @@ static size_t handle_apdu(bool const enable_hashing,
                                  &G.hash_state);
     }
 
-    if (G.message_data_length + buff_size > sizeof(G.message_data)) PARSE_ERROR();
+    if (G.message_data_length + buff_size > sizeof(G.message_data)) {
+        PARSE_ERROR();
+    }
 
     memmove(G.message_data + G.message_data_length, buff, buff_size);
     G.message_data_length += buff_size;

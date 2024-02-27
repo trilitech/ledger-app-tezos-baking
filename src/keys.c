@@ -29,14 +29,19 @@
 size_t read_bip32_path(bip32_path_t *const out, uint8_t const *const in, size_t const in_size) {
     struct bip32_path_wire const *const buf_as_bip32 = (struct bip32_path_wire const *) in;
 
-    if (in_size < sizeof(buf_as_bip32->length)) THROW(EXC_WRONG_LENGTH_FOR_INS);
+    if (in_size < sizeof(buf_as_bip32->length)) {
+        THROW(EXC_WRONG_LENGTH_FOR_INS);
+    }
 
     size_t ix = 0;
     out->length = CONSUME_UNALIGNED_BIG_ENDIAN(ix, uint8_t, &buf_as_bip32->length);
 
-    if (in_size - ix < out->length * sizeof(*buf_as_bip32->components))
+    if (in_size - ix < out->length * sizeof(*buf_as_bip32->components)) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
-    if (out->length == 0 || out->length > NUM_ELEMENTS(out->components)) THROW(EXC_WRONG_VALUES);
+    }
+    if (out->length == 0 || out->length > NUM_ELEMENTS(out->components)) {
+        THROW(EXC_WRONG_VALUES);
+    }
 
     for (size_t j = 0; j < out->length; j++) {
         out->components[j] =
@@ -75,9 +80,10 @@ int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                                          NULL);
     }
 
-    if (!error)
+    if (!error) {
         // new private_key from raw
         error = cx_ecfp_init_private_key_no_throw(cx_curve, raw_private_key, 32, private_key);
+    }
 
     explicit_bzero(raw_private_key, sizeof(raw_private_key));
 
@@ -144,7 +150,9 @@ void public_key_hash(uint8_t *const hash_out,
                      cx_ecfp_public_key_t const *const restrict public_key) {
     check_null(hash_out);
     check_null(public_key);
-    if (hash_out_size < HASH_SIZE) THROW(EXC_WRONG_LENGTH);
+    if (hash_out_size < HASH_SIZE) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 
     cx_ecfp_public_key_t compressed = {0};
     switch (derivation_type_to_signature_type(derivation_type)) {
@@ -192,7 +200,9 @@ size_t sign(uint8_t *const out,
     switch (derivation_type_to_signature_type(derivation_type)) {
         case SIGNATURE_TYPE_ED25519: {
             static size_t const SIG_SIZE = 64;
-            if (out_size < SIG_SIZE) THROW(EXC_WRONG_LENGTH);
+            if (out_size < SIG_SIZE) {
+                THROW(EXC_WRONG_LENGTH);
+            }
 
             CX_THROW(cx_eddsa_sign_no_throw(&pair->private_key,
                                             CX_SHA512,
@@ -207,7 +217,9 @@ size_t sign(uint8_t *const out,
         case SIGNATURE_TYPE_SECP256K1:
         case SIGNATURE_TYPE_SECP256R1: {
             static size_t const SIG_SIZE = 100;
-            if (out_size < SIG_SIZE) THROW(EXC_WRONG_LENGTH);
+            if (out_size < SIG_SIZE) {
+                THROW(EXC_WRONG_LENGTH);
+            }
             unsigned int info;
             size_t sig_len = SIG_SIZE;
             CX_THROW(cx_ecdsa_sign_no_throw(&pair->private_key,

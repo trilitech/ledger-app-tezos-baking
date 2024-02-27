@@ -15,7 +15,9 @@ static inline size_t hmac(uint8_t *const out,
     check_null(out);
     check_null(state);
     check_null(in);
-    if (out_size < CX_SHA256_SIZE) THROW(EXC_WRONG_LENGTH);
+    if (out_size < CX_SHA256_SIZE) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 
     // Pick a static, arbitrary SHA256 value based on a quote of Jesus.
     static uint8_t const key_sha256[] = {0x6c, 0x4e, 0x7e, 0x70, 0x6c, 0x54, 0xd3, 0x67,
@@ -63,11 +65,15 @@ static inline size_t hmac(uint8_t *const out,
 
 size_t handle_apdu_hmac(__attribute__((unused)) uint8_t instruction,
                         __attribute__((unused)) volatile uint32_t *flags) {
-    if (G_io_apdu_buffer[OFFSET_P1] != 0) THROW(EXC_WRONG_PARAM);
+    if (G_io_apdu_buffer[OFFSET_P1] != 0) {
+        THROW(EXC_WRONG_PARAM);
+    }
 
     uint8_t const *const buff = &G_io_apdu_buffer[OFFSET_CDATA];
     uint8_t const buff_size = G_io_apdu_buffer[OFFSET_LC];
-    if (buff_size > MAX_APDU_SIZE) THROW(EXC_WRONG_LENGTH_FOR_INS);
+    if (buff_size > MAX_APDU_SIZE) {
+        THROW(EXC_WRONG_LENGTH_FOR_INS);
+    }
 
     memset(&G, 0, sizeof(G));
 

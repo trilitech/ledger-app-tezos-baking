@@ -64,7 +64,9 @@ static void continue_light_callback(void) {
 }
 
 void prompt_register_delegate(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
-    if (!G.maybe_ops.is_valid) THROW(EXC_MEMORY_ERROR);
+    if (!G.maybe_ops.is_valid) {
+        THROW(EXC_MEMORY_ERROR);
+    }
 
     transactionContext.ok_cb = ok_cb;
     transactionContext.cxl_cb = cxl_cb;

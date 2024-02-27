@@ -66,7 +66,9 @@ void pkh_to_string(char *const buff,
                    uint8_t const hash[HASH_SIZE]) {
     check_null(buff);
     check_null(hash);
-    if (buff_size < PKH_STRING_SIZE) THROW(EXC_WRONG_LENGTH);
+    if (buff_size < PKH_STRING_SIZE) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 
     // Data to encode
     struct __attribute__((packed)) {
@@ -106,12 +108,16 @@ void pkh_to_string(char *const buff,
     compute_hash_checksum(data.checksum, &data, sizeof(data) - sizeof(data.checksum));
 
     size_t out_size = buff_size;
-    if (!b58enc(buff, &out_size, &data, sizeof(data))) THROW(EXC_WRONG_LENGTH);
+    if (!b58enc(buff, &out_size, &data, sizeof(data))) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 }
 
 void chain_id_to_string(char *const buff, size_t const buff_size, chain_id_t const chain_id) {
     check_null(buff);
-    if (buff_size < CHAIN_ID_BASE58_STRING_SIZE) THROW(EXC_WRONG_LENGTH);
+    if (buff_size < CHAIN_ID_BASE58_STRING_SIZE) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 
     // Data to encode
     struct __attribute__((packed)) {
@@ -126,12 +132,16 @@ void chain_id_to_string(char *const buff, size_t const buff_size, chain_id_t con
     compute_hash_checksum(data.checksum, &data, sizeof(data) - sizeof(data.checksum));
 
     size_t out_size = buff_size;
-    if (!b58enc(buff, &out_size, &data, sizeof(data))) THROW(EXC_WRONG_LENGTH);
+    if (!b58enc(buff, &out_size, &data, sizeof(data))) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 }
 
 #define STRCPY_OR_THROW(buff, size, x, exc) \
     ({                                      \
-        if (size < sizeof(x)) THROW(exc);   \
+        if (size < sizeof(x)) {             \
+            THROW(exc);                     \
+        }                                   \
         strlcpy(buff, x, size);             \
     })
 
@@ -174,7 +184,9 @@ void number_to_string_indirect32(char *const dest,
                                  uint32_t const *const number) {
     check_null(dest);
     check_null(number);
-    if (buff_size < MAX_INT_DIGITS + 1) THROW(EXC_WRONG_LENGTH);  // terminating null
+    if (buff_size < MAX_INT_DIGITS + 1) {
+        THROW(EXC_WRONG_LENGTH);  // terminating null
+    }
     number_to_string(dest, *number);
 }
 
@@ -183,8 +195,9 @@ void microtez_to_string_indirect(char *const dest,
                                  uint64_t const *const number) {
     check_null(dest);
     check_null(number);
-    if (buff_size < MAX_INT_DIGITS + sizeof(TICKER_WITH_SPACE) + 1)
+    if (buff_size < MAX_INT_DIGITS + sizeof(TICKER_WITH_SPACE) + 1) {
         THROW(EXC_WRONG_LENGTH);  // + terminating null + decimal point
+    }
     microtez_to_string(dest, *number);
 }
 
@@ -247,6 +260,8 @@ void copy_string(char *const dest, size_t const buff_size, char const *const src
     check_null(src);
     char const *const src_in = (char const *) PIC(src);
     // I don't care that we will loop through the string twice, latency is not an issue
-    if (strlen(src_in) >= buff_size) THROW(EXC_WRONG_LENGTH);
+    if (strlen(src_in) >= buff_size) {
+        THROW(EXC_WRONG_LENGTH);
+    }
     strlcpy(dest, src_in, buff_size);
 }

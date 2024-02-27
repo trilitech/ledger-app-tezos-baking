@@ -45,10 +45,14 @@ static bool ok(void) {
 }
 
 size_t handle_apdu_setup(__attribute__((unused)) uint8_t instruction, volatile uint32_t *flags) {
-    if (G_io_apdu_buffer[OFFSET_P1] != 0) THROW(EXC_WRONG_PARAM);
+    if (G_io_apdu_buffer[OFFSET_P1] != 0) {
+        THROW(EXC_WRONG_PARAM);
+    }
 
     uint32_t const buff_size = G_io_apdu_buffer[OFFSET_LC];
-    if (buff_size < sizeof(struct setup_wire)) THROW(EXC_WRONG_LENGTH_FOR_INS);
+    if (buff_size < sizeof(struct setup_wire)) {
+        THROW(EXC_WRONG_LENGTH_FOR_INS);
+    }
 
     global.path_with_curve.derivation_type = parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
 
@@ -71,7 +75,9 @@ size_t handle_apdu_setup(__attribute__((unused)) uint8_t instruction, volatile u
                                     (uint8_t const *) &buff_as_setup->bip32_path,
                                     buff_size - consumed);
 
-        if (consumed != buff_size) THROW(EXC_WRONG_LENGTH);
+        if (consumed != buff_size) {
+            THROW(EXC_WRONG_LENGTH);
+        }
     }
 
     prompt_setup(ok, delay_reject);
