@@ -529,4 +529,3 @@ If you install a Ledger application, such as Tezos Wallet or Tezos Baking, outsi
 
 ## Feedback
 To give feedback and report an error, create an issue on github repository [Trillitech-App-Tezos](https://github.com/trillitech/ledger-app-tezos-baking).
-
