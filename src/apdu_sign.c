@@ -91,13 +91,8 @@ static bool sign_reject(void) {
 
 static bool is_operation_allowed(enum operation_tag tag) {
     switch (tag) {
-        case OPERATION_TAG_ATHENS_DELEGATION:
-            return true;
-        case OPERATION_TAG_ATHENS_REVEAL:
-            return true;
-        case OPERATION_TAG_BABYLON_DELEGATION:
-            return true;
-        case OPERATION_TAG_BABYLON_REVEAL:
+        case OPERATION_TAG_DELEGATION:
+        case OPERATION_TAG_REVEAL:
             return true;
         default:
             return false;
@@ -131,8 +126,7 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
             if (!G.maybe_ops.is_valid) PARSE_ERROR();
 
             switch (G.maybe_ops.v.operation.tag) {
-                case OPERATION_TAG_ATHENS_DELEGATION:
-                case OPERATION_TAG_BABYLON_DELEGATION:
+                case OPERATION_TAG_DELEGATION:
                     // Must be self-delegation signed by the *authorized* baking key
                     if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
                         // ops->signing is generated from G.bip32_path and G.curve
@@ -147,8 +141,7 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
                     }
                     THROW(EXC_SECURITY);
                     break;
-                case OPERATION_TAG_ATHENS_REVEAL:
-                case OPERATION_TAG_BABYLON_REVEAL:
+                case OPERATION_TAG_REVEAL:
                 case OPERATION_TAG_NONE:
                     // Reveal cases
                     if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&

@@ -48,7 +48,6 @@ typedef struct {
 
     uint8_t message_data[TEZOS_BUFSIZE];
     size_t message_data_length;
-    buffer_t message_data_as_buffer;
 
     blake2b_hash_state_t hash_state;
     uint8_t final_hash[SIGN_HASH_SIZE];
