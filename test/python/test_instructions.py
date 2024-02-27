@@ -336,6 +336,11 @@ def test_sign_preattestation(
         snap_path=snap_path / "app_context"
     )
 
+    tezos_navigator.backend.right_click()
+    tezos_navigator.assert_screen(
+        name="home_screen",
+        snap_path=snap_path / "app_context"
+    )
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
@@ -386,6 +391,12 @@ def test_sign_attestation(
         snap_path=snap_path / "app_context"
     )
 
+    tezos_navigator.backend.right_click()
+    tezos_navigator.assert_screen(
+        name="home_screen",
+        snap_path=snap_path / "app_context"
+    )
+ 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
@@ -436,6 +447,12 @@ def test_sign_attestation_dal(
         snap_path=snap_path / "app_context"
     )
 
+    tezos_navigator.backend.right_click()
+    tezos_navigator.assert_screen(
+        name="home_screen",
+        snap_path=snap_path / "app_context"
+    )
+ 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
@@ -486,6 +503,12 @@ def test_sign_block(
         snap_path=snap_path / "app_context"
     )
 
+    tezos_navigator.backend.right_click()
+    tezos_navigator.assert_screen(
+        name="home_screen",
+        snap_path=snap_path / "app_context"
+    )
+ 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
@@ -981,6 +1004,7 @@ def test_sign_when_no_chain_setup(
     """Check that signing when no chain has been setup change main HWM."""
 
     account = DEFAULT_ACCOUNT
+    snap_path = Path(f"{account}")
 
     tezos_navigator.setup_app_context(
         account,
@@ -996,6 +1020,12 @@ def test_sign_when_no_chain_setup(
 
     client.sign_message(account, attestation)
 
+    tezos_navigator.backend.right_click()
+    tezos_navigator.assert_screen(
+        name="home_screen",
+        snap_path=snap_path / "app_context"
+    )
+ 
     tezos_navigator.check_app_context(
         account,
         chain_id=DEFAULT_CHAIN_ID,
@@ -1011,6 +1041,12 @@ def test_sign_when_no_chain_setup(
 
     client.sign_message(account, attestation)
 
+    tezos_navigator.backend.right_click()
+    tezos_navigator.assert_screen(
+        name="home_screen",
+        snap_path=snap_path / "app_context"
+    )
+ 
     tezos_navigator.check_app_context(
         account,
         chain_id=DEFAULT_CHAIN_ID,
@@ -1043,6 +1079,7 @@ def test_sign_when_chain_is_setup(
 
     account = DEFAULT_ACCOUNT
     main_chain_id = "NetXH12AexHqTQa" # Chain = 1
+    snap_path = Path(f"{account}")
 
     tezos_navigator.setup_app_context(
         account,
@@ -1058,6 +1095,12 @@ def test_sign_when_chain_is_setup(
 
     client.sign_message(account, attestation)
 
+    tezos_navigator.backend.right_click()
+    tezos_navigator.assert_screen(
+        name="home_screen",
+        snap_path=snap_path / "app_context"
+    )
+ 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
@@ -1072,6 +1115,12 @@ def test_sign_when_chain_is_setup(
 
     client.sign_message(account, attestation)
 
+    tezos_navigator.backend.right_click()
+    tezos_navigator.assert_screen(
+        name="home_screen",
+        snap_path=snap_path / "app_context"
+    )
+ 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
