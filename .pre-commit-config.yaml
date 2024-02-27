@@ -1,0 +1,15 @@
+# To install hooks, run:
+# pre-commit install --hook-type pre-commit
+# pre-commit install --hook-type commit-msg
+
+repos:
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v10.0.1
+    hooks:
+    - id: clang-format
+      name: clang-format
+      description: Run `clang-format` on C/C++/CUDA files.
+      entry: clang-format -i
+      language: system
+      files: ^
+      types: [file, c]
