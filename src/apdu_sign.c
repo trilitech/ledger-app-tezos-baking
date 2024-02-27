@@ -201,6 +201,9 @@ static size_t handle_apdu(bool const enable_hashing,
                           bool const enable_parsing,
                           uint8_t const instruction,
                           volatile uint32_t *flags) {
+    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
+        THROW(EXC_SECURITY);
+    }
     uint8_t *const buff = &G_io_apdu_buffer[OFFSET_CDATA];
     uint8_t const p1 = G_io_apdu_buffer[OFFSET_P1];
     uint8_t const buff_size = G_io_apdu_buffer[OFFSET_LC];
@@ -289,6 +292,10 @@ size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t *flags)
 }
 
 int perform_signature(bool const on_hash, bool const send_hash) {
+    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
+        THROW(EXC_SECURITY);
+    }
+
     write_high_water_mark(&G.parsed_baking_data);
     size_t tx = 0;
     if (send_hash && on_hash) {
