@@ -148,7 +148,7 @@ high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
     ({                                                                                  \
         nvram_data *const out_name = &global.apdu.baking_auth.new_data;                 \
         memcpy(&global.apdu.baking_auth.new_data,                                       \
-               (nvram_data const *const) & N_data,                                      \
+               (nvram_data const *const) &N_data,                                       \
                sizeof(global.apdu.baking_auth.new_data));                               \
         body;                                                                           \
         nvm_write((void *) &N_data, &global.apdu.baking_auth.new_data, sizeof(N_data)); \
