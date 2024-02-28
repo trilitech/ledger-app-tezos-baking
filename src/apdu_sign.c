@@ -40,7 +40,7 @@
 
 #define PARSE_ERROR() THROW(EXC_PARSE_ERROR)
 
-#define B2B_BLOCKBYTES 128  /// blake2b hash size
+#define B2B_BLOCKBYTES 128u  /// blake2b hash size
 
 size_t perform_signature(bool const on_hash, bool const send_hash);
 

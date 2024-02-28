@@ -105,24 +105,24 @@ void pkh_to_string(char *const buff,
     // prefix
     switch (signature_type) {
         case SIGNATURE_TYPE_UNSET:
-            data.prefix[0] = 2;
-            data.prefix[1] = 90;
-            data.prefix[2] = 121;
+            data.prefix[0] = 2u;
+            data.prefix[1] = 90u;
+            data.prefix[2] = 121u;
             break;
         case SIGNATURE_TYPE_ED25519:
-            data.prefix[0] = 6;
-            data.prefix[1] = 161;
-            data.prefix[2] = 159;
+            data.prefix[0] = 6u;
+            data.prefix[1] = 161u;
+            data.prefix[2] = 159u;
             break;
         case SIGNATURE_TYPE_SECP256K1:
-            data.prefix[0] = 6;
-            data.prefix[1] = 161;
-            data.prefix[2] = 161;
+            data.prefix[0] = 6u;
+            data.prefix[1] = 161u;
+            data.prefix[2] = 161u;
             break;
         case SIGNATURE_TYPE_SECP256R1:
-            data.prefix[0] = 6;
-            data.prefix[1] = 161;
-            data.prefix[2] = 164;
+            data.prefix[0] = 6u;
+            data.prefix[1] = 161u;
+            data.prefix[2] = 164u;
             break;
         default:
             THROW(EXC_WRONG_PARAM);  // Should not reach
