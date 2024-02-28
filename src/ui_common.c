@@ -55,7 +55,7 @@ uint8_t io_event(__attribute__((unused)) unsigned char channel) {
             break;
 
         case SEPROXYHAL_TAG_STATUS_EVENT:
-            if (G_io_apdu_media == IO_APDU_MEDIA_USB_HID &&
+            if ((G_io_apdu_media == IO_APDU_MEDIA_USB_HID) &&
                 !(U4BE(G_io_seproxyhal_spi_buffer, 3) &
                   SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
                 THROW(EXCEPTION_IO_RESET);

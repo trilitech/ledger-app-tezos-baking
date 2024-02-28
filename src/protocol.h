@@ -45,7 +45,7 @@
  * @return uint8_t: magic byte result
  */
 static inline uint8_t get_magic_byte(uint8_t const *const data, size_t const length) {
-    return (data == NULL || length == 0u) ? MAGIC_BYTE_INVALID : *data;
+    return ((data == NULL) || (length == 0u)) ? MAGIC_BYTE_INVALID : *data;
 }
 
 /**

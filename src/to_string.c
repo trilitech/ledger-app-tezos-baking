@@ -211,9 +211,9 @@ static inline size_t convert_number(char dest[MAX_INT_DIGITS],
     check_null(dest);
     char *const end = dest + MAX_INT_DIGITS;
     for (char *ptr = end - 1; ptr >= dest; ptr--) {
-        *ptr = '0' + number % 10u;
+        *ptr = '0' + (number % 10u);
         number /= 10u;
-        if (!leading_zeroes && number == 0u) {  // TODO: This is ugly
+        if (!leading_zeroes && (number == 0u)) {  // TODO: This is ugly
             return ptr - dest;
         }
     }
@@ -225,7 +225,7 @@ void number_to_string_indirect32(char *const dest,
                                  uint32_t const *const number) {
     check_null(dest);
     check_null(number);
-    if (buff_size < MAX_INT_DIGITS + 1u) {
+    if (buff_size < (MAX_INT_DIGITS + 1u)) {
         THROW(EXC_WRONG_LENGTH);  // terminating null
     }
     number_to_string(dest, *number);

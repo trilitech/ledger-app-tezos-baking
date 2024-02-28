@@ -79,7 +79,7 @@ static void blake2b_incremental_hash(uint8_t *const buff,
 
     uint8_t *current = buff;
     while (*buff_length > B2B_BLOCKBYTES) {
-        if (current - buff > (int) buff_size) {
+        if ((current - buff) > (int) buff_size) {
             THROW(EXC_MEMORY_ERROR);
         }
         conditional_init_hash_state(state);
@@ -338,7 +338,7 @@ static size_t handle_apdu(bool const enable_hashing,
                                  &G.hash_state);
     }
 
-    if (G.message_data_length + buff_size > sizeof(G.message_data)) {
+    if ((G.message_data_length + buff_size) > sizeof(G.message_data)) {
         PARSE_ERROR();
     }
 

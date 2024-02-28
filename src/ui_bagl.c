@@ -68,7 +68,7 @@ static void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
 }
 
 void push_ui_callback(const char *title, string_generation_callback cb, const void *data) {
-    if (G_display.formatter_index + 1u >= MAX_SCREEN_STACK_SIZE) {
+    if ((G_display.formatter_index + 1u) >= MAX_SCREEN_STACK_SIZE) {
         THROW(0x6124);
     }
     struct screen_data *fmt = &G_display.screen_stack[G_display.formatter_index];

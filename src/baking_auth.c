@@ -61,8 +61,8 @@ void write_high_water_mark(parsed_baking_data_t const *const in) {
 void authorize_baking(derivation_type_t const derivation_type,
                       bip32_path_t const *const bip32_path) {
     check_null(bip32_path);
-    if (bip32_path->length > NUM_ELEMENTS(N_data.baking_key.bip32_path.components) ||
-        bip32_path->length == 0u) {
+    if ((bip32_path->length > NUM_ELEMENTS(N_data.baking_key.bip32_path.components)) ||
+        (bip32_path->length == 0u)) {
         return;
     }
 
@@ -89,22 +89,22 @@ static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
         select_hwm_by_chain(baking_info->chain_id, &N_data);
 
     if (baking_info->is_tenderbake) {
-        return baking_info->level > hwm->highest_level ||
+        return (baking_info->level > hwm->highest_level) ||
 
-               (baking_info->level == hwm->highest_level &&
-                baking_info->round > hwm->highest_round) ||
+               ((baking_info->level == hwm->highest_level) &&
+                (baking_info->round > hwm->highest_round)) ||
 
                // It is ok to sign an attestation if we have not already signed an attestation for
                // the level/round
-               (baking_info->level == hwm->highest_level &&
-                baking_info->round == hwm->highest_round &&
-                baking_info->type == BAKING_TYPE_ATTESTATION && !hwm->had_attestation) ||
+               ((baking_info->level == hwm->highest_level) &&
+                (baking_info->round == hwm->highest_round) &&
+                (baking_info->type == BAKING_TYPE_ATTESTATION) && !hwm->had_attestation) ||
 
                // It is ok to sign a preattestation if we have not already signed neither an
                // attestation nor a preattestation for the level/round
-               (baking_info->level == hwm->highest_level &&
-                baking_info->round == hwm->highest_round &&
-                baking_info->type == BAKING_TYPE_PREATTESTATION && !hwm->had_attestation &&
+               ((baking_info->level == hwm->highest_level) &&
+                (baking_info->round == hwm->highest_round) &&
+                (baking_info->type == BAKING_TYPE_PREATTESTATION) && !hwm->had_attestation &&
                 !hwm->had_preattestation);
 
     } else {
@@ -122,8 +122,8 @@ static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
 static bool is_path_authorized(derivation_type_t const derivation_type,
                                bip32_path_t const *const bip32_path) {
     check_null(bip32_path);
-    return derivation_type && derivation_type == N_data.baking_key.derivation_type &&
-           bip32_path->length != 0u &&
+    return derivation_type && (derivation_type == N_data.baking_key.derivation_type) &&
+           (bip32_path->length != 0u) &&
            bip32_paths_eq(bip32_path, (const bip32_path_t *) &N_data.baking_key.bip32_path);
 }
 
@@ -210,8 +210,8 @@ static bool parse_block(parsed_baking_data_t *const out,
         return false;
     }
     uint32_t fitness_size = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &block->fitness_size);
-    if (fitness_size < MINIMUM_FITNESS_SIZE || fitness + fitness_size > data + length ||
-        fitness_size > MAXIMUM_FITNESS_SIZE) {
+    if ((fitness_size < MINIMUM_FITNESS_SIZE) || ((fitness + fitness_size) > (data + length)) ||
+        (fitness_size > MAXIMUM_FITNESS_SIZE)) {
         return false;
     }
 

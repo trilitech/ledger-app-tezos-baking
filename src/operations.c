@@ -146,7 +146,7 @@ static inline bool parse_z(uint8_t current_byte,
         state->shift = 0;
     }
     // Fails when the resulting shifted value overflows 64 bits
-    if (state->shift > 63u || (state->shift == 63u && current_byte != 1u)) {
+    if ((state->shift > 63u) || ((state->shift == 63u) && (current_byte != 1u))) {
         PARSE_ERROR();
     }
     state->value |= ((uint64_t) current_byte & 0x7Fu) << state->shift;
@@ -235,10 +235,10 @@ static void parse_operations_init(struct parsed_operation_group *const out,
 
 bool parse_operations_final(struct parse_state *const state,
                             struct parsed_operation_group *const out) {
-    if (out->operation.tag == OPERATION_TAG_NONE && !out->has_reveal) {
+    if ((out->operation.tag == OPERATION_TAG_NONE) && !out->has_reveal) {
         return false;
     }
-    return state->op_step == STEP_END_OF_MESSAGE || state->op_step == 1;
+    return ((state->op_step == STEP_END_OF_MESSAGE) || (state->op_step == 1));
 }
 
 /**

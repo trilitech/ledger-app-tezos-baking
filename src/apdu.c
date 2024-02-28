@@ -86,13 +86,13 @@ __attribute__((noreturn)) void main_loop(apdu_handler const* const handlers,
                 // The amount of bytes we get in our APDU must match what the APDU declares
                 // its own content length is. All these values are unsigned, so this implies
                 // that if rx < OFFSET_CDATA it also throws.
-                if (rx != G_io_apdu_buffer[OFFSET_LC] + OFFSET_CDATA) {
+                if (rx != (G_io_apdu_buffer[OFFSET_LC] + OFFSET_CDATA)) {
                     THROW(EXC_WRONG_LENGTH);
                 }
 
                 uint8_t const instruction = G_io_apdu_buffer[OFFSET_INS];
                 apdu_handler const cb =
-                    instruction >= handlers_size ? handle_apdu_error : handlers[instruction];
+                    (instruction >= handlers_size) ? handle_apdu_error : handlers[instruction];
 
                 size_t const tx = cb(instruction, &flags);
                 rx = io_exchange(CHANNEL_APDU | flags, tx);

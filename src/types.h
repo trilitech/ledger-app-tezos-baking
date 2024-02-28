@@ -154,10 +154,10 @@ static inline void copy_bip32_path(bip32_path_t *const out, bip32_path_t volatil
  */
 static inline bool bip32_paths_eq(bip32_path_t volatile const *const a,
                                   bip32_path_t volatile const *const b) {
-    return a == b || (a != NULL && b != NULL && a->length == b->length &&
-                      memcmp((void const *) a->components,
-                             (void const *) b->components,
-                             a->length * sizeof(*a->components)) == 0);
+    return (a == b) || ((a != NULL) && (b != NULL) && (a->length == b->length) &&
+                        (memcmp((void const *) a->components,
+                                (void const *) b->components,
+                                a->length * sizeof(*a->components)) == 0));
 }
 
 /**
@@ -194,8 +194,9 @@ static inline void copy_bip32_path_with_curve(bip32_path_with_curve_t *const out
  */
 static inline bool bip32_path_with_curve_eq(bip32_path_with_curve_t volatile const *const a,
                                             bip32_path_with_curve_t volatile const *const b) {
-    return a == b || (a != NULL && b != NULL && bip32_paths_eq(&a->bip32_path, &b->bip32_path) &&
-                      a->derivation_type == b->derivation_type);
+    return (a == b) ||
+           ((a != NULL) && (b != NULL) && bip32_paths_eq(&a->bip32_path, &b->bip32_path) &&
+            (a->derivation_type == b->derivation_type));
 }
 
 /**
@@ -305,16 +306,16 @@ struct parsed_operation_group {
         x;                                                                 \
     })
 
-#define CUSTOM_MAX(a, b)                   \
-    ({                                     \
-        __typeof__(a) ____a_ = (a);        \
-        __typeof__(b) ____b_ = (b);        \
-        ____a_ > ____b_ ? ____a_ : ____b_; \
+#define CUSTOM_MAX(a, b)                     \
+    ({                                       \
+        __typeof__(a) ____a_ = (a);          \
+        __typeof__(b) ____b_ = (b);          \
+        (____a_ > ____b_) ? ____a_ : ____b_; \
     })
 
-#define CUSTOM_MIN(a, b)                   \
-    ({                                     \
-        __typeof__(a) ____a_ = (a);        \
-        __typeof__(b) ____b_ = (b);        \
-        ____a_ < ____b_ ? ____a_ : ____b_; \
+#define CUSTOM_MIN(a, b)                     \
+    ({                                       \
+        __typeof__(a) ____a_ = (a);          \
+        __typeof__(b) ____b_ = (b);          \
+        (____a_ < ____b_) ? ____a_ : ____b_; \
     })

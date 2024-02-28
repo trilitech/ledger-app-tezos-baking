@@ -40,10 +40,10 @@ size_t read_bip32_path(bip32_path_t *const out, uint8_t const *const in, size_t 
     size_t ix = 0;
     out->length = CONSUME_UNALIGNED_BIG_ENDIAN(ix, uint8_t, &buf_as_bip32->length);
 
-    if (in_size - ix < out->length * sizeof(*buf_as_bip32->components)) {
+    if ((in_size - ix) < (out->length * sizeof(*buf_as_bip32->components))) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
-    if (out->length == 0u || out->length > NUM_ELEMENTS(out->components)) {
+    if ((out->length == 0u) || (out->length > NUM_ELEMENTS(out->components))) {
         THROW(EXC_WRONG_VALUES);
     }
 
