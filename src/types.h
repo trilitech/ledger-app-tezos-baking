@@ -39,11 +39,9 @@ typedef enum {
 } signature_type_t;
 
 typedef enum {
-    BAKING_TYPE_BLOCK = 0,
-    BAKING_TYPE_ENDORSEMENT = 1,
-    BAKING_TYPE_TENDERBAKE_BLOCK = 2,
-    BAKING_TYPE_TENDERBAKE_ENDORSEMENT = 3,
-    BAKING_TYPE_TENDERBAKE_PREENDORSEMENT = 4
+    BAKING_TYPE_BLOCK = 2,
+    BAKING_TYPE_ENDORSEMENT = 3,
+    BAKING_TYPE_PREENDORSEMENT = 4
 } baking_type_t;
 
 // Return number of bytes to transmit (tx)
@@ -55,12 +53,6 @@ typedef uint32_t round_t;
 #define CHAIN_ID_BASE58_STRING_SIZE sizeof("NetXdQprcVkpaWU")
 
 #define MAX_INT_DIGITS 20
-
-typedef struct {
-    size_t length;
-    size_t size;
-    uint8_t *bytes;
-} buffer_t;
 
 typedef struct {
     uint32_t v;
@@ -160,20 +152,11 @@ typedef struct {
         str;                                                          \
     })
 
-#define STATIC_UI_VALUE(str)                                                                       \
-    ({                                                                                             \
-        _Static_assert(sizeof(str) <= VALUE_WIDTH + 1 /*null byte*/, str " won't fit in the UI."); \
-        str;                                                                                       \
-    })
-
 // Operations
 #define PROTOCOL_HASH_SIZE 32
 
 // TODO: Rename to KEY_HASH_SIZE
 #define HASH_SIZE 20
-
-// HASH_SIZE encoded in base-58 ASCII
-#define HASH_SIZE_B58 36
 
 typedef struct {
     chain_id_t chain_id;
@@ -188,64 +171,21 @@ typedef struct parsed_contract {
     signature_type_t
         signature_type;  // 0 in originated case
                          // An implicit contract with signature_type of 0 means not present
-
     uint8_t hash[HASH_SIZE];
-
-    char *hash_ptr;
 } parsed_contract_t;
-
-struct parsed_proposal {
-    uint32_t voting_period;
-    // TODO: Make 32 bit version of number_to_string_indirect
-    uint8_t protocol_hash[PROTOCOL_HASH_SIZE];
-};
-
-enum ballot_vote {
-    BALLOT_VOTE_YEA,
-    BALLOT_VOTE_NAY,
-    BALLOT_VOTE_PASS,
-};
-
-struct parsed_ballot {
-    uint32_t voting_period;
-    uint8_t protocol_hash[PROTOCOL_HASH_SIZE];
-    enum ballot_vote vote;
-};
 
 enum operation_tag {
     OPERATION_TAG_NONE = -1,  // Sentinal value, as 0 is possibly used for something
-    OPERATION_TAG_PROPOSAL = 5,
-    OPERATION_TAG_BALLOT = 6,
-    OPERATION_TAG_ATHENS_REVEAL = 7,
-    OPERATION_TAG_ATHENS_TRANSACTION = 8,
-    OPERATION_TAG_ATHENS_ORIGINATION = 9,
-    OPERATION_TAG_ATHENS_DELEGATION = 10,
-    OPERATION_TAG_BABYLON_REVEAL = 107,
-    OPERATION_TAG_BABYLON_TRANSACTION = 108,
-    OPERATION_TAG_BABYLON_ORIGINATION = 109,
-    OPERATION_TAG_BABYLON_DELEGATION = 110,
+    OPERATION_TAG_REVEAL = 107,
+    OPERATION_TAG_DELEGATION = 110,
 };
-
-// TODO: Make this an enum.
-// Flags for parsed_operation.flag
-#define ORIGINATION_FLAG_SPENDABLE   1
-#define ORIGINATION_FLAG_DELEGATABLE 2
 
 struct parsed_operation {
     enum operation_tag tag;
     struct parsed_contract source;
     struct parsed_contract destination;
-    union {
-        struct parsed_contract delegate;  // For originations only
-        struct parsed_proposal proposal;  // For proposals only
-        struct parsed_ballot ballot;      // For ballots only
-    };
 
-    bool is_manager_tz_operation;
-    struct parsed_contract implicit_account;  // For manager.tz transactions
-
-    uint64_t amount;  // 0 where inappropriate
-    uint32_t flags;   // Interpretation depends on operation type
+    uint32_t flags;  // Interpretation depends on operation type
 };
 
 struct parsed_operation_group {

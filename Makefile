@@ -99,9 +99,4 @@ endif
 
 CFLAGS   += -Wno-incompatible-pointer-types-discards-qualifiers
 
-# Generate delegates from baker list
-src/delegates.h: tools/gen-delegates.sh tools/BakersRegistryCoreUnfilteredData.json
-	bash ./tools/gen-delegates.sh ./tools/BakersRegistryCoreUnfilteredData.json
-$(DEP_DIR)/to_string.d $(DEP_DIR)/app/src/to_string.d: src/delegates.h
-
 include $(BOLOS_SDK)/Makefile.standard_app

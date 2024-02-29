@@ -1,7 +1,6 @@
 bin
 debug
 build
-src/delegates.h
 # python environment used for testing
 env 
 # cache files 

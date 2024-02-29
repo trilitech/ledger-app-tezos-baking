@@ -89,40 +89,11 @@ static bool sign_reject(void) {
     return true;  // Return to idle
 }
 
-static bool is_operation_allowed(enum operation_tag tag) {
-    switch (tag) {
-        case OPERATION_TAG_ATHENS_DELEGATION:
-            return true;
-        case OPERATION_TAG_ATHENS_REVEAL:
-            return true;
-        case OPERATION_TAG_BABYLON_DELEGATION:
-            return true;
-        case OPERATION_TAG_BABYLON_REVEAL:
-            return true;
-        default:
-            return false;
-    }
-}
-
-static bool parse_allowed_operations(struct parsed_operation_group *const out,
-                                     uint8_t const *const in,
-                                     size_t const in_size,
-                                     bip32_path_with_curve_t const *const key) {
-    return parse_operations(out,
-                            in,
-                            in_size,
-                            key->derivation_type,
-                            &key->bip32_path,
-                            &is_operation_allowed);
-}
-
 size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
     switch (G.magic_byte) {
-        case MAGIC_BYTE_TENDERBAKE_BLOCK:
-        case MAGIC_BYTE_TENDERBAKE_PREENDORSEMENT:
-        case MAGIC_BYTE_TENDERBAKE_ENDORSEMENT:
         case MAGIC_BYTE_BLOCK:
-        case MAGIC_BYTE_BAKING_OP:
+        case MAGIC_BYTE_PREENDORSEMENT:
+        case MAGIC_BYTE_ENDORSEMENT:
             guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve);
             return perform_signature(true, send_hash);
             break;
@@ -131,8 +102,7 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
             if (!G.maybe_ops.is_valid) PARSE_ERROR();
 
             switch (G.maybe_ops.v.operation.tag) {
-                case OPERATION_TAG_ATHENS_DELEGATION:
-                case OPERATION_TAG_BABYLON_DELEGATION:
+                case OPERATION_TAG_DELEGATION:
                     // Must be self-delegation signed by the *authorized* baking key
                     if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
                         // ops->signing is generated from G.bip32_path and G.curve
@@ -147,8 +117,7 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
                     }
                     THROW(EXC_SECURITY);
                     break;
-                case OPERATION_TAG_ATHENS_REVEAL:
-                case OPERATION_TAG_BABYLON_REVEAL:
+                case OPERATION_TAG_REVEAL:
                 case OPERATION_TAG_NONE:
                     // Reveal cases
                     if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
@@ -163,8 +132,6 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
             THROW(EXC_SECURITY);
             break;
         }
-        case MAGIC_BYTE_UNSAFE_OP2:
-        case MAGIC_BYTE_UNSAFE_OP3:
         default:
             PARSE_ERROR();
     }
@@ -178,15 +145,12 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
 static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const buff_size) {
     uint8_t const magic_byte = get_magic_byte(buff, buff_size);
     switch (magic_byte) {
-        case MAGIC_BYTE_TENDERBAKE_BLOCK:
-        case MAGIC_BYTE_TENDERBAKE_PREENDORSEMENT:
-        case MAGIC_BYTE_TENDERBAKE_ENDORSEMENT:
         case MAGIC_BYTE_BLOCK:
-        case MAGIC_BYTE_BAKING_OP:
+        case MAGIC_BYTE_PREENDORSEMENT:
+        case MAGIC_BYTE_ENDORSEMENT:
         case MAGIC_BYTE_UNSAFE_OP:  // Only for self-delegations
             return magic_byte;
 
-        case MAGIC_BYTE_UNSAFE_OP2:
         default:
             PARSE_ERROR();
     }
@@ -227,8 +191,11 @@ static size_t handle_apdu(bool const enable_hashing,
         G.magic_byte = get_magic_byte_or_throw(buff, buff_size);
         if (G.magic_byte == MAGIC_BYTE_UNSAFE_OP) {
             // Parse the operation. It will be verified in `baking_sign_complete`.
-            G.maybe_ops.is_valid =
-                parse_allowed_operations(&G.maybe_ops.v, buff, buff_size, &global.path_with_curve);
+            G.maybe_ops.is_valid = parse_operations(&G.maybe_ops.v,
+                                                    buff,
+                                                    buff_size,
+                                                    global.path_with_curve.derivation_type,
+                                                    &global.path_with_curve.bip32_path);
         } else {
             // This should be a baking operation so parse it.
             if (!parse_baking_data(&G.parsed_baking_data, buff, buff_size)) PARSE_ERROR();

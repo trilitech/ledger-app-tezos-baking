@@ -5,7 +5,6 @@
 #include "memory.h"
 #include "to_string.h"
 #include "ui.h"
-#include "michelson.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -65,17 +64,6 @@ static inline void parse_implicit(parsed_contract_t *const out,
     memcpy(out->hash, hash, sizeof(out->hash));
 }
 
-static inline void parse_contract(parsed_contract_t *const out, struct contract const *const in) {
-    out->originated = in->originated;
-    if (out->originated == 0) {  // implicit
-        out->signature_type = parse_raw_tezos_header_signature_type(&in->u.implicit.signature_type);
-        memcpy(out->hash, in->u.implicit.pkh, sizeof(out->hash));
-    } else {  // originated
-        out->signature_type = SIGNATURE_TYPE_UNSET;
-        memcpy(out->hash, in->u.originated.pkh, sizeof(out->hash));
-    }
-}
-
 #define CALL_SUBPARSER_LN(func, line, ...) \
     if (func(__VA_ARGS__, line)) return true
 #define CALL_SUBPARSER(func, ...) CALL_SUBPARSER_LN(func, __LINE__, __VA_ARGS__)
@@ -112,33 +100,6 @@ static inline bool parse_z(uint8_t current_byte,
         (state)->subparser_state.integer.value;                             \
     })
 
-// Only used through the macro
-static inline bool parse_z_michelson(uint8_t current_byte,
-                                     struct int_subparser_state *state,
-                                     uint32_t lineno) {
-    if (state->lineno != lineno) {
-        // New call; initialize.
-        state->lineno = lineno;
-        state->value = 0;
-        state->shift = 0;
-    }
-    state->value |= ((uint64_t) current_byte & 0x7F) << state->shift;
-    // For some reason we are getting numbers shifted 1 bit to the
-    // left. TODO: figure out why this happens
-    if (state->shift == 0) {
-        state->shift += 6;
-    } else {
-        state->shift += 7;
-    }
-    return current_byte & 0x80;  // Return true if we need more bytes.
-}
-
-#define PARSE_Z_MICHELSON                                                             \
-    ({                                                                                \
-        CALL_SUBPARSER(parse_z_michelson, (byte), (&state->subparser_state.integer)); \
-        state->subparser_state.integer.value;                                         \
-    })
-
 static inline bool parse_next_type(uint8_t current_byte,
                                    struct nexttype_subparser_state *state,
                                    uint32_t sizeof_type,
@@ -167,133 +128,6 @@ static inline bool parse_next_type(uint8_t current_byte,
         (const type *) &(state->subparser_state.nexttype.body);                                  \
     })
 
-static inline bool michelson_read_length(uint8_t current_byte,
-                                         struct nexttype_subparser_state *state,
-                                         uint32_t lineno) {
-    CALL_SUBPARSER_LN(parse_next_type,
-                      lineno,
-                      current_byte,
-                      state,
-                      sizeof(uint32_t));  // Using the line number we were called with.
-    uint32_t result = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &state->body.raw);
-    state->body.i32 = result;
-    return false;
-}
-
-#define MICHELSON_READ_LENGTH                                                          \
-    ({                                                                                 \
-        CALL_SUBPARSER(michelson_read_length, byte, &state->subparser_state.nexttype); \
-        state->subparser_state.nexttype.body.i32;                                      \
-    })
-
-static inline bool michelson_read_short(uint8_t current_byte,
-                                        struct nexttype_subparser_state *state,
-                                        uint32_t lineno) {
-    CALL_SUBPARSER_LN(parse_next_type, lineno, current_byte, state, sizeof(uint16_t));
-    uint32_t result = READ_UNALIGNED_BIG_ENDIAN(uint16_t, &state->body.raw);
-    state->body.i16 = result;
-    return false;
-}
-
-#define MICHELSON_READ_SHORT                                                          \
-    ({                                                                                \
-        CALL_SUBPARSER(michelson_read_short, byte, &state->subparser_state.nexttype); \
-        state->subparser_state.nexttype.body.i16;                                     \
-    })
-
-static inline bool michelson_read_address(uint8_t byte,
-                                          parsed_contract_t *const out,
-                                          char *base58_address_buffer,
-                                          struct michelson_address_subparser_state *state,
-                                          uint32_t lineno) {
-    if (state->lineno != lineno) {  // We won't have to use CALL_SUBPARSER_LN because we're
-                                    // initializing ourselves here.
-        memset(state, 0, sizeof(*state));
-        state->lineno = lineno;
-    }
-    switch (state->address_step) {
-        case 0:
-            state->micheline_type = byte;
-            state->address_step = 1;
-            return true;
-
-        case 1:
-
-            CALL_SUBPARSER(michelson_read_length, byte, &state->subsub_state);
-            state->addr_length = state->subsub_state.body.i32;
-
-            state->address_step = 2;
-            return true;
-        default: {
-            switch (state->micheline_type) {
-                case MICHELSON_TYPE_BYTE_SEQUENCE: {
-                    switch (state->address_step) {
-                        case 2:
-
-                            // Need 1 byte for signature, plus the rest of the hash.
-                            if (state->addr_length != HASH_SIZE + 1) {
-                                PARSE_ERROR();
-                            }
-
-                            CALL_SUBPARSER(parse_next_type,
-                                           byte,
-                                           &(state->subsub_state),
-                                           sizeof(state->signature_type));
-                            memcpy(&(state->signature_type),
-                                   &(state->subsub_state.body),
-                                   sizeof(state->signature_type));
-
-                            __attribute__((fallthrough));
-
-                        case 3:
-
-                            CALL_SUBPARSER(parse_next_type,
-                                           byte,
-                                           &(state->subsub_state),
-                                           sizeof(state->key_hash));
-                            memcpy(&(state->key_hash),
-                                   &(state->subsub_state.body),
-                                   sizeof(state->key_hash));
-
-                            parse_implicit(out,
-                                           &state->signature_type,
-                                           (const uint8_t *) &state->key_hash);
-
-                            return false;
-                    }
-                    case MICHELSON_TYPE_STRING: {
-                        if (state->addr_length != HASH_SIZE_B58) {
-                            PARSE_ERROR();
-                        }
-
-                        CALL_SUBPARSER(parse_next_type,
-                                       byte,
-                                       &(state->subsub_state),
-                                       sizeof(state->subsub_state.body.text_pkh));
-
-                        memcpy(base58_address_buffer,
-                               state->subsub_state.body.text_pkh,
-                               sizeof(state->subsub_state.body.text_pkh));
-                        out->hash_ptr = base58_address_buffer;
-                        out->originated = false;
-                        out->signature_type = SIGNATURE_TYPE_UNSET;
-                        return false;
-                    }
-                    default:
-                        PARSE_ERROR();
-                }
-            }
-        }
-    }
-}
-
-#define MICHELSON_READ_ADDRESS(out, buffer) \
-    CALL_SUBPARSER(michelson_read_address,  \
-                   byte,                    \
-                   (out),                   \
-                   buffer,                  \
-                   &state->subparser_state.michelson_address)
-
 // End of subparsers.
 
 void parse_operations_init(struct parsed_operation_group *const out,
@@ -315,24 +149,13 @@ void parse_operations_init(struct parsed_operation_group *const out,
     state->op_step = 0;
     state->subparser_state.integer.lineno = -1;
     state->tag = OPERATION_TAG_NONE;  // This and the rest shouldn't be required.
-    state->argument_length = 0;
-    state->michelson_op = -1;
 }
 
 // Named steps in the top-level state machine
-#define STEP_END_OF_MESSAGE                         -1
-#define STEP_OP_TYPE_DISPATCH                       10001
-#define STEP_AFTER_MANAGER_FIELDS                   10002
-#define STEP_HAS_DELEGATE                           10003
-#define STEP_MICHELSON_FIRST_IS_PUSH                10010
-#define STEP_MICHELSON_FIRST_IS_NONE                10011
-#define STEP_MICHELSON_SECOND_IS_KEY_HASH           10012
-#define STEP_MICHELSON_CONTRACT_TO_CONTRACT         10013
-#define STEP_MICHELSON_SET_DELEGATE_CHAIN           10014
-#define STEP_MICHELSON_CONTRACT_TO_IMPLICIT_CHAIN   10015
-#define STEP_MICHELSON_CONTRACT_END                 10016
-#define STEP_MICHELSON_CHECKING_CONTRACT_ENTRYPOINT 10017
-#define STEP_MICHELSON_CONTRACT_TO_CONTRACT_CHAIN_2 10018
+#define STEP_END_OF_MESSAGE       -1
+#define STEP_OP_TYPE_DISPATCH     10001
+#define STEP_AFTER_MANAGER_FIELDS 10002
+#define STEP_HAS_DELEGATE         10003
 
 bool parse_operations_final(struct parse_state *const state,
                             struct parsed_operation_group *const out) {
@@ -344,8 +167,7 @@ bool parse_operations_final(struct parse_state *const state,
 
 static inline bool parse_byte(uint8_t byte,
                               struct parse_state *const state,
-                              struct parsed_operation_group *const out,
-                              is_operation_allowed_t is_operation_allowed) {
+                              struct parsed_operation_group *const out) {
 // OP_STEP finishes the current state transition, setting the state, and introduces the next state.
 // For linear chains of states, this keeps the code structurally similar to equivalent imperative
 // parsing code.
@@ -365,9 +187,6 @@ static inline bool parse_byte(uint8_t byte,
     state->op_step = step; \
     return true
 
-// Set the next state to end-of-message
-#define JMP_EOM JMP(-1)
-
 // Set the next state to start-of-payload; used after reveal.
 #define JMP_TO_TOP JMP(1)
 
@@ -377,33 +196,6 @@ static inline bool parse_byte(uint8_t byte,
         state->op_step = step; \
         return true;           \
     }
-
-// Shortcuts for defining literal-matching states; mostly used for contract-call boilerplate.
-#define OP_STEP_REQUIRE_SHORT(constant)                       \
-    {                                                         \
-        uint16_t val = MICHELSON_READ_SHORT;                  \
-        if (val != constant) {                                \
-            PRINTF("Expected: %d, got: %d\n", constant, val); \
-            PARSE_ERROR();                                    \
-        }                                                     \
-    }                                                         \
-    OP_STEP
-#define OP_STEP_REQUIRE_BYTE(constant)                         \
-    {                                                          \
-        if (byte != constant) {                                \
-            PRINTF("Expected: %d, got: %d\n", constant, byte); \
-            PARSE_ERROR();                                     \
-        }                                                      \
-    }                                                          \
-    OP_STEP
-#define OP_STEP_REQUIRE_LENGTH(constant)      \
-    {                                         \
-        uint32_t val = MICHELSON_READ_LENGTH; \
-        if (val != constant) {                \
-            PARSE_ERROR();                    \
-        }                                     \
-    }                                         \
-    OP_STEP
 
     switch (state->op_step) {
         case STEP_HARD_FAIL:
@@ -422,19 +214,13 @@ static inline bool parse_byte(uint8_t byte,
 
             state->tag = NEXT_BYTE;
 
-            if (!is_operation_allowed(state->tag)) PARSE_ERROR();
-
             OP_STEP
 
             // Parse 'source'
             switch (state->tag) {
                 // Tags that don't have "originated" byte only support tz accounts, not KT or tz.
-                case OPERATION_TAG_PROPOSAL:
-                case OPERATION_TAG_BALLOT:
-                case OPERATION_TAG_BABYLON_DELEGATION:
-                case OPERATION_TAG_BABYLON_ORIGINATION:
-                case OPERATION_TAG_BABYLON_REVEAL:
-                case OPERATION_TAG_BABYLON_TRANSACTION: {
+                case OPERATION_TAG_DELEGATION:
+                case OPERATION_TAG_REVEAL: {
                     struct implicit_contract const *const implicit_source =
                         NEXT_TYPE(struct implicit_contract);
                     out->operation.source.originated = 0;
@@ -443,15 +229,6 @@ static inline bool parse_byte(uint8_t byte,
                     memcpy(out->operation.source.hash,
                            implicit_source->pkh,
                            sizeof(out->operation.source.hash));
-                    break;
-                }
-
-                case OPERATION_TAG_ATHENS_DELEGATION:
-                case OPERATION_TAG_ATHENS_ORIGINATION:
-                case OPERATION_TAG_ATHENS_REVEAL:
-                case OPERATION_TAG_ATHENS_TRANSACTION: {
-                    struct contract const *const source = NEXT_TYPE(struct contract);
-                    parse_contract(&out->operation.source, source);
                     break;
                 }
 
@@ -465,9 +242,6 @@ static inline bool parse_byte(uint8_t byte,
                 if (COMPARE(&out->operation.source, &out->signing) != 0) PARSE_ERROR();
             }
             // OK, it passes muster.
-
-            OP_JMPIF(STEP_AFTER_MANAGER_FIELDS,
-                     (state->tag == OPERATION_TAG_PROPOSAL || state->tag == OPERATION_TAG_BALLOT));
 
             OP_STEP
 
@@ -483,9 +257,8 @@ static inline bool parse_byte(uint8_t byte,
             OP_STEP
             out->total_storage_limit += PARSE_Z;  // storage limit
 
-            OP_JMPIF(STEP_AFTER_MANAGER_FIELDS,
-                     (state->tag != OPERATION_TAG_ATHENS_REVEAL &&
-                      state->tag != OPERATION_TAG_BABYLON_REVEAL))
+            OP_JMPIF(STEP_AFTER_MANAGER_FIELDS, state->tag != OPERATION_TAG_REVEAL)
+
             OP_STEP
 
             // We know this is a reveal
@@ -525,71 +298,13 @@ static inline bool parse_byte(uint8_t byte,
 
             out->operation.tag = (uint8_t) state->tag;
 
-            // This should by default be blanked out
-            out->operation.delegate.signature_type = SIGNATURE_TYPE_UNSET;
-            out->operation.delegate.originated = 0;
-
             // Deliberate epsilon-transition.
             state->op_step = STEP_OP_TYPE_DISPATCH;
             __attribute__((fallthrough));
         default:
 
             switch (state->tag) {
-                case OPERATION_TAG_PROPOSAL:
-                    switch (state->op_step) {
-                        case STEP_OP_TYPE_DISPATCH: {
-                            const struct proposal_contents *proposal_data =
-                                NEXT_TYPE(struct proposal_contents);
-
-                            const size_t payload_size =
-                                READ_UNALIGNED_BIG_ENDIAN(int32_t, &proposal_data->num_bytes);
-                            if (payload_size != PROTOCOL_HASH_SIZE)
-                                PARSE_ERROR();  // We only accept exactly 1 proposal hash.
-
-                            out->operation.proposal.voting_period =
-                                READ_UNALIGNED_BIG_ENDIAN(int32_t, &proposal_data->period);
-
-                            memcpy(out->operation.proposal.protocol_hash,
-                                   proposal_data->hash,
-                                   sizeof(out->operation.proposal.protocol_hash));
-                        }
-
-                            JMP_EOM;
-                    }
-                    break;
-                case OPERATION_TAG_BALLOT:
-                    switch (state->op_step) {
-                        case STEP_OP_TYPE_DISPATCH: {
-                            const struct ballot_contents *ballot_data =
-                                NEXT_TYPE(struct ballot_contents);
-
-                            out->operation.ballot.voting_period =
-                                READ_UNALIGNED_BIG_ENDIAN(int32_t, &ballot_data->period);
-                            memcpy(out->operation.ballot.protocol_hash,
-                                   ballot_data->proposal,
-                                   sizeof(out->operation.ballot.protocol_hash));
-
-                            const int8_t ballot_vote =
-                                READ_UNALIGNED_BIG_ENDIAN(int8_t, &ballot_data->ballot);
-                            switch (ballot_vote) {
-                                case 0:
-                                    out->operation.ballot.vote = BALLOT_VOTE_YEA;
-                                    break;
-                                case 1:
-                                    out->operation.ballot.vote = BALLOT_VOTE_NAY;
-                                    break;
-                                case 2:
-                                    out->operation.ballot.vote = BALLOT_VOTE_PASS;
-                                    break;
-                                default:
-                                    PARSE_ERROR();
-                            }
-                            JMP_EOM;
-                        }
-                    }
-
-                case OPERATION_TAG_ATHENS_DELEGATION:
-                case OPERATION_TAG_BABYLON_DELEGATION:
+                case OPERATION_TAG_DELEGATION:
                     switch (state->op_step) {
                         case STEP_OP_TYPE_DISPATCH: {
                             uint8_t delegate_present = NEXT_BYTE;
@@ -611,287 +326,7 @@ static inline bool parse_byte(uint8_t byte,
                         }
                             JMP_TO_TOP;  // These go back to the top to catch any reveals.
                     }
-                case OPERATION_TAG_ATHENS_ORIGINATION:
-                case OPERATION_TAG_BABYLON_ORIGINATION:
-                    PARSE_ERROR();  // We can't parse the script yet, and all babylon originations
-                                    // have a script; we have to just reject originations.
 
-                case OPERATION_TAG_ATHENS_TRANSACTION:
-                case OPERATION_TAG_BABYLON_TRANSACTION:
-                    switch (state->op_step) {
-                        case STEP_OP_TYPE_DISPATCH:
-
-                            out->operation.amount = PARSE_Z;
-
-                            OP_STEP {
-                                const struct contract *destination = NEXT_TYPE(struct contract);
-                                parse_contract(&out->operation.destination, destination);
-                            }
-
-                            OP_STEP {
-                                unsigned char has_params = NEXT_BYTE;
-
-                                if (has_params == MICHELSON_PARAMS_NONE) {
-                                    JMP_TO_TOP;
-                                }
-
-                                if (has_params != MICHELSON_PARAMS_SOME) {
-                                    PARSE_ERROR();
-                                }
-
-                                // From this point on we are _only_ parsing manager.tz operatinos,
-                                // so we show the outer destination (the KT1) as the source of the
-                                // transaction.
-                                out->operation.is_manager_tz_operation = true;
-                                memcpy(&out->operation.implicit_account,
-                                       &out->operation.source,
-                                       sizeof(parsed_contract_t));
-                                memcpy(&out->operation.source,
-                                       &out->operation.destination,
-                                       sizeof(parsed_contract_t));
-
-                                // manager.tz operations cannot actually transfer any amount.
-                                if (out->operation.amount > 0) {
-                                    PARSE_ERROR();
-                                }
-                            }
-
-                            OP_STEP {
-                                const enum entrypoint_tag entrypoint = NEXT_BYTE;
-
-                                // Don't bother parsing the name, we'll reject if it's there either
-                                // way.
-
-                                // Anything that’s not “do” is not a
-                                // manager.tz contract.
-                                if (entrypoint != ENTRYPOINT_DO) {
-                                    PARSE_ERROR();
-                                }
-                            }
-
-                            OP_STEP {
-                                state->argument_length = MICHELSON_READ_LENGTH;
-                            }
-
-                            OP_STEP
-
-                            // Error on anything but a michelson sequence.
-                            OP_STEP_REQUIRE_BYTE(MICHELSON_TYPE_SEQUENCE);
-
-                            {
-                                const uint32_t sequence_length = MICHELSON_READ_LENGTH;
-
-                                // Only allow single sequence (5 is needed
-                                // in argument length for above two
-                                // bytes). Also bail out on really big
-                                // Michelson that we don’t support.
-                                if (sequence_length + sizeof(uint8_t) + sizeof(uint32_t) !=
-                                        state->argument_length ||
-                                    state->argument_length > MAX_MICHELSON_SEQUENCE_LENGTH) {
-                                    PARSE_ERROR();
-                                }
-                            }
-
-                            OP_STEP
-
-                            // All manager.tz operations should begin
-                            // with this. Otherwise, bail out.
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_DROP)
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_NIL)
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_OPERATION)
-
-                            {
-                                state->michelson_op = MICHELSON_READ_SHORT;
-
-                                // First real michelson op.
-                                switch (state->michelson_op) {
-                                    case MICHELSON_PUSH:
-                                        JMP(STEP_MICHELSON_FIRST_IS_PUSH);
-                                    case MICHELSON_NONE:  // withdraw delegate
-                                        JMP(STEP_MICHELSON_FIRST_IS_NONE);
-                                    default:
-                                        PARSE_ERROR();
-                                }
-                            }
-
-                        case STEP_MICHELSON_FIRST_IS_PUSH: {
-                            state->michelson_op = MICHELSON_READ_SHORT;
-
-                            // First real michelson op.
-                            switch (state->michelson_op) {
-                                case MICHELSON_KEY_HASH:
-                                    JMP(STEP_MICHELSON_SECOND_IS_KEY_HASH);
-                                case MICHELSON_ADDRESS:  // transfer contract to contract
-                                    JMP(STEP_MICHELSON_CONTRACT_TO_CONTRACT);
-                                default:
-                                    PARSE_ERROR();
-                            }
-                        }
-
-                        case STEP_MICHELSON_SECOND_IS_KEY_HASH:
-
-                            MICHELSON_READ_ADDRESS(&out->operation.destination, state->base58_pkh1);
-
-                            OP_STEP {
-                                state->michelson_op = MICHELSON_READ_SHORT;
-
-                                switch (state->michelson_op) {
-                                    case MICHELSON_SOME:  // Set delegate
-                                        JMP(STEP_MICHELSON_SET_DELEGATE_CHAIN);
-                                    case MICHELSON_IMPLICIT_ACCOUNT:  // transfer contract to
-                                                                      // implicit
-                                        JMP(STEP_MICHELSON_CONTRACT_TO_IMPLICIT_CHAIN);
-                                    default:
-                                        PARSE_ERROR();
-                                }
-                            }
-
-                        case STEP_MICHELSON_SET_DELEGATE_CHAIN:
-
-                        {
-                            uint16_t val = MICHELSON_READ_SHORT;
-                            if (val != MICHELSON_SET_DELEGATE) PARSE_ERROR();
-
-                            out->operation.tag = OPERATION_TAG_BABYLON_DELEGATION;
-                            out->operation.destination.originated = true;
-                            JMP(STEP_MICHELSON_CONTRACT_END);
-                        }
-
-                        case STEP_MICHELSON_CONTRACT_TO_IMPLICIT_CHAIN:
-                            // Matching: PUSH key_hash <adr> ; IMPLICIT_ACCOUNT ; PUSH mutez <val> ;
-                            // UNIT ; TRANSFER_TOKENS
-
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_PUSH)
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_MUTEZ)
-
-                            {
-                                uint8_t contractOrImplicit = NEXT_BYTE;
-                                if (contractOrImplicit != 0) PARSE_ERROR();  // what is this?
-                            }
-
-                            OP_STEP
-
-                            out->operation.amount = PARSE_Z_MICHELSON;
-
-                            OP_STEP
-
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_UNIT)
-
-                            {
-                                uint16_t val = MICHELSON_READ_SHORT;
-                                if (val != MICHELSON_TRANSFER_TOKENS) PARSE_ERROR();
-                                out->operation.tag = OPERATION_TAG_BABYLON_TRANSACTION;
-
-                                JMP(STEP_MICHELSON_CONTRACT_END);
-                            }
-
-                        case STEP_MICHELSON_CONTRACT_TO_CONTRACT:
-
-                        {
-                            // Matching: PUSH address <adr> ; CONTRACT <par> ; ASSERT_SOME ; PUSH
-                            // mutez <val> ; UNIT ; TRANSFER_TOKENS
-                            MICHELSON_READ_ADDRESS(&out->operation.destination, state->base58_pkh2);
-                        }
-
-                            OP_STEP
-
-                            state->contract_code = MICHELSON_READ_SHORT;
-
-                            OP_STEP
-
-                            {
-                                const enum michelson_code type = MICHELSON_READ_SHORT;
-
-                                // Can’t display any parameters, need
-                                // to throw anything but unit out for now.
-                                // TODO: display michelson arguments
-                                if (type != MICHELSON_CONTRACT_UNIT) {
-                                    PARSE_ERROR();
-                                }
-
-                                switch (state->contract_code) {
-                                    case MICHELSON_CONTRACT_WITH_ENTRYPOINT: {
-                                        JMP(STEP_MICHELSON_CHECKING_CONTRACT_ENTRYPOINT);
-                                    }
-                                    case MICHELSON_CONTRACT: {
-                                        JMP(STEP_MICHELSON_CONTRACT_TO_CONTRACT_CHAIN_2);
-                                    }
-                                    default:
-                                        PARSE_ERROR();
-                                }
-                            }
-
-                        case STEP_MICHELSON_CHECKING_CONTRACT_ENTRYPOINT: {
-                            // No way to display
-                            // entrypoint now, so need to
-                            // bail out on anything but
-                            // default.
-                            // TODO: display entrypoints
-                            uint8_t entrypoint_byte = NEXT_BYTE;
-                            if (entrypoint_byte != ENTRYPOINT_DEFAULT) {
-                                PARSE_ERROR();
-                            }
-                        }
-                            JMP(STEP_MICHELSON_CONTRACT_TO_CONTRACT_CHAIN_2);
-
-                        case STEP_MICHELSON_CONTRACT_TO_CONTRACT_CHAIN_2:
-
-                            OP_STEP_REQUIRE_BYTE(MICHELSON_TYPE_SEQUENCE);
-
-                            OP_STEP_REQUIRE_LENGTH(0x15);
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_IF_NONE);
-                            OP_STEP_REQUIRE_BYTE(MICHELSON_TYPE_SEQUENCE);
-                            OP_STEP_REQUIRE_LENGTH(9);
-                            OP_STEP_REQUIRE_BYTE(MICHELSON_TYPE_SEQUENCE);
-                            OP_STEP_REQUIRE_LENGTH(4);
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_UNIT);
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_FAILWITH);
-                            OP_STEP_REQUIRE_BYTE(MICHELSON_TYPE_SEQUENCE);
-                            OP_STEP_REQUIRE_LENGTH(0);
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_PUSH);
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_MUTEZ);
-                            OP_STEP_REQUIRE_BYTE(0);
-
-                            { out->operation.amount = PARSE_Z_MICHELSON; }
-
-                            OP_STEP
-
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_UNIT);
-
-                            {
-                                uint16_t val = MICHELSON_READ_SHORT;
-                                if (val != MICHELSON_TRANSFER_TOKENS) PARSE_ERROR();
-                                out->operation.tag = OPERATION_TAG_BABYLON_TRANSACTION;
-                                JMP(STEP_MICHELSON_CONTRACT_END);
-                            }
-
-                        case STEP_MICHELSON_FIRST_IS_NONE:  // withdraw delegate
-
-                            OP_STEP_REQUIRE_SHORT(MICHELSON_KEY_HASH);
-
-                            {
-                                uint16_t val = MICHELSON_READ_SHORT;
-                                if (val != MICHELSON_SET_DELEGATE) PARSE_ERROR();
-
-                                out->operation.tag = OPERATION_TAG_BABYLON_DELEGATION;
-                                out->operation.destination.originated = 0;
-                                out->operation.destination.signature_type = SIGNATURE_TYPE_UNSET;
-                            }
-
-                            JMP(STEP_MICHELSON_CONTRACT_END);
-
-                        case STEP_MICHELSON_CONTRACT_END:
-
-                        {
-                            uint16_t val = MICHELSON_READ_SHORT;
-                            if (val != MICHELSON_CONS) PARSE_ERROR();
-                        }
-
-                            JMP_EOM;
-
-                        default:
-                            PARSE_ERROR();
-                    }
                 default:  // Any other tag; probably not possible here.
                     PARSE_ERROR();
             }
@@ -906,15 +341,14 @@ static void parse_operations_throws_parse_error(struct parsed_operation_group *c
                                                 void const *const data,
                                                 size_t length,
                                                 derivation_type_t derivation_type,
-                                                bip32_path_t const *const bip32_path,
-                                                is_operation_allowed_t is_operation_allowed) {
+                                                bip32_path_t const *const bip32_path) {
     size_t ix = 0;
 
     parse_operations_init(out, derivation_type, bip32_path, &G.parse_state);
 
     while (ix < length) {
         uint8_t byte = ((uint8_t *) data)[ix];
-        parse_byte(byte, &G.parse_state, out, is_operation_allowed);
+        parse_byte(byte, &G.parse_state, out);
         PRINTF("Byte: %x - Next op_step state: %d\n", byte, G.parse_state.op_step);
         ix++;
     }
@@ -926,16 +360,10 @@ bool parse_operations(struct parsed_operation_group *const out,
                       uint8_t const *const data,
                       size_t length,
                       derivation_type_t derivation_type,
-                      bip32_path_t const *const bip32_path,
-                      is_operation_allowed_t is_operation_allowed) {
+                      bip32_path_t const *const bip32_path) {
     BEGIN_TRY {
         TRY {
-            parse_operations_throws_parse_error(out,
-                                                data,
-                                                length,
-                                                derivation_type,
-                                                bip32_path,
-                                                is_operation_allowed);
+            parse_operations_throws_parse_error(out, data, length, derivation_type, bip32_path);
         }
         CATCH(EXC_PARSE_ERROR) {
             return false;
