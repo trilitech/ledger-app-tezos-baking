@@ -67,7 +67,7 @@ void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
     }
 }
 
-void push_ui_callback(char *title, string_generation_callback cb, void *data) {
+void push_ui_callback(const char *title, string_generation_callback cb, const void *data) {
     if (G_display.formatter_index + 1 >= MAX_SCREEN_STACK_SIZE) {
         THROW(0x6124);
     }

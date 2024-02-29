@@ -45,7 +45,7 @@ void init_screen_stack(void);
  * @param cb: callback to generate the string version of the data
  * @param data: data to display on the screen
  */
-void push_ui_callback(char *title, string_generation_callback cb, void *data);
+void push_ui_callback(const char *title, string_generation_callback cb, const void *data);
 
 /**
  * @brief Starts the idle flow
