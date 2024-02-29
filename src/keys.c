@@ -167,7 +167,7 @@ void public_key_hash(uint8_t *const hash_out,
                      size_t const hash_out_size,
                      cx_ecfp_public_key_t *compressed_out,
                      derivation_type_t const derivation_type,
-                     cx_ecfp_public_key_t const *const restrict public_key) {
+                     cx_ecfp_public_key_t const *const public_key) {
     check_null(hash_out);
     check_null(public_key);
     if (hash_out_size < HASH_SIZE) {
