@@ -1,0 +1,19 @@
+name: cppcheck
+on: [pull_request]
+
+jobs:
+  cppchceck:
+    name: Cppcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup
+        run: sudo apt-get install -y -q cppcheck
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+
+      - name: Check
+        run: cppcheck --quiet --error-exitcode=1 src/

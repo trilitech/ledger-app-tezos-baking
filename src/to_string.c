@@ -119,15 +119,15 @@ void chain_id_to_string(char *const buff, size_t const buff_size, chain_id_t con
         THROW(EXC_WRONG_LENGTH);
     }
 
+    // Must hash big-endian data so treating little endian as big endian just flips
+    uint32_t chain_id_value = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &chain_id.v);
+
     // Data to encode
     struct __attribute__((packed)) {
         uint8_t prefix[3];
         int32_t chain_id;
         uint8_t checksum[TEZOS_HASH_CHECKSUM_SIZE];
-    } data = {.prefix = {87, 82, 0},
-
-              // Must hash big-endian data so treating little endian as big endian just flips
-              .chain_id = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &chain_id.v)};
+    } data = {.prefix = {87, 82, 0}, .chain_id = chain_id_value};
 
     compute_hash_checksum(data.checksum, &data, sizeof(data) - sizeof(data.checksum));
 
