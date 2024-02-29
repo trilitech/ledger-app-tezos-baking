@@ -413,7 +413,7 @@ When you want to upgrade to a new version, whether you built it yourself from so
 or whether it's a new release of the `app.hex` files, use the same commands as you did
 to originally install it. As the keys are generated from the device's seeds and the
 derivation paths, you will have the same keys with every version of this Ledger hardware wallet app,
-so there is no need to re-import the keys with `octez-client`.
+so there is no need to re-import the keys with `octez-client`. You may need to run command `octez-client setup ledger to bake for ...` again as HWM and chain information would be erased after reinstalling the app.
 
 ### Special Upgrading Considerations for Bakers
 
@@ -423,7 +423,7 @@ this command to remind the hardware wallet what key you intend to authorize for 
 also set the HWM:
 
 ```
-$ octez-client setup ledger to bake for <ALIAS> --main-hwm <HWM>
+$ octez-client setup ledger to bake for ledger_<...> --main-hwm <HWM>
 ```
 
 Alternatively, you can also set the High Watermark to the level of the most recently baked block with a separate command:
@@ -451,7 +451,7 @@ You currently cannot directly import a fundraiser account to the Ledger device. 
 ### Two Ledger Devices at the Same Time
 
 Two Ledger devices with the same seed should not ever be plugged in at the same time. This confuses
-`tezos-client` and other client programs. Instead, you should plug only one of a set of paired
+`octez-client` and other client programs. Instead, you should plug only one of a set of paired
 ledgers at a time. Two Ledger devices of different seeds are fine and are fully supported,
 and the computer will automatically determine which one to send information to.
 
@@ -463,7 +463,7 @@ computer for wallet transactions.
 ### unexpected seq num
 
 ```
-$ client/bin/tezos-client list connected ledgers
+$ octez-client list connected ledgers
 Fatal error:                                                                                                                                        Header.check: unexpected seq num
 ```
 
@@ -472,7 +472,7 @@ This means you do not have the Tezos application open on your device.
 ### No device found
 
 ```
-$ tezos-client list connected ledgers
+$ octez-client list connected ledgers
 No device found.
 Make sure a Ledger device is connected and in the Tezos Wallet app.
 ```
@@ -482,22 +482,22 @@ mean that your udev rules are not set up correctly.
 
 ### Unrecognized command
 
-If you see an `Unrecognized command` error, it might be because there is no node for `tezos-client`
+If you see an `Unrecognized command` error, it might be because there is no node for `octez-client`
 to connect to. Please ensure that you are running a node. `ps aux | grep tezos-node` should display
 the process information for the current node. If it displays nothing, or just displays a `grep`
 command, then there is no node running on your machine.
 
 ### Error "Unexpected sequence number (expected 0, got 191)" on macOS
 
-If `tezos-client` on macOS intermittently fails with an error that looks like
+If `octez-client` on macOS intermittently fails with an error that looks like
 
 ```
 client.signer.ledger: APDU level error: Unexpected sequence number (expected 0, got 191)
 ```
 
-then your installation of `tezos-client` was built with an older version of HIDAPI that doesn't work well with macOS (see [#30](https://github.com/obsidiansystems/ledger-app-tezos/issues/30)).
+then your installation of `octez-client` was built with an older version of HIDAPI that doesn't work well with macOS (see [#30](https://github.com/obsidiansystems/ledger-app-tezos/issues/30)).
 
-To fix this you need to get the yet-unreleased fixes from the [HIDAPI library](https://github.com/signal11/hidapi) and rebuild `tezos-client`.
+To fix this you need to get the yet-unreleased fixes from the [HIDAPI library](https://github.com/signal11/hidapi) and rebuild `octez-client`.
 
 If you got HIDAPI from Homebrew, you can update to the `master` branch of HIDAPI like this:
 
@@ -505,7 +505,7 @@ If you got HIDAPI from Homebrew, you can update to the `master` branch of HIDAPI
 $ brew install hidapi --HEAD
 ```
 
-Then start a full rebuild of `tezos-client` with HIDAPI's `master` branch:
+Then start a full rebuild of `octez-client` with HIDAPI's `master` branch:
 
 ```shell
 $ brew unlink hidapi   # remove the current one
@@ -518,10 +518,10 @@ Finally, rebuild `ocaml-hidapi` with Tezos. In the `tezos` repository:
 ```shell
 $ opam reinstall hidapi
 $ make all build-test
-$ ./tezos-client list connected ledgers  # should now work consistently
+$ ./octez-client list connected ledgers  # should now work consistently
 ```
 
-Note that you may still see warnings similar to `Unexpected sequence number (expected 0, got 191)` even after this update. The reason is that there is a separate, more cosmetic, issue in `tezos-client` itself which has already been fixed but may not be in your branch yet (see the [merge request](https://gitlab.com/tezos/tezos/merge_requests/600)).
+Note that you may still see warnings similar to `Unexpected sequence number (expected 0, got 191)` even after this update. The reason is that there is a separate, more cosmetic, issue in `octez-client` itself which has already been fixed but may not be in your branch yet (see the [merge request](https://gitlab.com/tezos/tezos/merge_requests/600)).
 
 ### Command Line Installations: "This app is not genuine"
 
