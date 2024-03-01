@@ -103,11 +103,11 @@ $ source env/bin/activate
 ```
 Inside the virtualenv, load the requirements.txt file.
 ```
-(env)$ pip install -r test/python/requirements.txt
+(env)$ pip install -r test/requirements.txt
 ```
 Now you can run ragger tests for any perticular ledger device. Please make sure you have built the app.elf files for that perticular device first. Then run following command:
 ```
-(env)$ pytest test/python --device nanosp
+(env)$ pytest test --device nanosp
 ```
 Replace nanosp with any of the following for respective device: nanos, nanosp, nanox , stax.
 
