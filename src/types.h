@@ -141,7 +141,7 @@ typedef struct {
 static inline void copy_bip32_path(bip32_path_t *const out, bip32_path_t volatile const *const in) {
     check_null(out);
     check_null(in);
-    memcpy(out->components, (void *) in->components, in->length * sizeof(*in->components));
+    memcpy(out->components, in->components, in->length * sizeof(*in->components));
     out->length = in->length;
 }
 
