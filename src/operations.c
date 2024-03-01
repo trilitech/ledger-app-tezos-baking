@@ -387,7 +387,7 @@ static inline bool parse_byte(uint8_t byte,
 
             // This is the one allowable non-reveal operation per set
 
-            out->operation.tag = (uint8_t) state->tag;
+            out->operation.tag = state->tag;
 
             // Deliberate epsilon-transition.
             state->op_step = STEP_OP_TYPE_DISPATCH;
