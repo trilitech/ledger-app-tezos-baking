@@ -57,7 +57,7 @@ size_t handle_apdu_all_hwm(__attribute__((unused)) uint8_t instruction,
                            __attribute__((unused)) volatile uint32_t* flags) {
     size_t tx = 0;
     tx = send_word_big_endian(tx, N_data.hwm.main.highest_level);
-    int has_a_chain_migrated =
+    bool has_a_chain_migrated =
         N_data.hwm.main.migrated_to_tenderbake || N_data.hwm.test.migrated_to_tenderbake;
     if (has_a_chain_migrated) {
         tx = send_word_big_endian(tx, N_data.hwm.main.highest_round);
