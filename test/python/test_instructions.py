@@ -331,22 +331,13 @@ def test_sign_preattestation(
             f"Expected hash {preattestation.hash.hex()} but got {preattestation_hash.hex()}"
         account.check_signature(signature, bytes(preattestation))
 
-    tezos_navigator.assert_screen(
-        name="black_screen",
-        snap_path=snap_path / "app_context"
-    )
-
-    tezos_navigator.backend.right_click()
-    tezos_navigator.assert_screen(
-        name="home_screen",
-        snap_path=snap_path / "app_context"
-    )
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path
+        snap_path=snap_path,
+        black_screen=True
     )
 
 
@@ -386,23 +377,13 @@ def test_sign_attestation(
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
 
-    tezos_navigator.assert_screen(
-        name="black_screen",
-        snap_path=snap_path / "app_context"
-    )
-
-    tezos_navigator.backend.right_click()
-    tezos_navigator.assert_screen(
-        name="home_screen",
-        snap_path=snap_path / "app_context"
-    )
- 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path
+        snap_path=snap_path,
+        black_screen=True
     )
 
 
@@ -442,23 +423,13 @@ def test_sign_attestation_dal(
             f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
         account.check_signature(signature, bytes(attestation))
 
-    tezos_navigator.assert_screen(
-        name="black_screen",
-        snap_path=snap_path / "app_context"
-    )
-
-    tezos_navigator.backend.right_click()
-    tezos_navigator.assert_screen(
-        name="home_screen",
-        snap_path=snap_path / "app_context"
-    )
- 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path
+        snap_path=snap_path,
+        black_screen=True
     )
 
 
@@ -498,23 +469,13 @@ def test_sign_block(
             f"Expected hash {block.hash.hex()} but got {block_hash.hex()}"
         account.check_signature(signature, bytes(block))
 
-    tezos_navigator.assert_screen(
-        name="black_screen",
-        snap_path=snap_path / "app_context"
-    )
-
-    tezos_navigator.backend.right_click()
-    tezos_navigator.assert_screen(
-        name="home_screen",
-        snap_path=snap_path / "app_context"
-    )
- 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path
+        snap_path=snap_path,
+        black_screen=True
     )
 
 
@@ -1004,7 +965,6 @@ def test_sign_when_no_chain_setup(
     """Check that signing when no chain has been setup change main HWM."""
 
     account = DEFAULT_ACCOUNT
-    snap_path = Path(f"{account}")
 
     tezos_navigator.setup_app_context(
         account,
@@ -1020,18 +980,13 @@ def test_sign_when_no_chain_setup(
 
     client.sign_message(account, attestation)
 
-    tezos_navigator.backend.right_click()
-    tezos_navigator.assert_screen(
-        name="home_screen",
-        snap_path=snap_path / "app_context"
-    )
- 
     tezos_navigator.check_app_context(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_1_0")
+        snap_path=Path("sign_1_0"),
+        black_screen=True
     )
 
     attestation = build_attestation(
@@ -1041,18 +996,13 @@ def test_sign_when_no_chain_setup(
 
     client.sign_message(account, attestation)
 
-    tezos_navigator.backend.right_click()
-    tezos_navigator.assert_screen(
-        name="home_screen",
-        snap_path=snap_path / "app_context"
-    )
- 
     tezos_navigator.check_app_context(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(2, 0),
         test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_2_0")
+        snap_path=Path("sign_2_0"),
+        black_screen=True
     )
 
     attestation = build_attestation(
@@ -1079,7 +1029,6 @@ def test_sign_when_chain_is_setup(
 
     account = DEFAULT_ACCOUNT
     main_chain_id = "NetXH12AexHqTQa" # Chain = 1
-    snap_path = Path(f"{account}")
 
     tezos_navigator.setup_app_context(
         account,
@@ -1095,17 +1044,13 @@ def test_sign_when_chain_is_setup(
 
     client.sign_message(account, attestation)
 
-    tezos_navigator.backend.right_click()
-    tezos_navigator.assert_screen(
-        name="home_screen",
-        snap_path=snap_path / "app_context"
-    )
- 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(0, 0),
+        snap_path=Path("sign_1_0"),
+        black_screen=True
     )
 
     attestation = build_attestation(
@@ -1115,17 +1060,13 @@ def test_sign_when_chain_is_setup(
 
     client.sign_message(account, attestation)
 
-    tezos_navigator.backend.right_click()
-    tezos_navigator.assert_screen(
-        name="home_screen",
-        snap_path=snap_path / "app_context"
-    )
- 
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(2, 0),
+        snap_path=Path("sign_2_0"),
+        black_screen=True
     )
 
     attestation = build_attestation(
@@ -1141,6 +1082,7 @@ def test_sign_when_chain_is_setup(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(2, 0),
+        snap_path=Path("sign_2_0")
     )
 
 
