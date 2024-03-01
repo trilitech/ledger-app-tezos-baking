@@ -90,12 +90,14 @@ static bool sign_reject(void) {
 }
 
 size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
+    size_t result = 0;
     switch (G.magic_byte) {
         case MAGIC_BYTE_BLOCK:
         case MAGIC_BYTE_PREENDORSEMENT:
         case MAGIC_BYTE_ENDORSEMENT:
             guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve);
-            return perform_signature(true, send_hash);
+            result = perform_signature(true, send_hash);
+            ux_empty_screen();
             break;
 
         case MAGIC_BYTE_UNSAFE_OP: {
@@ -113,28 +115,31 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
                             send_hash ? sign_with_hash_ok : sign_without_hash_ok;
                         prompt_register_delegate(ok_c, sign_reject);
                         *flags = IO_ASYNCH_REPLY;
-                        return 0;
+                        result = 0;
+                    } else {
+                        THROW(EXC_SECURITY);
                     }
-                    THROW(EXC_SECURITY);
                     break;
                 case OPERATION_TAG_REVEAL:
                 case OPERATION_TAG_NONE:
                     // Reveal cases
                     if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
                         // ops->signing is generated from G.bip32_path and G.curve
-                        COMPARE(&G.maybe_ops.v.operation.source, &G.maybe_ops.v.signing) == 0)
-                        return perform_signature(true, send_hash);
-                    THROW(EXC_SECURITY);
+                        COMPARE(&G.maybe_ops.v.operation.source, &G.maybe_ops.v.signing) == 0) {
+                        result = perform_signature(true, send_hash);
+                    } else {
+                        THROW(EXC_SECURITY);
+                    }
                     break;
                 default:
                     THROW(EXC_SECURITY);
             }
-            THROW(EXC_SECURITY);
             break;
         }
         default:
             PARSE_ERROR();
     }
+    return result;
 }
 
 #define P1_FIRST          0x00
@@ -160,6 +165,9 @@ static size_t handle_apdu(bool const enable_hashing,
                           bool const enable_parsing,
                           uint8_t const instruction,
                           volatile uint32_t *flags) {
+    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
+        THROW(EXC_SECURITY);
+    }
     uint8_t *const buff = &G_io_apdu_buffer[OFFSET_CDATA];
     uint8_t const p1 = G_io_apdu_buffer[OFFSET_P1];
     uint8_t const buff_size = G_io_apdu_buffer[OFFSET_LC];
@@ -251,8 +259,11 @@ size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t *flags)
 }
 
 int perform_signature(bool const on_hash, bool const send_hash) {
-    write_high_water_mark(&G.parsed_baking_data);
+    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
+        THROW(EXC_SECURITY);
+    }
 
+    write_high_water_mark(&G.parsed_baking_data);
     size_t tx = 0;
     if (send_hash && on_hash) {
         memcpy(&G_io_apdu_buffer[tx], G.final_hash, sizeof(G.final_hash));

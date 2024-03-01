@@ -156,9 +156,20 @@ class TezosNavigator(metaclass=MetaScreen):
                           chain_id: str,
                           main_hwm: Hwm,
                           test_hwm: Hwm,
-                          snap_path: Path = Path("")) -> None:
+                          snap_path: Path = Path(""),
+                          black_screen: bool = False) -> None:
         """Check that the app context."""
 
+        if black_screen:
+            self.assert_screen(
+                name="black_screen",
+                snap_path=snap_path / "app_context"
+            )
+            self.backend.right_click()
+            self.assert_screen(
+                name="home_screen",
+                snap_path=snap_path / "app_context"
+            )
         received_chain_id, received_main_hwm, received_test_hwm = self.client.get_all_hwm()
 
         assert received_chain_id == chain_id, \
