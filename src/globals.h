@@ -42,27 +42,27 @@ void clear_apdu_globals(void);
  *
  * @param out: output buffer
  * @param out_size: output size
- * @param data: chain_id
+ * @param chain_id: chain_id
  */
-void copy_chain(char *out, size_t out_size, void *data);
+void copy_chain(char *out, size_t out_size, chain_id_t *chain_id);
 
 /**
  * @brief string_generation_callback for keys
  *
  * @param out: output buffer
  * @param out_size: output size
- * @param data: bip32 path curve key
+ * @param baking_key: bip32 path curve key
  */
-void copy_key(char *out, size_t out_size, void *data);
+void copy_key(char *out, size_t out_size, bip32_path_with_curve_t *baking_key);
 
 /**
  * @brief string_generation_callback for high watermarks
  *
  * @param out: output buffer
  * @param out_size: output size
- * @param data: high watermark
+ * @param hwm: high watermark
  */
-void copy_hwm(char *out, size_t out_size, void *data);
+void copy_hwm(char *out, size_t out_size, high_watermark_t *hwm);
 
 /**
  * @brief Zeros out all application-specific globals and SDK-specific UI/exchange buffers

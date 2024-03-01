@@ -179,7 +179,7 @@ struct block_wire {
  * @param fitness: fitness
  * @return uint8_t: protocol version result
  */
-static uint8_t get_proto_version(void const *const fitness) {
+static uint8_t get_proto_version(uint8_t const *const fitness) {
     // Each field is preceded by its size (uint32_t).
     // That's why we need to look at `sizeof(uint32_t)` bytes after
     // the start of `fitness` to get to its first field.
@@ -198,13 +198,13 @@ static uint8_t get_proto_version(void const *const fitness) {
  * @return bool: returns false if it is invalid
  */
 static bool parse_block(parsed_baking_data_t *const out,
-                        void const *const data,
+                        uint8_t const *const data,
                         size_t const length) {
     if (length < sizeof(struct block_wire) + MINIMUM_FITNESS_SIZE) {
         return false;
     }
-    struct block_wire const *const block = data;
-    void const *const fitness = data + sizeof(struct block_wire);
+    struct block_wire const *const block = (struct block_wire const *const) data;
+    uint8_t const *const fitness = data + sizeof(struct block_wire);
     uint8_t proto_version = get_proto_version(fitness);
     if (proto_version != TENDERBAKE_PROTO_FITNESS_VERSION) {
         return false;
@@ -252,12 +252,12 @@ struct consensus_op_wire {
  * @return bool: returns false if it is invalid
  */
 static bool parse_consensus_operation(parsed_baking_data_t *const out,
-                                      void const *const data,
+                                      uint8_t const *const data,
                                       size_t const length) {
     if (length < sizeof(struct consensus_op_wire)) {
         return false;
     }
-    struct consensus_op_wire const *const op = data;
+    struct consensus_op_wire const *const op = (struct consensus_op_wire const *const) data;
 
     out->chain_id.v = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &op->chain_id);
     out->is_tenderbake = true;
@@ -279,7 +279,7 @@ static bool parse_consensus_operation(parsed_baking_data_t *const out,
 }
 
 bool parse_baking_data(parsed_baking_data_t *const out,
-                       void const *const data,
+                       uint8_t const *const data,
                        size_t const length) {
     switch (get_magic_byte(data, length)) {
         case MAGIC_BYTE_PREATTESTATION:

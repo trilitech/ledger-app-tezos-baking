@@ -440,7 +440,7 @@ static inline bool parse_byte(uint8_t byte,
  * @param bip32_path: bip32 path of the key
  */
 static void parse_operations_throws_parse_error(struct parsed_operation_group *const out,
-                                                void const *const data,
+                                                uint8_t const *const data,
                                                 size_t length,
                                                 derivation_type_t derivation_type,
                                                 bip32_path_t const *const bip32_path) {
@@ -449,7 +449,7 @@ static void parse_operations_throws_parse_error(struct parsed_operation_group *c
     parse_operations_init(out, derivation_type, bip32_path, &G.parse_state);
 
     while (ix < length) {
-        uint8_t byte = ((uint8_t *) data)[ix];
+        uint8_t byte = data[ix];
         parse_byte(byte, &G.parse_state, out);
         PRINTF("Byte: %x - Next op_step state: %d\n", byte, G.parse_state.op_step);
         ix++;
