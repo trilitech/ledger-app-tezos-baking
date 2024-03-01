@@ -53,7 +53,7 @@ static inline void conditional_init_hash_state(blake2b_hash_state_t *const state
     check_null(state);
     if (!state->initialized) {
         // cx_blake2b_init takes size in bits.
-        CX_THROW(cx_blake2b_init_no_throw(&state->state, SIGN_HASH_SIZE * 8));
+        CX_THROW(cx_blake2b_init_no_throw(&state->state, SIGN_HASH_SIZE * 8u));
         state->initialized = true;
     }
 }
@@ -235,9 +235,9 @@ static size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flag
  * @brief Packet indexes
  *
  */
-#define P1_FIRST       0x00  /// First packet
-#define P1_NEXT        0x01  /// Other packet
-#define P1_LAST_MARKER 0x80  /// Last packet
+#define P1_FIRST       0x00u  /// First packet
+#define P1_NEXT        0x01u  /// Other packet
+#define P1_LAST_MARKER 0x80u  /// Last packet
 
 /**
  * @brief Get the magic byte of a buffer
@@ -285,7 +285,7 @@ static size_t handle_apdu(bool const enable_hashing,
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
 
-    bool last = (p1 & P1_LAST_MARKER) != 0;
+    bool last = (p1 & P1_LAST_MARKER) != 0u;
     switch (p1 & ~P1_LAST_MARKER) {
         case P1_FIRST:
             clear_data();
@@ -294,12 +294,12 @@ static size_t handle_apdu(bool const enable_hashing,
                 parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
             return finalize_successful_send(0);
         case P1_NEXT:
-            if (global.path_with_curve.bip32_path.length == 0) {
+            if (global.path_with_curve.bip32_path.length == 0u) {
                 THROW(EXC_WRONG_LENGTH_FOR_INS);
             }
 
             // Guard against overflow
-            if (G.packet_index >= 0xFF) {
+            if (G.packet_index >= 0xFFu) {
                 PARSE_ERROR();
             }
             G.packet_index++;
@@ -310,7 +310,7 @@ static size_t handle_apdu(bool const enable_hashing,
     }
 
     if (enable_parsing) {
-        if (G.packet_index != 1) {
+        if (G.packet_index != 1u) {
             PARSE_ERROR();  // Only parse a single packet when baking
         }
 

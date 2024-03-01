@@ -146,12 +146,12 @@ static inline bool parse_z(uint8_t current_byte,
         state->shift = 0;
     }
     // Fails when the resulting shifted value overflows 64 bits
-    if (state->shift > 63 || (state->shift == 63 && current_byte != 1)) {
+    if (state->shift > 63u || (state->shift == 63u && current_byte != 1u)) {
         PARSE_ERROR();
     }
-    state->value |= ((uint64_t) current_byte & 0x7F) << state->shift;
-    state->shift += 7;
-    return current_byte & 0x80;  // Return true if we need more bytes.
+    state->value |= ((uint64_t) current_byte & 0x7Fu) << state->shift;
+    state->shift += 7u;
+    return current_byte & 0x80u;  // Return true if we need more bytes.
 }
 #define PARSE_Z                                                             \
     ({                                                                      \
@@ -323,7 +323,7 @@ static inline bool parse_byte(uint8_t byte,
             }
 
             // If the source is an implicit contract,...
-            if (out->operation.source.originated == 0) {
+            if (!out->operation.source.originated) {
                 // ... it had better match our key, otherwise why are we signing it?
                 if (COMPARE(&out->operation.source, &out->signing) != 0) {
                     PARSE_ERROR();

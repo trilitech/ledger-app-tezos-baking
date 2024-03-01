@@ -73,7 +73,7 @@ __attribute__((noreturn)) void main_loop(apdu_handler const* const handlers,
                 PRINTF("New APDU received:\n%.*H\n", rx, G_io_apdu_buffer);
                 // Process APDU of size rx
 
-                if (rx == 0) {
+                if (!rx) {
                     // no apdu received, well, reset the session, and reset the
                     // bootloader configuration
                     THROW(EXC_SECURITY);

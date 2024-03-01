@@ -47,7 +47,7 @@ static size_t send_word_big_endian(size_t tx, uint32_t word) {
     // endian.h functions do not compile
     uint32_t i = 0;
     for (; i < sizeof(word); i++) {
-        G_io_apdu_buffer[i + tx] = word_bytes[sizeof(word) - i - 1];
+        G_io_apdu_buffer[i + tx] = word_bytes[sizeof(word) - i - 1u];
     }
 
     return tx + i;

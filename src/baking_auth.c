@@ -62,7 +62,7 @@ void authorize_baking(derivation_type_t const derivation_type,
                       bip32_path_t const *const bip32_path) {
     check_null(bip32_path);
     if (bip32_path->length > NUM_ELEMENTS(N_data.baking_key.bip32_path.components) ||
-        bip32_path->length == 0) {
+        bip32_path->length == 0u) {
         return;
     }
 
@@ -122,8 +122,8 @@ static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
 static bool is_path_authorized(derivation_type_t const derivation_type,
                                bip32_path_t const *const bip32_path) {
     check_null(bip32_path);
-    return derivation_type != 0 && derivation_type == N_data.baking_key.derivation_type &&
-           bip32_path->length > 0 &&
+    return derivation_type && derivation_type == N_data.baking_key.derivation_type &&
+           bip32_path->length != 0u &&
            bip32_paths_eq(bip32_path, (const bip32_path_t *) &N_data.baking_key.bip32_path);
 }
 
@@ -168,10 +168,10 @@ struct block_wire {
     // ... beyond this we don't care
 } __attribute__((packed));
 
-#define MINIMUM_FITNESS_SIZE 33  // When 'locked_round' == none
-#define MAXIMUM_FITNESS_SIZE 37  // When 'locked_round' != none
+#define MINIMUM_FITNESS_SIZE 33u  // When 'locked_round' == none
+#define MAXIMUM_FITNESS_SIZE 37u  // When 'locked_round' != none
 
-#define TENDERBAKE_PROTO_FITNESS_VERSION 2
+#define TENDERBAKE_PROTO_FITNESS_VERSION 2u
 
 /**
  * @brief Get the protocol version from fitness
@@ -219,7 +219,7 @@ static bool parse_block(parsed_baking_data_t *const out,
     out->level = READ_UNALIGNED_BIG_ENDIAN(level_t, &block->level);
     out->type = BAKING_TYPE_BLOCK;
     out->is_tenderbake = true;
-    out->round = READ_UNALIGNED_BIG_ENDIAN(uint32_t, (fitness + fitness_size - 4));
+    out->round = READ_UNALIGNED_BIG_ENDIAN(uint32_t, (fitness + fitness_size - 4u));
 
     return true;
 }

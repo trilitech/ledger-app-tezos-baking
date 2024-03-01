@@ -43,7 +43,7 @@ size_t read_bip32_path(bip32_path_t *const out, uint8_t const *const in, size_t 
     if (in_size - ix < out->length * sizeof(*buf_as_bip32->components)) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
-    if (out->length == 0 || out->length > NUM_ELEMENTS(out->components)) {
+    if (out->length == 0u || out->length > NUM_ELEMENTS(out->components)) {
         THROW(EXC_WRONG_VALUES);
     }
 
@@ -194,7 +194,7 @@ void public_key_hash(uint8_t *const hash_out,
 
     cx_blake2b_t hash_state;
     // cx_blake2b_init takes size in bits.
-    CX_THROW(cx_blake2b_init_no_throw(&hash_state, HASH_SIZE * 8));
+    CX_THROW(cx_blake2b_init_no_throw(&hash_state, HASH_SIZE * 8u));
     CX_THROW(cx_hash_no_throw((cx_hash_t *) &hash_state,
                               CX_LAST,
                               compressed.W,
@@ -219,7 +219,7 @@ size_t sign(uint8_t *const out,
     size_t tx = 0;
     switch (derivation_type_to_signature_type(derivation_type)) {
         case SIGNATURE_TYPE_ED25519: {
-            static size_t const SIG_SIZE = 64;
+            static size_t const SIG_SIZE = 64u;
             if (out_size < SIG_SIZE) {
                 THROW(EXC_WRONG_LENGTH);
             }
@@ -236,7 +236,7 @@ size_t sign(uint8_t *const out,
         } break;
         case SIGNATURE_TYPE_SECP256K1:
         case SIGNATURE_TYPE_SECP256R1: {
-            static size_t const SIG_SIZE = 100;
+            static size_t const SIG_SIZE = 100u;
             if (out_size < SIG_SIZE) {
                 THROW(EXC_WRONG_LENGTH);
             }

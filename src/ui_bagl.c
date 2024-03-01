@@ -68,7 +68,7 @@ static void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
 }
 
 void push_ui_callback(const char *title, string_generation_callback cb, const void *data) {
-    if (G_display.formatter_index + 1 >= MAX_SCREEN_STACK_SIZE) {
+    if (G_display.formatter_index + 1u >= MAX_SCREEN_STACK_SIZE) {
         THROW(0x6124);
     }
     struct screen_data *fmt = &G_display.screen_stack[G_display.formatter_index];
@@ -150,7 +150,7 @@ static void display_next_state(bool is_left_ux_step) {
             ux_flow_next();
         } else {
             // The previous screen was NOT a static screen, so we were already in the stack.
-            if (G_display.formatter_index == 0) {
+            if (G_display.formatter_index == 0u) {
                 // If `formatter_index` is 0 then we need to exit the dynamic display.
 
                 // Update the current_state accordingly.
@@ -175,7 +175,7 @@ static void display_next_state(bool is_left_ux_step) {
             // Update the current_state.
             G_display.current_state = DYNAMIC_SCREEN;
             // We're starting the stack from the end, so the index is the size - 1.
-            G_display.formatter_index = G_display.screen_stack_size - 1;
+            G_display.formatter_index = G_display.screen_stack_size - 1u;
             // Update the screen data.
             set_screen_data();
             // Since we're called from the RIGHT ux step, if we wish to display

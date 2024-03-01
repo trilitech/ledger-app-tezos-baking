@@ -53,14 +53,14 @@ nvram_data const N_data_real;
 high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
                                                nvram_data volatile *const ram) {
     check_null(ram);
-    return chain_id.v == ram->main_chain_id.v || ram->main_chain_id.v == 0 ? &ram->hwm.main
-                                                                           : &ram->hwm.test;
+    return chain_id.v == ram->main_chain_id.v || !ram->main_chain_id.v ? &ram->hwm.main
+                                                                       : &ram->hwm.test;
 }
 
 void copy_chain(char *out, size_t out_size, void *data) {
     chain_id_t *chain_id = (chain_id_t *) data;
 
-    if (chain_id->v == 0) {
+    if (!chain_id->v) {
         copy_string(out, out_size, "any");
     } else {
         chain_id_to_string_with_aliases(out, out_size, (chain_id_t const *const) chain_id);
@@ -69,7 +69,7 @@ void copy_chain(char *out, size_t out_size, void *data) {
 
 void copy_key(char *out, size_t out_size, void *data) {
     bip32_path_with_curve_t *baking_key = (bip32_path_with_curve_t *) data;
-    if (baking_key->bip32_path.length == 0) {
+    if (baking_key->bip32_path.length == 0u) {
         copy_string(out, out_size, "No Key Authorized");
     } else {
         cx_ecfp_public_key_t pubkey = {0};
@@ -90,7 +90,7 @@ void copy_hwm(char *out, size_t out_size, void *data) {
     if (hwm->migrated_to_tenderbake) {
         size_t len1 = number_to_string(out, hwm->highest_level);
         out[len1] = ' ';
-        number_to_string(out + len1 + 1, hwm->highest_round);
+        number_to_string(out + len1 + 1u, hwm->highest_round);
     } else {
         number_to_string(out, hwm->highest_level);
     }

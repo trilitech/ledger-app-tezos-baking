@@ -71,13 +71,13 @@ void copy_hwm(char *out, size_t out_size, void *data);
 void init_globals(void);
 
 /// Maximum number of bytes in a single APDU
-#define MAX_APDU_SIZE 235
+#define MAX_APDU_SIZE 235u
 
 /// Our buffer must accommodate any remainder from hashing and the next message at once.
 #define TEZOS_BUFSIZE (BLAKE2B_BLOCKBYTES + MAX_APDU_SIZE)
 
-#define PRIVATE_KEY_DATA_SIZE 64
-#define MAX_SIGNATURE_SIZE    100
+#define PRIVATE_KEY_DATA_SIZE 64u
+#define MAX_SIGNATURE_SIZE    100u
 
 /**
  * @brief This structure represents the state needed to handle HMAC
@@ -170,14 +170,14 @@ typedef struct {
         ui_callback_t cxl_callback;
 
         /// Title to be displayed on the screen.
-        char screen_title[PROMPT_WIDTH + 1];
+        char screen_title[PROMPT_WIDTH + 1u];
         /// Value to be displayed on the screen.
-        char screen_value[VALUE_WIDTH + 1];
+        char screen_value[VALUE_WIDTH + 1u];
         /// Screensaver is on/off.
         bool is_blank_screen;
     } dynamic_display;
 
-    apdu_handler handlers[INS_MAX + 1];       ///< all handlers
+    apdu_handler handlers[INS_MAX + 1u];      ///< all handlers
     bip32_path_with_curve_t path_with_curve;  ///< holds the bip32 path and curve of the current key
 
     /// apdu handling state

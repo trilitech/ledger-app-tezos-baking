@@ -28,7 +28,7 @@
 
 #include <string.h>
 
-#define TEZOS_HASH_CHECKSUM_SIZE 4
+#define TEZOS_HASH_CHECKSUM_SIZE 4u
 
 #define TICKER_WITH_SPACE " XTZ"
 
@@ -182,7 +182,7 @@ void chain_id_to_string_with_aliases(char *const out,
                                      chain_id_t const *const chain_id) {
     check_null(out);
     check_null(chain_id);
-    if (chain_id->v == 0) {
+    if (!chain_id->v) {
         STRCPY_OR_THROW(out, out_size, "any", EXC_WRONG_LENGTH);
     } else if (chain_id->v == mainnet_chain_id.v) {
         STRCPY_OR_THROW(out, out_size, "mainnet", EXC_WRONG_LENGTH);
@@ -211,9 +211,9 @@ static inline size_t convert_number(char dest[MAX_INT_DIGITS],
     check_null(dest);
     char *const end = dest + MAX_INT_DIGITS;
     for (char *ptr = end - 1; ptr >= dest; ptr--) {
-        *ptr = '0' + number % 10;
-        number /= 10;
-        if (!leading_zeroes && number == 0) {  // TODO: This is ugly
+        *ptr = '0' + number % 10u;
+        number /= 10u;
+        if (!leading_zeroes && number == 0u) {  // TODO: This is ugly
             return ptr - dest;
         }
     }
@@ -225,7 +225,7 @@ void number_to_string_indirect32(char *const dest,
                                  uint32_t const *const number) {
     check_null(dest);
     check_null(number);
-    if (buff_size < MAX_INT_DIGITS + 1) {
+    if (buff_size < MAX_INT_DIGITS + 1u) {
         THROW(EXC_WRONG_LENGTH);  // terminating null
     }
     number_to_string(dest, *number);
@@ -236,7 +236,7 @@ void microtez_to_string_indirect(char *const dest,
                                  uint64_t const *const number) {
     check_null(dest);
     check_null(number);
-    if (buff_size < MAX_INT_DIGITS + sizeof(TICKER_WITH_SPACE) + 1) {
+    if (buff_size < MAX_INT_DIGITS + sizeof(TICKER_WITH_SPACE) + 1u) {
         THROW(EXC_WRONG_LENGTH);  // + terminating null + decimal point
     }
     microtez_to_string(dest, *number);
@@ -255,8 +255,8 @@ size_t number_to_string(char *const dest, uint64_t number) {
 }
 
 /// Microtez are in millionths
-#define TEZ_SCALE      1000000
-#define DECIMAL_DIGITS 6
+#define TEZ_SCALE      1000000u
+#define DECIMAL_DIGITS 6u
 
 /**
  * @brief Converts an uint64 number to microtez as string
@@ -272,7 +272,7 @@ static size_t microtez_to_string(char *const dest, uint64_t number) {
     uint64_t whole_tez = number / TEZ_SCALE;
     uint64_t fractional = number % TEZ_SCALE;
     size_t off = number_to_string(dest, whole_tez);
-    if (fractional == 0) {
+    if (fractional == 0u) {
         // Append the ticker at the end of the amount.
         memcpy(dest + off, TICKER_WITH_SPACE, sizeof(TICKER_WITH_SPACE));
         off += sizeof(TICKER_WITH_SPACE);
@@ -287,7 +287,7 @@ static size_t microtez_to_string(char *const dest, uint64_t number) {
     // Eliminate trailing 0s
     char *start = tmp + MAX_INT_DIGITS - DECIMAL_DIGITS;
     char *end;
-    for (end = tmp + MAX_INT_DIGITS - 1; end >= start; end--) {
+    for (end = tmp + MAX_INT_DIGITS - 1u; end >= start; end--) {
         if (*end != '0') {
             end++;
             break;

@@ -85,7 +85,7 @@ typedef uint32_t round_t;
 
 #define CHAIN_ID_BASE58_STRING_SIZE sizeof("NetXdQprcVkpaWU")
 
-#define MAX_INT_DIGITS 20
+#define MAX_INT_DIGITS 20u
 
 /**
  * @brief This structure represents chain id
@@ -231,18 +231,18 @@ typedef struct {
     bip32_path_with_curve_t baking_key;  ///< authorized key
 } nvram_data;
 
-#define SIGN_HASH_SIZE 32  // TODO: Rename or use a different constant.
+#define SIGN_HASH_SIZE 32u  // TODO: Rename or use a different constant.
 
-#define PKH_STRING_SIZE 40  // includes null byte // TODO: use sizeof for this.
+#define PKH_STRING_SIZE 40u  // includes null byte // TODO: use sizeof for this.
 #define PROTOCOL_HASH_BASE58_STRING_SIZE \
     sizeof("ProtoBetaBetaBetaBetaBetaBetaBetaBetaBet11111a5ug96")
 
-#define MAX_SCREEN_STACK_SIZE 7  // Maximum number of screens in a flow.
-#define PROMPT_WIDTH          16
+#define MAX_SCREEN_STACK_SIZE 7u  // Maximum number of screens in a flow.
+#define PROMPT_WIDTH          16u
 #define VALUE_WIDTH           PROTOCOL_HASH_BASE58_STRING_SIZE
 
 // TODO: Rename to KEY_HASH_SIZE
-#define HASH_SIZE 20
+#define HASH_SIZE 20u
 
 /**
  * @brief This structure represents the content of a parsed baking data
@@ -303,7 +303,7 @@ struct parsed_operation_group {
     struct parsed_operation operation;  ///< operation parsed
 };
 
-#define INS_MAX 0x0F
+#define INS_MAX 0x0Fu
 
 #define APDU_INS(x)                                                        \
     ({                                                                     \
