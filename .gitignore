@@ -2,8 +2,8 @@ bin
 debug
 build
 # python environment used for testing
-env 
-# cache files 
+env
+# cache files
 *__pycache__*
 #ide
 *.code-workspace

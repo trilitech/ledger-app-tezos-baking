@@ -51,7 +51,9 @@ static inline void compute_pkh(cx_ecfp_public_key_t *const compressed_pubkey_out
                     derivation_type,
                     &pubkey);
     contract_out->signature_type = derivation_type_to_signature_type(derivation_type);
-    if (contract_out->signature_type == SIGNATURE_TYPE_UNSET) THROW(EXC_MEMORY_ERROR);
+    if (contract_out->signature_type == SIGNATURE_TYPE_UNSET) {
+        THROW(EXC_MEMORY_ERROR);
+    }
     contract_out->originated = 0;
 }
 
@@ -65,7 +67,9 @@ static inline void parse_implicit(parsed_contract_t *const out,
 }
 
 #define CALL_SUBPARSER_LN(func, line, ...) \
-    if (func(__VA_ARGS__, line)) return true
+    if (func(__VA_ARGS__, line)) {         \
+        return true;                       \
+    }
 #define CALL_SUBPARSER(func, ...) CALL_SUBPARSER_LN(func, __LINE__, __VA_ARGS__)
 
 // Subparsers: no function here should be called anywhere in this file without using the
@@ -105,9 +109,10 @@ static inline bool parse_next_type(uint8_t current_byte,
                                    uint32_t sizeof_type,
                                    uint32_t lineno) {
 #ifdef DEBUG
-    if (sizeof_type > sizeof(state->body))
+    if (sizeof_type > sizeof(state->body)) {
         PARSE_ERROR();  // Shouldn't happen, but error if it does and we're debugging. Neither side
                         // is dynamic.
+    }
 #endif
 
     if (state->lineno != lineno) {
@@ -207,7 +212,9 @@ static inline bool parse_byte(uint8_t byte,
         case 0: {
             // Verify magic byte, ignore block hash
             const struct operation_group_header *ogh = NEXT_TYPE(struct operation_group_header);
-            if (ogh->magic_byte != MAGIC_BYTE_UNSAFE_OP) PARSE_ERROR();
+            if (ogh->magic_byte != MAGIC_BYTE_UNSAFE_OP) {
+                PARSE_ERROR();
+            }
         }
 
             OP_NAMED_STEP(1)
@@ -239,7 +246,9 @@ static inline bool parse_byte(uint8_t byte,
             // If the source is an implicit contract,...
             if (out->operation.source.originated == 0) {
                 // ... it had better match our key, otherwise why are we signing it?
-                if (COMPARE(&out->operation.source, &out->signing) != 0) PARSE_ERROR();
+                if (COMPARE(&out->operation.source, &out->signing) != 0) {
+                    PARSE_ERROR();
+                }
             }
             // OK, it passes muster.
 
@@ -267,8 +276,10 @@ static inline bool parse_byte(uint8_t byte,
             {
                 raw_tezos_header_signature_type_t const *const sig_type =
                     NEXT_TYPE(raw_tezos_header_signature_type_t);
-                if (parse_raw_tezos_header_signature_type(sig_type) != out->signing.signature_type)
+                if (parse_raw_tezos_header_signature_type(sig_type) !=
+                    out->signing.signature_type) {
                     PARSE_ERROR();
+                }
             }
 
             OP_STEP
@@ -279,8 +290,9 @@ static inline bool parse_byte(uint8_t byte,
                 CALL_SUBPARSER(parse_next_type, byte, &(state->subparser_state.nexttype), klen);
 
                 if (memcmp(out->public_key.W, &(state->subparser_state.nexttype.body.raw), klen) !=
-                    0)
+                    0) {
                     PARSE_ERROR();
+                }
 
                 out->has_reveal = true;
 
@@ -353,7 +365,9 @@ static void parse_operations_throws_parse_error(struct parsed_operation_group *c
         ix++;
     }
 
-    if (!parse_operations_final(&G.parse_state, out)) PARSE_ERROR();
+    if (!parse_operations_final(&G.parse_state, out)) {
+        PARSE_ERROR();
+    }
 }
 
 bool parse_operations(struct parsed_operation_group *const out,

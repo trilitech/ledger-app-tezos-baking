@@ -25,7 +25,9 @@ bool b58enc(/* out */ char *b58, /* in/out */ size_t *b58sz, const void *data, s
     size_t size;
     uint8_t buf[MAX_ENC_INPUT_SIZE * 138 / 100 + 1] = {0};
 
-    while (zcount < binsz && !bin[zcount]) ++zcount;
+    while (zcount < binsz && !bin[zcount]) {
+        ++zcount;
+    }
 
     size = (binsz - zcount) * 138 / 100 + 1;
 
@@ -41,16 +43,21 @@ bool b58enc(/* out */ char *b58, /* in/out */ size_t *b58sz, const void *data, s
         }
     }
 
-    for (j = 0; j < size && !buf[j]; ++j)
-        ;
+    for (j = 0; (j < size) && !buf[j]; ++j) {
+        // Find the last index of buf regarding the size
+    }
 
     if (*b58sz <= zcount + size - j) {
         *b58sz = zcount + size - j + 1;
         return false;
     }
 
-    if (zcount) memset(b58, '1', zcount);
-    for (i = zcount; j < size; ++i, ++j) b58[i] = b58digits_ordered[buf[j]];
+    if (zcount) {
+        memset(b58, '1', zcount);
+    }
+    for (i = zcount; j < size; ++i, ++j) {
+        b58[i] = b58digits_ordered[buf[j]];
+    }
     b58[i] = '\0';
     *b58sz = i + 1;
 

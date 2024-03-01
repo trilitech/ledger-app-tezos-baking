@@ -22,7 +22,9 @@
 
 __attribute__((noreturn)) void prompt_register_delegate(ui_callback_t const ok_cb,
                                                         ui_callback_t const cxl_cb) {
-    if (!G.maybe_ops.is_valid) THROW(EXC_MEMORY_ERROR);
+    if (!G.maybe_ops.is_valid) {
+        THROW(EXC_MEMORY_ERROR);
+    }
 
     init_screen_stack();
     push_ui_callback("Register", copy_string, "as delegate?");

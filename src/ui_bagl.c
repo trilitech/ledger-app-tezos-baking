@@ -239,8 +239,12 @@ void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
     global.dynamic_display.formatter_index = 0;
     global.dynamic_display.current_state = STATIC_SCREEN;
 
-    if (ok_c) global.dynamic_display.ok_callback = ok_c;
-    if (cxl_c) global.dynamic_display.cxl_callback = cxl_c;
+    if (ok_c) {
+        global.dynamic_display.ok_callback = ok_c;
+    }
+    if (cxl_c) {
+        global.dynamic_display.cxl_callback = cxl_c;
+    }
 }
 
 void ux_confirm_screen(ui_callback_t ok_c, ui_callback_t cxl_c) {

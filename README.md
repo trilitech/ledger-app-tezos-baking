@@ -77,7 +77,7 @@ Download the source code for application from github repository [App-tezos-bakin
 $ git clone https://github.com/LedgerHQ/app-tezos.git
 $ cd app-tezos
 ```
-Then run the following command to enter into docker container provided by Ledger. You will need to have  docker cli installed. 
+Then run the following command to enter into docker container provided by Ledger. You will need to have  docker cli installed.
 Use the docker container `ledger-app-dev-tools` provided by Ledger to build the app.
 
 ```
@@ -255,17 +255,17 @@ Wallet application on the same Ledger device should suffice.
 ### Setup Ledger with Tezos client
 
 To connect ledger with Tezos client, you need to download [Tezos](https://www.gitlab.com/tezos/tezos).
-You need to have nix installed on your system. Build tezos with following commands: 
+You need to have nix installed on your system. Build tezos with following commands:
 ```
 $ git clone https://gitlab.com/tezos/tezos.git
 $ cd tezos
 $ nix-shell -j auto
-$ make 
+$ make
 ```
 This will build the latest version of tezos repo.
 Now connect the ledger device to USB port of your computer and run following command:
 ```
-$ ./octez-client list connected ledgger 
+$ ./octez-client list connected ledgger
 ```
 It will given output as follows:
 ```
@@ -286,11 +286,11 @@ $ ./octez-client import secret key ledger_username "ledger://masculine-pig-stupe
 ```
 Here we have chosen the last key type bip25519. You can choose any one of the available keys.
 
-You can verify that you have successfully setup ledger with following command: 
+You can verify that you have successfully setup ledger with following command:
 ```
 $ ./octez-client list known addresses
 ```
-It will show output as follows: 
+It will show output as follows:
 ```
 ledger_<...>: tz1N4GQ8gYgMdq6gUsja783KJButHUHn5K7z (ledger sk known)
 ```
@@ -298,11 +298,11 @@ You can use the address ledger_<...> for further commands to setup the baking op
 
 ### Setup Node and baker
 
-It is recommended to practice baking on tezos testnet before you acutally start baking on mainnet  with real money. You can get more information 
+It is recommended to practice baking on tezos testnet before you acutally start baking on mainnet  with real money. You can get more information
 about baking on testnet at [Baking-setup-Tutorial](https://docs.tezos.com/tutorials/join-dal-baker).
 Here we only give information about changes you have to make in above tutorial to bake with Ledger instead of an auto generated key.
 
-In the tutorial skip the command `octez-client gen keys my_baker` and instead use the ledger_<...> in place of my_baker. 
+In the tutorial skip the command `octez-client gen keys my_baker` and instead use the ledger_<...> in place of my_baker.
 Use the following command to store your address in environmental variable `MY_BAKER`
 ```
 $ MY_BAKER="$(./octez-client show address ledger_<...> | head -n 1 | cut -d ' ' -f 2)"
@@ -344,10 +344,10 @@ $ octez-client register key ledger_<...> as delegate
 ```
 
 This command is intended to inform the blockchain itself of your intention to
-bake with this key. 
+bake with this key.
 
 ### Stake tez to get baking rights
-Currently baking app does not support signing transactions. You need to stake certain amount of tez to get baking rights. Install Tezos wallet app on the same ledger device and run following command. No setup is needed as we have already setup the address from which we are deducting the amount. 
+Currently baking app does not support signing transactions. You need to stake certain amount of tez to get baking rights. Install Tezos wallet app on the same ledger device and run following command. No setup is needed as we have already setup the address from which we are deducting the amount.
 ```
 $ octez-client stake <amount> ledger_<...>
 ```
@@ -381,7 +381,7 @@ attempt at signing; this operation is designed to be used unsupervised. As menti
 
 ### Security during baking
 
-The Tezos-Baking app needs to be kept open during baking and ledger is unlocked during that time. To prevent screen burn, the baking app goes into blank screen when it starts signing blocks/attestation as baker. But the app remains unlocked. One can not sign any transaction operation using baking app, therefore there is no need of any concern. But to exit the baking app, one needs to enter PIN. This restriction is in place to avoid misuse of physical ledger device when its kept unattended during baking process. 
+The Tezos-Baking app needs to be kept open during baking and ledger is unlocked during that time. To prevent screen burn, the baking app goes into blank screen when it starts signing blocks/attestation as baker. But the app remains unlocked. One can not sign any transaction operation using baking app, therefore there is no need of any concern. But to exit the baking app, one needs to enter PIN. This restriction is in place to avoid misuse of physical ledger device when its kept unattended during baking process.
 
 ### Reset High Watermark
 
@@ -529,4 +529,3 @@ If you install a Ledger application, such as Tezos Wallet or Tezos Baking, outsi
 
 ## Feedback
 To give feedback and report an error, create an issue on github repository [Trillitech-App-Tezos](https://github.com/trillitech/ledger-app-tezos-baking).
-
