@@ -85,7 +85,8 @@ size_t handle_apdu_query_auth_key(__attribute__((unused)) uint8_t instruction,
     uint8_t const length = N_data.baking_key.bip32_path.length;
 
     size_t tx = 0;
-    G_io_apdu_buffer[tx++] = length;
+    G_io_apdu_buffer[tx] = length;
+    tx++;
 
     for (uint8_t i = 0; i < length; ++i) {
         tx = send_word_big_endian(tx, N_data.baking_key.bip32_path.components[i]);
@@ -99,8 +100,10 @@ size_t handle_apdu_query_auth_key_with_curve(__attribute__((unused)) uint8_t ins
     uint8_t const length = N_data.baking_key.bip32_path.length;
 
     size_t tx = 0;
-    G_io_apdu_buffer[tx++] = unparse_derivation_type(N_data.baking_key.derivation_type);
-    G_io_apdu_buffer[tx++] = length;
+    G_io_apdu_buffer[tx] = unparse_derivation_type(N_data.baking_key.derivation_type);
+    tx++;
+    G_io_apdu_buffer[tx] = length;
+    tx++;
     for (uint8_t i = 0; i < length; ++i) {
         tx = send_word_big_endian(tx, N_data.baking_key.bip32_path.components[i]);
     }

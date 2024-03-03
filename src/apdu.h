@@ -79,8 +79,10 @@ void main_loop(apdu_handler const* const handlers, size_t const handlers_size)
  * @return size_t: updated offset of the apdu response
  */
 static inline size_t finalize_successful_send(size_t tx) {
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
+    G_io_apdu_buffer[tx] = 0x90;
+    tx++;
+    G_io_apdu_buffer[tx] = 0x00;
+    tx++;
     return tx;
 }
 
@@ -100,8 +102,10 @@ static inline void delayed_send(size_t tx) {
  */
 static inline bool delay_reject(void) {
     size_t tx = 0;
-    G_io_apdu_buffer[tx++] = EXC_REJECT >> 8;
-    G_io_apdu_buffer[tx++] = EXC_REJECT & 0xFFu;
+    G_io_apdu_buffer[tx] = EXC_REJECT >> 8;
+    tx++;
+    G_io_apdu_buffer[tx] = EXC_REJECT & 0xFFu;
+    tx++;
     delayed_send(tx);
     return true;
 }

@@ -35,7 +35,8 @@ size_t provide_pubkey(uint8_t* const io_buffer, cx_ecfp_public_key_t const* cons
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         THROW(EXC_SECURITY);
     }
-    io_buffer[tx++] = pubkey->W_len;
+    io_buffer[tx] = pubkey->W_len;
+    tx++;
     memmove(io_buffer + tx, pubkey->W, pubkey->W_len);
     tx += pubkey->W_len;
     return finalize_successful_send(tx);
@@ -118,8 +119,10 @@ __attribute__((noreturn)) void main_loop(apdu_handler const* const handlers,
                     case 0x9000 ... 0x9FFF: {
                         PRINTF("Line number: %d", sw & 0x0FFF);
                         size_t tx = 0;
-                        G_io_apdu_buffer[tx++] = sw >> 8;
-                        G_io_apdu_buffer[tx++] = sw;
+                        G_io_apdu_buffer[tx] = sw >> 8;
+                        tx++;
+                        G_io_apdu_buffer[tx] = sw;
+                        tx++;
                         rx = io_exchange(CHANNEL_APDU, tx);
                         break;
                     }

@@ -279,7 +279,8 @@ static size_t microtez_to_string(char *const dest, uint64_t number) {
 
         return off;
     }
-    dest[off++] = '.';
+    dest[off] = '.';
+    off++;
 
     char tmp[MAX_INT_DIGITS];
     convert_number(tmp, number, true);
