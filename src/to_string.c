@@ -209,15 +209,13 @@ static inline size_t convert_number(char dest[MAX_INT_DIGITS],
                                     uint64_t number,
                                     bool leading_zeroes) {
     check_null(dest);
-    char *const end = dest + MAX_INT_DIGITS;
-    for (char *ptr = end - 1; ptr >= dest; ptr--) {
-        *ptr = '0' + (number % 10u);
+    size_t i = MAX_INT_DIGITS;
+    do {
+        i--;
+        dest[i] = '0' + (number % 10u);
         number /= 10u;
-        if (!leading_zeroes && (number == 0u)) {  // TODO: This is ugly
-            return ptr - dest;
-        }
-    }
-    return 0;
+    } while ((i > 0u) && (leading_zeroes || (number > 0u)));
+    return i;
 }
 
 void number_to_string_indirect32(char *const dest,
