@@ -99,7 +99,6 @@ typedef struct {
         bool is_blank_screen;
     } dynamic_display;
 
-    void *stack_root;
     apdu_handler handlers[INS_MAX + 1];
     bip32_path_with_curve_t path_with_curve;
 
@@ -129,10 +128,6 @@ typedef struct {
 } globals_t;
 
 extern globals_t global;
-
-extern unsigned int app_stack_canary;  // From SDK
-
-extern unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
 extern nvram_data const N_data_real;
 #define N_data (*(volatile nvram_data *) PIC(&N_data_real))
