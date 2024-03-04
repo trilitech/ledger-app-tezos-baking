@@ -416,6 +416,8 @@ static inline bool parse_byte(uint8_t byte,
                                            dlg->hash);
                         }
                             JMP_TO_TOP;  // These go back to the top to catch any reveals.
+                        default:         // Any other tag; probably not possible here.
+                            PARSE_ERROR();
                     }
 
                 default:  // Any other tag; probably not possible here.
