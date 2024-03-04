@@ -1,7 +1,8 @@
 #include "to_string.h"
 
+#include <base58.h>
+
 #include "apdu.h"
-#include "base58_encoding.h"
 #include "keys.h"
 
 #include <string.h>
@@ -107,8 +108,7 @@ void pkh_to_string(char *const buff,
     memcpy(data.hash, hash, sizeof(data.hash));
     compute_hash_checksum(data.checksum, &data, sizeof(data) - sizeof(data.checksum));
 
-    size_t out_size = buff_size;
-    if (!b58enc(buff, &out_size, &data, sizeof(data))) {
+    if (base58_encode((const uint8_t *) &data, sizeof(data), buff, buff_size) == -1) {
         THROW(EXC_WRONG_LENGTH);
     }
 }
@@ -131,8 +131,7 @@ void chain_id_to_string(char *const buff, size_t const buff_size, chain_id_t con
 
     compute_hash_checksum(data.checksum, &data, sizeof(data) - sizeof(data.checksum));
 
-    size_t out_size = buff_size;
-    if (!b58enc(buff, &out_size, &data, sizeof(data))) {
+    if (base58_encode((const uint8_t *) &data, sizeof(data), buff, buff_size) == -1) {
         THROW(EXC_WRONG_LENGTH);
     }
 }
