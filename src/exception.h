@@ -17,7 +17,6 @@
 #define EXC_REFERENCED_DATA_NOT_FOUND 0x6A88
 #define EXC_WRONG_VALUES              0x6A80
 #define EXC_SECURITY                  0x6982
-#define EXC_HID_REQUIRED              0x6983
 #define EXC_CLASS                     0x6E00
 #define EXC_MEMORY_ERROR              0x9200
 

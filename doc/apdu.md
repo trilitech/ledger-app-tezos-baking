@@ -51,7 +51,6 @@ baking.
 | `EXC_REFERENCED_DATA_NOT_FOUND` | 0x6A88 | Referenced data not found.                      |
 | `EXC_WRONG_VALUES`              | 0x6A80 | The parameters in the data field are incorrect. |
 | `EXC_SECURITY`                  | 0x6982 | Security condition not satisfied.               |
-| `EXC_HID_REQUIRED`              | 0x6983 | Authentication method blocked.                  |
 | `EXC_CLASS`                     | 0x6E00 | Class not supported.                            |
 | `EXC_MEMORY_ERROR`              | 0x9200 | Memory error.                                   |
 
