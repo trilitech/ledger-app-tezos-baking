@@ -1,4 +1,4 @@
-/* Tezos Ledger application - Baking APDU instruction handling
+/* Tezos Ledger application - Query APDU instruction handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
@@ -20,7 +20,7 @@
 
 */
 
-#include "apdu_baking.h"
+#include "apdu_query.h"
 
 #include "apdu.h"
 #include "baking_auth.h"
@@ -32,6 +32,13 @@
 
 #include <string.h>
 
+/**
+ * @brief Inserts big endian word in the apdu response
+ *
+ * @param tx: current offset of the apdu response
+ * @param word: big endian word
+ * @return size_t: updated offset of the apdu response
+ */
 size_t send_word_big_endian(size_t tx, uint32_t word) {
     char word_bytes[sizeof(word)];
 
