@@ -22,4 +22,16 @@
 
 #include "types.h"
 
-void prompt_register_delegate(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);
+/**
+ * @brief Draws delegation confirmation pages flow
+ *
+ *        - Initial screen
+ *        - Values:
+ *          - Address
+ *          - Fee
+ *        - Confirmation screens
+ *
+ * @param ok_cb: accept callback
+ * @param cxl_cb: reject callback
+ */
+void prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);

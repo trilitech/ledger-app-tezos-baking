@@ -21,6 +21,7 @@
 
 #ifdef HAVE_BAGL
 #include "apdu_sign.h"
+#include "ui_delegation.h"
 
 #include "apdu.h"
 #include "baking_auth.h"
@@ -40,8 +41,8 @@
 
 #define B2B_BLOCKBYTES 128
 
-__attribute__((noreturn)) void prompt_register_delegate(ui_callback_t const ok_cb,
-                                                        ui_callback_t const cxl_cb) {
+__attribute__((noreturn)) void prompt_delegation(ui_callback_t const ok_cb,
+                                                 ui_callback_t const cxl_cb) {
     if (!G.maybe_ops.is_valid) {
         THROW(EXC_MEMORY_ERROR);
     }

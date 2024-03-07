@@ -139,7 +139,7 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
                             0) {
                         ui_callback_t const ok_c =
                             send_hash ? sign_with_hash_ok : sign_without_hash_ok;
-                        prompt_register_delegate(ok_c, sign_reject);
+                        prompt_delegation(ok_c, sign_reject);
                         *flags = IO_ASYNCH_REPLY;
                         result = 0;
                     } else {
