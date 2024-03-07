@@ -23,4 +23,4 @@
 
 #include "types.h"
 
-void ui_baking_reset(volatile uint32_t* flags);
+void ui_baking_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);

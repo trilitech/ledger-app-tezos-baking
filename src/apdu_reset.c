@@ -55,6 +55,7 @@ size_t handle_apdu_reset(__attribute__((unused)) uint8_t instruction, volatile u
     }
 
     G.reset_level = lvl;
-    ui_baking_reset(flags);
+    ui_baking_reset(reset_ok, delay_reject);
+    *flags = IO_ASYNCH_REPLY;
     return 0;
 }

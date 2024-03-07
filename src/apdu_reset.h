@@ -23,7 +23,5 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 
-bool reset_ok(void);
 size_t handle_apdu_reset(uint8_t instruction, volatile uint32_t* flags);

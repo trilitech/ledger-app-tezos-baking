@@ -36,11 +36,12 @@
 
 #define G global.apdu.u.baking
 
-void ui_baking_reset(__attribute__((unused)) volatile uint32_t* flags) {
+void ui_baking_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     init_screen_stack();
     push_ui_callback("Reset HWM", number_to_string_indirect32, &G.reset_level);
 
-    ux_confirm_screen(reset_ok, delay_reject);
+    ux_confirm_screen(ok_cb, cxl_cb);
+    __builtin_unreachable();
 }
 
 #endif  // HAVE_BAGL

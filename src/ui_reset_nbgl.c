@@ -37,6 +37,8 @@
 #define G global.apdu.u.baking
 
 typedef struct {
+    ui_callback_t ok_cb;
+    ui_callback_t cxl_cb;
     nbgl_layoutTagValue_t tagValuePair[1];
     nbgl_layoutTagValueList_t tagValueList;
     nbgl_pageInfoLongPress_t infoLongPress;
@@ -47,10 +49,10 @@ static TransactionContext_t transactionContext;
 
 static void confirmation_callback(bool confirm) {
     if (confirm) {
-        reset_ok();
+        transactionContext.ok_cb();
         nbgl_useCaseStatus("RESET\nCONFIRMED", true, ui_initial_screen);
     } else {
-        delay_reject();
+        transactionContext.cxl_cb();
         nbgl_useCaseStatus("Reset cancelled", false, ui_initial_screen);
     }
 }
@@ -73,7 +75,10 @@ static void continue_light_callback(void) {
                                   confirmation_callback);
 }
 
-void ui_baking_reset(volatile uint32_t* flags) {
+void ui_baking_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+    transactionContext.ok_cb = ok_cb;
+    transactionContext.cxl_cb = cxl_cb;
+
     number_to_string_indirect32(transactionContext.buffer,
                                 sizeof(transactionContext.buffer),
                                 &G.reset_level);
@@ -89,7 +94,6 @@ void ui_baking_reset(volatile uint32_t* flags) {
                             "Cancel",
                             continue_light_callback,
                             cancel_callback);
-    *flags = IO_ASYNCH_REPLY;
 }
 
 #endif  // HAVE_NBGL
