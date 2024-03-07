@@ -1,9 +1,8 @@
-/* Tezos Ledger application - Baking APDU instruction handling
+/* Tezos Ledger application - Reset BAGL UI handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
    Copyright 2023 Ledger
-   Copyright 2022 Nomadic Labs <contact@nomadic-labs.com>
    Copyright 2019 Obsidian Systems
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,14 +19,28 @@
 
 */
 
-#pragma once
+#ifdef HAVE_BAGL
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
+#include "ui_reset.h"
 
-size_t handle_apdu_query_auth_key(uint8_t instruction, volatile uint32_t* flags);
-size_t handle_apdu_query_auth_key_with_curve(uint8_t instruction, volatile uint32_t* flags);
-size_t handle_apdu_main_hwm(uint8_t instruction, volatile uint32_t* flags);
-size_t handle_apdu_all_hwm(uint8_t instruction, volatile uint32_t* flags);
-size_t handle_apdu_deauthorize(uint8_t instruction, volatile uint32_t* flags);
+#include "apdu_reset.h"
+#include "apdu.h"
+#include "baking_auth.h"
+#include "globals.h"
+#include "os_cx.h"
+#include "protocol.h"
+#include "to_string.h"
+#include "ui.h"
+
+#include <string.h>
+
+#define G global.apdu.u.baking
+
+void ui_baking_reset(__attribute__((unused)) volatile uint32_t* flags) {
+    init_screen_stack();
+    push_ui_callback("Reset HWM", number_to_string_indirect32, &G.reset_level);
+
+    ux_confirm_screen(reset_ok, delay_reject);
+}
+
+#endif  // HAVE_BAGL

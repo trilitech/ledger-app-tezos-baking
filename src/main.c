@@ -22,6 +22,7 @@
 #include "apdu_baking.h"
 #include "apdu_hmac.h"
 #include "apdu_pubkey.h"
+#include "apdu_reset.h"
 #include "apdu_setup.h"
 #include "apdu_sign.h"
 #include "apdu.h"

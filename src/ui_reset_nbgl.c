@@ -1,4 +1,4 @@
-/* Tezos Ledger application - Baking BAGL UI handling
+/* Tezos Ledger application - Reset BAGL UI handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
@@ -20,8 +20,9 @@
 
 #ifdef HAVE_NBGL
 
-#include "apdu_baking.h"
+#include "ui_reset.h"
 
+#include "apdu_reset.h"
 #include "apdu.h"
 #include "baking_auth.h"
 #include "globals.h"
