@@ -1,9 +1,9 @@
-/* Tezos Ledger application - Sign APDU instruction handling
+/* Tezos Ledger application - Delegate UI handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
    Copyright 2023 Ledger
-   Copyright 2020 Obsidian Systems
+   Copyright 2019 Obsidian Systems
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,12 +18,8 @@
    limitations under the License.
 
 */
-
 #pragma once
 
-#include "apdu.h"
+#include "types.h"
 
-size_t handle_apdu_sign(uint8_t instruction, volatile uint32_t* flags);
-size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t* flags);
-
-int perform_signature(bool const on_hash, bool const send_hash);
+void prompt_register_delegate(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);
