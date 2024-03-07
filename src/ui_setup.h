@@ -1,4 +1,4 @@
-/* Tezos Ledger application - Setup APDU instruction handling
+/* Tezos Ledger application - Setup UI handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
@@ -19,32 +19,22 @@
    limitations under the License.
 
 */
-
 #pragma once
 
-#include "apdu.h"
-
-#include <stddef.h>
-#include <stdint.h>
+#include "types.h"
 
 /**
- * @brief Handles SET instruction
+ * @brief Draws setup confirmation pages flow
  *
- *        Asks user to check the setup
+ *        - Initial screen
+ *        - Values:
+ *          - Address
+ *          - Chain id
+ *          - main HWM level
+ *          - test HWM level
+ *        - Confirmation screens
  *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
+ * @param ok_cb: accept callback
+ * @param cxl_cb: reject callback
  */
-size_t handle_apdu_setup(uint8_t instruction, volatile uint32_t* flags);
-
-/**
- * @brief Handles DEAUTHORIZE instruction
- *
- *        Deauthorizes the authorized key
- *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-size_t handle_apdu_deauthorize(uint8_t instruction, volatile uint32_t* flags);
+void prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);

@@ -28,20 +28,33 @@
 #include "keys.h"
 #include "to_string.h"
 #include "ui.h"
+#include "ui_setup.h"
 
 #include <string.h>
 
 #define G global.apdu.u.setup
 
+/**
+ * @brief This structure represents the SETUP instruction payload
+ *
+ */
 struct setup_wire {
-    uint32_t main_chain_id;
+    uint32_t main_chain_id;  ///< main chain id
+    /// high watermarks
     struct {
-        uint32_t main;
-        uint32_t test;
+        uint32_t main;  ///< main highest level
+        uint32_t test;  ///< test highest level
     } hwm;
-    struct bip32_path_wire bip32_path;
+    struct bip32_path_wire bip32_path;  ///< authorized key path
 } __attribute__((packed));
 
+/**
+ * @brief Applies the setup
+ *
+ *        Rounds are also reset to 0
+ *
+ * @return true
+ */
 static bool ok(void) {
     UPDATE_NVRAM(ram, {
         copy_bip32_path_with_curve(&ram->baking_key, &global.path_with_curve);

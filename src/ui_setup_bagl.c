@@ -22,6 +22,7 @@
 #ifdef HAVE_BAGL
 
 #include "apdu_setup.h"
+#include "ui_setup.h"
 
 #include "apdu.h"
 #include "cx.h"
