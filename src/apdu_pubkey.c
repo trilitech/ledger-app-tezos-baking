@@ -42,11 +42,6 @@ size_t handle_apdu_get_public_key(uint8_t instruction, volatile uint32_t *flags)
         THROW(EXC_WRONG_PARAM);
     }
 
-    // do not expose pks without prompt through U2F (permissionless legacy comm in browser)
-    if (instruction == INS_GET_PUBLIC_KEY) {
-        require_permissioned_comm();
-    }
-
     global.path_with_curve.derivation_type = parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
 
     size_t const cdata_size = G_io_apdu_buffer[OFFSET_LC];
