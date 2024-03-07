@@ -33,6 +33,7 @@ from common import (
     DEFAULT_ACCOUNT_2,
     TZ1_ACCOUNTS,
     ACCOUNTS,
+    ZEBRA_ACCOUNTS,
 )
 
 
@@ -71,6 +72,40 @@ def test_git(client: TezosClient) -> None:
 
     assert commit == expected_commit, \
         f"Expected {expected_commit} but got {commit}"
+
+
+@pytest.mark.parametrize("account", ZEBRA_ACCOUNTS)
+def test_benchmark_attestation_time(account: Account, client: TezosClient, tezos_navigator: TezosNavigator, backend_name) -> None:
+    # check if backend is speculos, then return .
+    if backend_name == "speculos":
+        assert True
+        return
+
+    import time
+    lvl = 0
+    main_chain_id = DEFAULT_CHAIN_ID
+    main_hwm = Hwm(lvl)
+    test_hwm = Hwm(0)
+
+    tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm,
+        test_hwm
+    )
+    st = time.time()
+    # Run test for 100 times.
+    for i in range(100):
+        lvl += 1
+        attestation = build_attestation(
+            op_level=lvl,
+            op_round=0,
+            chain_id=main_chain_id
+        )
+        client.sign_message(account, attestation)
+    end= time.time()
+    with open("Avg_time_for_100_attestations.txt",'a') as f:
+        f.write("\nTime elapsed for derivation type : " + str(account) + " is : " + str(end-st) + "\n")
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
