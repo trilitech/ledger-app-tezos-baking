@@ -38,7 +38,6 @@ void ux_confirm_screen(ui_callback_t ok_c, ui_callback_t cxl_c);
 
 void ux_idle_screen(ui_callback_t ok_c, ui_callback_t cxl_c);
 
-void ux_empty_screen(void);
 /* Initializes the formatter stack. Should be called once before calling `push_ui_callback()`. */
 void init_screen_stack();
 /* User MUST call `init_screen_stack()` before calling this function for the first time. */

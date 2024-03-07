@@ -32,6 +32,7 @@
 #include "memory.h"
 #include "os_cx.h"  // ui-menu
 #include "to_string.h"
+#include "ui_empty.h"
 
 #include <stdbool.h>
 #include <string.h>
