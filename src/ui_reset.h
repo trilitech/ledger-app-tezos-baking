@@ -23,4 +23,14 @@
 
 #include "types.h"
 
-void ui_baking_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);
+/**
+ * @brief Draws reset confirmation pages flow
+ *
+ *        - Initial screen
+ *        - Level screen
+ *        - Confirmation screens
+ *
+ * @param ok_cb: accept callback
+ * @param cxl_cb: reject callback
+ */
+void prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);

@@ -24,4 +24,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ * @brief Handles RESET instruction
+ *
+ *        Asks user to reset
+ *
+ * @param instruction: apdu instruction
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
 size_t handle_apdu_reset(uint8_t instruction, volatile uint32_t* flags);

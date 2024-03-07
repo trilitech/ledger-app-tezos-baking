@@ -36,7 +36,7 @@
 
 #define G global.apdu.u.baking
 
-void ui_baking_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+__attribute__((noreturn)) void prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     init_screen_stack();
     push_ui_callback("Reset HWM", number_to_string_indirect32, &G.reset_level);
 

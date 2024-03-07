@@ -28,7 +28,14 @@
 
 #define G global.apdu.u.baking
 
-bool reset_ok(void) {
+/**
+ * @brief Resets main and test level
+ *
+ *        Rounds are also reset to 0
+ *
+ * @return true
+ */
+bool ok(void) {
     UPDATE_NVRAM(ram, {
         ram->hwm.main.highest_level = G.reset_level;
         ram->hwm.main.highest_round = 0;
@@ -55,7 +62,7 @@ size_t handle_apdu_reset(__attribute__((unused)) uint8_t instruction, volatile u
     }
 
     G.reset_level = lvl;
-    ui_baking_reset(reset_ok, delay_reject);
+    prompt_reset(ok, delay_reject);
     *flags = IO_ASYNCH_REPLY;
     return 0;
 }
