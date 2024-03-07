@@ -106,3 +106,16 @@ size_t handle_apdu_setup(__attribute__((unused)) uint8_t instruction, volatile u
     *flags = IO_ASYNCH_REPLY;
     return 0;
 }
+
+size_t handle_apdu_deauthorize(__attribute__((unused)) uint8_t instruction,
+                               __attribute__((unused)) volatile uint32_t *flags) {
+    if (G_io_apdu_buffer[OFFSET_P1] != 0) {
+        THROW(EXC_WRONG_PARAM);
+    }
+    if (G_io_apdu_buffer[OFFSET_LC] != 0) {
+        THROW(EXC_PARSE_ERROR);
+    }
+    UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });
+
+    return finalize_successful_send(0);
+}

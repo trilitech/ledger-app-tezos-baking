@@ -30,3 +30,4 @@
 size_t handle_apdu_setup(uint8_t instruction, volatile uint32_t* flags);
 
 void prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);
+size_t handle_apdu_deauthorize(uint8_t instruction, volatile uint32_t* flags);
