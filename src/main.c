@@ -27,6 +27,7 @@
 #include "apdu.h"
 #include "globals.h"
 #include "memory.h"
+#include "ui.h"
 
 __attribute__((noreturn)) void app_main(void) {
     init_globals();
