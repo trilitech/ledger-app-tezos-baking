@@ -54,9 +54,6 @@ static const char* const bakeInfoTypes[] = {
     "High Watermark",
 };
 
-void update_baking_idle_screens(void) {
-}
-
 static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
     UNUSED(page);
 

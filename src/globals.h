@@ -154,7 +154,6 @@ extern globals_t global;
 extern nvram_data const N_data_real;
 #define N_data (*(volatile nvram_data *) PIC(&N_data_real))
 
-void update_baking_idle_screens(void);
 high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
                                                nvram_data volatile *const ram);
 
@@ -169,5 +168,4 @@ high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
                sizeof(global.apdu.baking_auth.new_data));                               \
         body;                                                                           \
         nvm_write((void *) &N_data, &global.apdu.baking_auth.new_data, sizeof(N_data)); \
-        update_baking_idle_screens();                                                   \
     })
