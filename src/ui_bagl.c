@@ -42,39 +42,37 @@
 #define G_display global.dynamic_display
 
 void init_screen_stack() {
-    explicit_bzero(&global.dynamic_display.screen_stack,
-                   sizeof(global.dynamic_display.screen_stack));
-    global.dynamic_display.formatter_index = 0;
-    global.dynamic_display.screen_stack_size = 0;
-    global.dynamic_display.current_state = STATIC_SCREEN;
+    explicit_bzero(&G_display.screen_stack, sizeof(G_display.screen_stack));
+    G_display.formatter_index = 0;
+    G_display.screen_stack_size = 0;
+    G_display.current_state = STATIC_SCREEN;
 }
 
 void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
-    global.dynamic_display.screen_stack_size = global.dynamic_display.formatter_index;
-    global.dynamic_display.formatter_index = 0;
-    global.dynamic_display.current_state = STATIC_SCREEN;
+    G_display.screen_stack_size = G_display.formatter_index;
+    G_display.formatter_index = 0;
+    G_display.current_state = STATIC_SCREEN;
 
     if (ok_c) {
-        global.dynamic_display.ok_callback = ok_c;
+        G_display.ok_callback = ok_c;
     }
     if (cxl_c) {
-        global.dynamic_display.cxl_callback = cxl_c;
+        G_display.cxl_callback = cxl_c;
     }
 }
 
 // User MUST call `init_screen_stack()` before the first call to this function.
 void push_ui_callback(char *title, string_generation_callback cb, void *data) {
-    if (global.dynamic_display.formatter_index + 1 >= MAX_SCREEN_STACK_SIZE) {
+    if (G_display.formatter_index + 1 >= MAX_SCREEN_STACK_SIZE) {
         THROW(0x6124);
     }
-    struct screen_data *fmt =
-        &global.dynamic_display.screen_stack[global.dynamic_display.formatter_index];
+    struct screen_data *fmt = &G_display.screen_stack[G_display.formatter_index];
 
     fmt->title = title;
     fmt->callback_fn = cb;
     fmt->data = data;
-    global.dynamic_display.formatter_index++;
-    global.dynamic_display.screen_stack_size++;
+    G_display.formatter_index++;
+    G_display.screen_stack_size++;
 }
 
 void clear_data() {
@@ -181,8 +179,8 @@ UX_STEP_INIT(ux_init_upper_border, NULL, NULL, { display_next_state(true); });
 UX_STEP_NOCB(ux_variable_display,
              bnnn_paging,
              {
-                 .title = global.dynamic_display.screen_title,
-                 .text = global.dynamic_display.screen_value,
+                 .title = G_display.screen_title,
+                 .text = G_display.screen_value,
              });
 UX_STEP_INIT(ux_init_lower_border, NULL, NULL, { display_next_state(false); });
 
@@ -240,9 +238,9 @@ void update_baking_idle_screens(void) {
 static void prompt_response(bool const accepted) {
     ui_initial_screen();
     if (accepted) {
-        global.dynamic_display.ok_callback();
+        G_display.ok_callback();
     } else {
-        global.dynamic_display.cxl_callback();
+        G_display.cxl_callback();
     }
 }
 
