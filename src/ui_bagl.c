@@ -39,20 +39,27 @@
 
 #define G global.ui
 
-void display_next_state(bool is_left_ux_step);
+#define G_display global.dynamic_display
 
-void calculate_baking_idle_screens_data(void) {
-    push_ui_callback("Tezos Baking", copy_string, VERSION);
-    push_ui_callback("Chain", copy_chain, &N_data.main_chain_id);
-    push_ui_callback("Public Key Hash", copy_key, &N_data.baking_key);
-    push_ui_callback("High Watermark", copy_hwm, &N_data.hwm.main);
+void init_screen_stack() {
+    explicit_bzero(&global.dynamic_display.screen_stack,
+                   sizeof(global.dynamic_display.screen_stack));
+    global.dynamic_display.formatter_index = 0;
+    global.dynamic_display.screen_stack_size = 0;
+    global.dynamic_display.current_state = STATIC_SCREEN;
 }
 
-void update_baking_idle_screens(void) {
-    init_screen_stack();
-    calculate_baking_idle_screens_data();
-    /// refresh
-    ux_stack_display(0);
+void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
+    global.dynamic_display.screen_stack_size = global.dynamic_display.formatter_index;
+    global.dynamic_display.formatter_index = 0;
+    global.dynamic_display.current_state = STATIC_SCREEN;
+
+    if (ok_c) {
+        global.dynamic_display.ok_callback = ok_c;
+    }
+    if (cxl_c) {
+        global.dynamic_display.cxl_callback = cxl_c;
+    }
 }
 
 // User MUST call `init_screen_stack()` before the first call to this function.
@@ -69,81 +76,6 @@ void push_ui_callback(char *title, string_generation_callback cb, void *data) {
     global.dynamic_display.formatter_index++;
     global.dynamic_display.screen_stack_size++;
 }
-
-void init_screen_stack() {
-    explicit_bzero(&global.dynamic_display.screen_stack,
-                   sizeof(global.dynamic_display.screen_stack));
-    global.dynamic_display.formatter_index = 0;
-    global.dynamic_display.screen_stack_size = 0;
-    global.dynamic_display.current_state = STATIC_SCREEN;
-}
-
-UX_STEP_INIT(ux_init_upper_border, NULL, NULL, { display_next_state(true); });
-UX_STEP_NOCB(ux_variable_display,
-             bnnn_paging,
-             {
-                 .title = global.dynamic_display.screen_title,
-                 .text = global.dynamic_display.screen_value,
-             });
-UX_STEP_INIT(ux_init_lower_border, NULL, NULL, { display_next_state(false); });
-
-UX_STEP_CB(ux_app_is_ready_step,
-           nn,
-           ux_empty_screen(),
-           {
-               "Application",
-               "is ready",
-           });
-
-UX_STEP_CB(ux_idle_quit_step,
-           pb,
-           exit_app(),
-           {
-               &C_icon_dashboard_x,
-               "Quit",
-           });
-
-UX_FLOW(ux_idle_flow,
-        &ux_app_is_ready_step,
-
-        &ux_init_upper_border,
-        &ux_variable_display,
-        &ux_init_lower_border,
-
-        &ux_idle_quit_step,
-        FLOW_LOOP);
-
-static void prompt_response(bool const accepted) {
-    ui_initial_screen();
-    if (accepted) {
-        global.dynamic_display.ok_callback();
-    } else {
-        global.dynamic_display.cxl_callback();
-    }
-}
-
-UX_STEP_CB(ux_prompt_flow_accept_step, pb, prompt_response(true), {&C_icon_validate_14, "Accept"});
-
-UX_STEP_CB(ux_prompt_flow_reject_step, pb, prompt_response(false), {&C_icon_crossmark, "Reject"});
-
-UX_STEP_NOCB(ux_eye_step,
-             nn,
-             {
-                 "Review",
-                 "Request",
-             });
-
-UX_FLOW(ux_confirm_flow,
-        &ux_eye_step,
-
-        &ux_init_upper_border,
-        &ux_variable_display,
-        &ux_init_lower_border,
-
-        &ux_prompt_flow_reject_step,
-        &ux_prompt_flow_accept_step);
-
-#define G_display global.dynamic_display
 
 void clear_data() {
     explicit_bzero(&G_display.screen_title, sizeof(G_display.screen_title));
@@ -245,17 +177,44 @@ void display_next_state(bool is_left_ux_step) {
     }
 }
 
-void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
-    global.dynamic_display.screen_stack_size = global.dynamic_display.formatter_index;
-    global.dynamic_display.formatter_index = 0;
-    global.dynamic_display.current_state = STATIC_SCREEN;
+UX_STEP_INIT(ux_init_upper_border, NULL, NULL, { display_next_state(true); });
+UX_STEP_NOCB(ux_variable_display,
+             bnnn_paging,
+             {
+                 .title = global.dynamic_display.screen_title,
+                 .text = global.dynamic_display.screen_value,
+             });
+UX_STEP_INIT(ux_init_lower_border, NULL, NULL, { display_next_state(false); });
 
-    if (ok_c) {
-        global.dynamic_display.ok_callback = ok_c;
-    }
-    if (cxl_c) {
-        global.dynamic_display.cxl_callback = cxl_c;
-    }
+UX_STEP_CB(ux_app_is_ready_step,
+           nn,
+           ux_empty_screen(),
+           {
+               "Application",
+               "is ready",
+           });
+UX_STEP_CB(ux_idle_quit_step,
+           pb,
+           exit_app(),
+           {
+               &C_icon_dashboard_x,
+               "Quit",
+           });
+UX_FLOW(ux_idle_flow,
+        &ux_app_is_ready_step,
+
+        &ux_init_upper_border,
+        &ux_variable_display,
+        &ux_init_lower_border,
+
+        &ux_idle_quit_step,
+        FLOW_LOOP);
+
+void calculate_baking_idle_screens_data(void) {
+    push_ui_callback("Tezos Baking", copy_string, VERSION);
+    push_ui_callback("Chain", copy_chain, &N_data.main_chain_id);
+    push_ui_callback("Public Key Hash", copy_key, &N_data.baking_key);
+    push_ui_callback("High Watermark", copy_hwm, &N_data.hwm.main);
 }
 
 void ui_initial_screen(void) {
@@ -270,6 +229,40 @@ void ui_initial_screen(void) {
     ux_prepare_display(NULL, NULL);
     ux_flow_init(0, ux_idle_flow, NULL);
 }
+
+void update_baking_idle_screens(void) {
+    init_screen_stack();
+    calculate_baking_idle_screens_data();
+    /// refresh
+    ux_stack_display(0);
+}
+
+static void prompt_response(bool const accepted) {
+    ui_initial_screen();
+    if (accepted) {
+        global.dynamic_display.ok_callback();
+    } else {
+        global.dynamic_display.cxl_callback();
+    }
+}
+
+UX_STEP_CB(ux_prompt_flow_reject_step, pb, prompt_response(false), {&C_icon_crossmark, "Reject"});
+UX_STEP_CB(ux_prompt_flow_accept_step, pb, prompt_response(true), {&C_icon_validate_14, "Accept"});
+UX_STEP_NOCB(ux_eye_step,
+             nn,
+             {
+                 "Review",
+                 "Request",
+             });
+UX_FLOW(ux_confirm_flow,
+        &ux_eye_step,
+
+        &ux_init_upper_border,
+        &ux_variable_display,
+        &ux_init_lower_border,
+
+        &ux_prompt_flow_reject_step,
+        &ux_prompt_flow_accept_step);
 
 void ux_confirm_screen(ui_callback_t ok_c, ui_callback_t cxl_c) {
     ux_prepare_display(ok_c, cxl_c);
