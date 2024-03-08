@@ -438,6 +438,37 @@ The latter will require the correct URL for the Ledger device acquired from:
 $ octez-client list connected ledgers
 ```
 
+## Benchmarking
+The time taken to sign attestations/pre-attestations for baking app can depend on the device used, derivation type etc.
+
+To benchmark signing time on a ledger device, run following commands: (assuming you have completed all the steps in section Loading the app on device and Testing.)
+```
+$ pip install ragger[all_backends] # Requirement for testing with device.
+```
+
+Now run either of the following commands
+
+```
+$ python3 -m pytest test --device nanos --backend ledgercomm -k "test_benchmark_attestation_time"
+or
+$ python3 -m pytest test --device nanos --backend ledgerwallet -k "test_benchmark_attestation_time"
+```
+The result will be printed in       `Avg_time_for_100_attestations.txt`.
+
+Following is a sample of measurements obtained with this app (Tezos Baking app v2.4.7, Ledger devices - Nanos, Nanos+, System : Ubunut 22.04)
+
+| Device | Derivation Type   | Avg time/signature(milliseconds) |
+|--------|-------------------|-----------------------------------|
+| Nanos+ | SECP256K1_tz2     | 355                               |
+| Nanos+ | SECP256R1_tz3     | 353                               |
+| Nanos+ | ED25519_tz1       | 653                               |
+| Nanos+ | BIP32_ED25519_tz1 | 971                               |
+|        |                   |                                   |
+| Nanos  | SECP256K1_tz2     | 975                               |
+| Nanos  | SECP256R1_tz3     | 976                               |
+| Nanos  | ED25519_tz1       | 1122                              |
+| Nanos  | BIP32_ED25519_tz1 | 1781                              |
+
 ## Troubleshooting
 
 ### Display Debug Logs
