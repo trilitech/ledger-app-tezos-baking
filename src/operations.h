@@ -32,66 +32,126 @@
 #include "cx.h"
 #include "types.h"
 
-// Wire format that gets parsed into `signature_type`.
+/**
+ * @brief Wire format that gets parsed into `signature_type`
+ *
+ */
 typedef struct {
-    uint8_t v;
+    uint8_t v;  ///< value of the type of header signature
 } __attribute__((packed)) raw_tezos_header_signature_type_t;
 
+/**
+ * @brief Wire representation of operation group header
+ *
+ */
 struct operation_group_header {
-    uint8_t magic_byte;
-    uint8_t hash[32];
+    uint8_t magic_byte;  ///< magic bytes, should be 0x03
+    uint8_t hash[32];    ///< hash of the operation
 } __attribute__((packed));
 
+/**
+ * @brief Wire representation of implicit contract
+ *
+ */
 struct implicit_contract {
-    raw_tezos_header_signature_type_t signature_type;
-    uint8_t pkh[HASH_SIZE];
+    raw_tezos_header_signature_type_t signature_type;  ///< type of the contract signature
+    uint8_t pkh[HASH_SIZE];                            ///< raw public key hash
 } __attribute__((packed));
 
+/**
+ * @brief Wire representation of delegation
+ *
+ */
 struct delegation_contents {
-    raw_tezos_header_signature_type_t signature_type;
-    uint8_t hash[HASH_SIZE];
+    raw_tezos_header_signature_type_t signature_type;  ///< type of the delegate signature
+    uint8_t hash[HASH_SIZE];                           ///< raw delegate
 } __attribute__((packed));
 
+/**
+ * @brief This structure represents the state of a Z parser
+ *
+ */
 struct int_subparser_state {
-    uint32_t lineno;  // Has to be in _all_ members of the subparser union.
-    uint64_t value;   // Still need to fix this.
-    uint8_t shift;
+    uint32_t lineno;  ///< line number
+                      ///< Has to be in _all_ members of the subparser union.
+    uint64_t value;   ///< Read value
+                      /// Still need to fix this.
+    uint8_t shift;    ///< Z shift
 };
 
+/**
+ * @brief This structure represents the state of a wire type parser
+ *
+ *        Allows to read data using wire representation types
+ *
+ *        Fills body using raw and an increasing fill_idx
+ *
+ */
 struct nexttype_subparser_state {
-    uint32_t lineno;
+    uint32_t lineno;  ///< line number
+
+    /// union of all wire structure
     union {
-        raw_tezos_header_signature_type_t sigtype;
+        raw_tezos_header_signature_type_t sigtype;  ///< wire signature_type
 
-        struct operation_group_header ogh;
+        struct operation_group_header ogh;  ///< wire operation group header
 
-        struct implicit_contract ic;
+        struct implicit_contract ic;  ///< wire implicit contract
 
-        struct delegation_contents dc;
+        struct delegation_contents dc;  ///< wire delegation content
 
-        uint8_t raw[1];
+        uint8_t raw[1];  ///< raw array to fill the body
     } body;
-    uint32_t fill_idx;
+    uint32_t fill_idx;  ///< current fill index
 };
 
+/**
+ * @brief This structure represents the union of all subparsers
+ *
+ */
 union subparser_state {
-    struct int_subparser_state integer;
-    struct nexttype_subparser_state nexttype;
+    struct int_subparser_state integer;        ///< state of a n integer parser
+    struct nexttype_subparser_state nexttype;  ///< state of a wire type parser
 };
 
+/**
+ * @brief This structure represents the parsing state
+ *
+ */
 struct parse_state {
-    int16_t op_step;
-    union subparser_state subparser_state;
-    enum operation_tag tag;
+    int16_t op_step;                        ///< current parsing step
+    union subparser_state subparser_state;  ///< state of subparser
+    enum operation_tag tag;                 ///< current operation tag
 };
 
-// Allows arbitrarily many "REVEAL" operations but only one operation of any other type,
-// which is the one it puts into the group.
+/**
+ * @brief Parses a group of operation
+ *
+ *        Allows arbitrarily many "REVEAL" operations but only one
+ *        operation of any other type, which is the one it puts into
+ *        the group.
+ *
+ *        Some checks are carried out during the parsing using a key using a key
+ *
+ * @param out: parsing output
+ * @param data: input
+ * @param length: input length
+ * @param curve: curve of the key
+ * @param bip32_path: bip32 path of the key
+ * @return bool: returns true on success
+ */
 bool parse_operations(struct parsed_operation_group *const out,
                       uint8_t const *const data,
                       size_t length,
                       derivation_type_t curve,
                       bip32_path_t const *const bip32_path);
 
+/**
+ * @brief Checks parsing has been completed successfully
+ *
+ * @param state: parsing state
+ * @param out: parsing output
+ * @return bool: returns true on success
+ */
 bool parse_operations_final(struct parse_state *const state,
                             struct parsed_operation_group *const out);
