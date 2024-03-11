@@ -30,16 +30,47 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/**
+ * @brief Authorizes a key
+ *
+ * @param derivation_type: curve of the key
+ * @param bip32_path: bip32 path of the key
+ */
 void authorize_baking(derivation_type_t const derivation_type,
                       bip32_path_t const *const bip32_path);
-void guard_baking_authorized(parsed_baking_data_t const *const baking_data,
+
+/**
+ * @brief Guards baking info and key pass required checks
+ *
+ * @param baking_info: baking info to check
+ * @param key: key to check
+ */
+void guard_baking_authorized(parsed_baking_data_t const *const baking_info,
                              bip32_path_with_curve_t const *const key);
-bool is_path_authorized(derivation_type_t const derivation_type,
-                        bip32_path_t const *const bip32_path);
+
+/**
+ * @brief Checks if a level is valid
+ *
+ * @param level: level
+ * @return bool: if the level is valid
+ */
 bool is_valid_level(level_t level);
+
+/**
+ * @brief Stores baking info into the NVRAM
+ *
+ * @param in: baking info
+ */
 void write_high_water_mark(parsed_baking_data_t const *const in);
 
-// Return false if it is invalid
+/**
+ * @brief Parses a baking data
+ *
+ * @param out: baking data output
+ * @param data: input
+ * @param length: input length
+ * @return bool: returns false if it is invalid
+ */
 bool parse_baking_data(parsed_baking_data_t *const out,
                        void const *const data,
                        size_t const length);

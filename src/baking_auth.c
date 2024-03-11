@@ -72,6 +72,14 @@ void authorize_baking(derivation_type_t const derivation_type,
     });
 }
 
+/**
+ * @brief Checks if a baking info pass all checks
+ *
+ *        See `doc/signing.md#checks`
+ *
+ * @param baking_info: baking info
+ * @return bool: return true if it has passed checks
+ */
 static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
     check_null(baking_info);
     if (!is_valid_level(baking_info->level)) {
@@ -104,6 +112,13 @@ static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
     }
 }
 
+/**
+ * @brief Checks if a key pass the checks
+ *
+ * @param derivation_type: curve of the key
+ * @param bip32_path: bip32 path of the key
+ * @return bool: return true if it has passed checks
+ */
 bool is_path_authorized(derivation_type_t const derivation_type,
                         bip32_path_t const *const bip32_path) {
     check_null(bip32_path);
@@ -124,43 +139,46 @@ void guard_baking_authorized(parsed_baking_data_t const *const baking_info,
     }
 }
 
+/**
+ * @brief Raw representation of block
+ *
+ *        All information of the block are not parsed here.
+ *
+ *        Except the fitness placed just after fitness size, the rest
+ *        of the block content is not important for our checks
+ *
+ *        Fitness =
+ *         - tag_size(4)               + tag(1)               +
+ *         - level_size(4)             + level(4)             +
+ *         - locked_round_size(4)      + locked_round(0|4)    +
+ *         - predecessor_round_size(4) + predecessor_round(4) +
+ *         - current_round_size(4)     + current_round(4)
+ *
+ */
 struct block_wire {
-    uint8_t magic_byte;
-    uint32_t chain_id;
-    uint32_t level;
-    uint8_t proto;
-    uint8_t predecessor[32];
-    uint64_t timestamp;
-    uint8_t validation_pass;
-    uint8_t operation_hash[32];
-    uint32_t fitness_size;
+    uint8_t magic_byte;          ///< magic bytes, should be 0x11
+    uint32_t chain_id;           ///< chain id of the block
+    uint32_t level;              ///< height of the block, from the genesis block
+    uint8_t proto;               ///< protocol number
+    uint8_t predecessor[32];     ///< hash of the preceding block
+    uint64_t timestamp;          ///< timestamp at which the block have been created
+    uint8_t validation_pass;     ///< number of validation passes
+    uint8_t operation_hash[32];  ///< hash of the operations
+    uint32_t fitness_size;       ///< size of the fitness
     // ... beyond this we don't care
 } __attribute__((packed));
 
-struct consensus_op_wire {
-    uint8_t magic_byte;
-    uint32_t chain_id;
-    uint8_t branch[32];
-    uint8_t tag;
-    uint16_t slot;
-    uint32_t level;
-    uint32_t round;
-    uint8_t block_payload_hash[32];
-} __attribute__((packed));
-
-/**
- * Fitness =
- *  - tag_size(4)               + tag(1)               +
- *  - level_size(4)             + level(4)             +
- *  - locked_round_size(4)      + locked_round(0|4)    +
- *  - predecessor_round_size(4) + predecessor_round(4) +
- *  - current_round_size(4)     + current_round(4)
- */
 #define MINIMUM_FITNESS_SIZE 33  // When 'locked_round' == none
 #define MAXIMUM_FITNESS_SIZE 37  // When 'locked_round' != none
 
 #define TENDERBAKE_PROTO_FITNESS_VERSION 2
 
+/**
+ * @brief Get the protocol version from fitness
+ *
+ * @param fitness: fitness
+ * @return uint8_t: protocol version result
+ */
 uint8_t get_proto_version(void const *const fitness) {
     // Each field is preceded by its size (uint32_t).
     // That's why we need to look at `sizeof(uint32_t)` bytes after
@@ -171,6 +189,14 @@ uint8_t get_proto_version(void const *const fitness) {
     return READ_UNALIGNED_BIG_ENDIAN(uint8_t, fitness + sizeof(uint32_t));
 }
 
+/**
+ * @brief Parse a block
+ *
+ * @param out: baking data output
+ * @param data: input
+ * @param length: input length
+ * @return bool: returns false if it is invalid
+ */
 bool parse_block(parsed_baking_data_t *const out, void const *const data, size_t const length) {
     if (length < sizeof(struct block_wire) + MINIMUM_FITNESS_SIZE) {
         return false;
@@ -196,6 +222,33 @@ bool parse_block(parsed_baking_data_t *const out, void const *const data, size_t
     return true;
 }
 
+/**
+ * @brief Raw representation of a consensus operation
+ *
+ *        - Pre-attestation  , tag: 20
+ *        - Attestation      , tag: 21
+ *        - Attestation + DAL, tag: 23
+ *
+ */
+struct consensus_op_wire {
+    uint8_t magic_byte;              ///< magic bytes, should be 0x12, or 0x13
+    uint32_t chain_id;               ///< chain id of the block
+    uint8_t branch[32];              ///< block branch
+    uint8_t tag;                     ///< operation tag
+    uint16_t slot;                   ///< first slot of the baker
+    uint32_t level;                  ///< level of the related block
+    uint32_t round;                  ///< round of the related block
+    uint8_t block_payload_hash[32];  ///< hash of the related block
+} __attribute__((packed));
+
+/**
+ * @brief Parse a consensus operation
+ *
+ * @param out: baking data output
+ * @param data: input
+ * @param length: input length
+ * @return bool: returns false if it is invalid
+ */
 bool parse_consensus_operation(parsed_baking_data_t *const out,
                                void const *const data,
                                size_t const length) {
