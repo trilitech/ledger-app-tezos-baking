@@ -30,27 +30,83 @@
 #include "types.h"
 #include "ui.h"
 
+/**
+ * @brief Converts a key to a public key hash string using its public key
+ *
+ * @param out: result output
+ * @param out_size: output size
+ * @param derivation_type: curve of the key
+ * @param public_key: public key of the key
+ */
 void pubkey_to_pkh_string(char *const out,
                           size_t const out_size,
                           derivation_type_t const derivation_type,
                           cx_ecfp_public_key_t const *const public_key);
+
+/**
+ * @brief Converts a key to a public key hash string using its bip32 path and curve
+ *
+ * @param out: result output
+ * @param out_size: output size
+ * @param key: bip32 path and curve of the key
+ */
 void bip32_path_with_curve_to_pkh_string(char *const out,
                                          size_t const out_size,
                                          bip32_path_with_curve_t const *const key);
+
+/**
+ * @brief Converts a chain id to string
+ *
+ *        Outputs its alias if it has one
+ *
+ * @param out: result output
+ * @param out_size: output size
+ * @param chain_id: chain id to convert
+ */
 void chain_id_to_string_with_aliases(char *const out,
                                      size_t const out_size,
                                      chain_id_t const *const chain_id);
 
-// dest must be at least MAX_INT_DIGITS
+/**
+ * @brief Converts an uint64 number to string
+ *
+ *        The size of `dest` must be at least `MAX_INT_DIGITS`
+ *
+ * @param dest: result output
+ * @param number: number to convert
+ * @return size_t: size of the result
+ */
 size_t number_to_string(char *const dest, uint64_t number);
 
-// These take their number parameter through a pointer and take a length
+/**
+ * @brief Converts an uint32 number to string
+ *
+ * @param dest: result output
+ * @param buff_size: size of dest
+ * @param number: number to convert
+ */
 void number_to_string_indirect32(char *const dest,
                                  size_t const buff_size,
                                  uint32_t const *const number);
+
+/**
+ * @brief Converts an uint64 number to microtez as string
+ *
+ * @param dest: result output
+ * @param buff_size: size of dest
+ * @param number: number to convert
+ */
 void microtez_to_string_indirect(char *const dest,
                                  size_t const buff_size,
                                  uint64_t const *const number);
 
-// `src` may be unrelocated pointer to rodata.
+/**
+ * @brief Copies a string in a buffer
+ *
+ *        `src` may be unrelocated pointer to rodata.
+ *
+ * @param dest: output buffer
+ * @param buff_size: size of the buffer
+ * @param src: input to copy
+ */
 void copy_string(char *const dest, size_t const buff_size, char const *const src);

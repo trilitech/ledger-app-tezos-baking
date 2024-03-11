@@ -28,16 +28,6 @@
 
 #include <string.h>
 
-#define NO_CONTRACT_STRING "None"
-
-#ifdef HAVE_BAGL
-#define NO_CONTRACT_NAME_STRING "Custom Delegate: please verify the address"
-#endif
-
-#ifdef HAVE_NBGL
-#define NO_CONTRACT_NAME_STRING "Custom Delegate:\nplease verify the address"
-#endif
-
 #define TEZOS_HASH_CHECKSUM_SIZE 4
 
 #define TICKER_WITH_SPACE " XTZ"
@@ -46,8 +36,6 @@ void pkh_to_string(char *const buff,
                    size_t const buff_size,
                    signature_type_t const signature_type,
                    uint8_t const hash[HASH_SIZE]);
-
-// These functions output terminating null bytes, and return the ending offset.
 static size_t microtez_to_string(char *dest, uint64_t number);
 
 void pubkey_to_pkh_string(char *const out,
@@ -73,6 +61,13 @@ void bip32_path_with_curve_to_pkh_string(char *const out,
     pubkey_to_pkh_string(out, out_size, key->derivation_type, &pubkey);
 }
 
+/**
+ * @brief Computes the ckecsum of a hash
+ *
+ * @param out: result output
+ * @param data: hash input
+ * @param size: input size
+ */
 void compute_hash_checksum(uint8_t out[TEZOS_HASH_CHECKSUM_SIZE],
                            void const *const data,
                            size_t size) {
@@ -82,6 +77,14 @@ void compute_hash_checksum(uint8_t out[TEZOS_HASH_CHECKSUM_SIZE],
     memcpy(out, checksum, TEZOS_HASH_CHECKSUM_SIZE);
 }
 
+/**
+ * @brief Converts a public key hash to string
+ *
+ * @param buff: result output
+ * @param buff_size: output size
+ * @param signature_type: curve of the key
+ * @param hash: public key hash
+ */
 void pkh_to_string(char *const buff,
                    size_t const buff_size,
                    signature_type_t const signature_type,
@@ -134,6 +137,13 @@ void pkh_to_string(char *const buff,
     }
 }
 
+/**
+ * @brief Converts a chain id to string
+ *
+ * @param buff: result output
+ * @param buff_size: output size
+ * @param chain_id: chain id to convert
+ */
 void chain_id_to_string(char *const buff, size_t const buff_size, chain_id_t const chain_id) {
     check_null(buff);
     if (buff_size < CHAIN_ID_BASE58_STRING_SIZE) {
@@ -179,11 +189,20 @@ void chain_id_to_string_with_aliases(char *const out,
     }
 }
 
-// These functions do not output terminating null bytes.
+/// These functions do not output terminating null bytes.
 
-// This function fills digits, potentially with all leading zeroes, from the end of the buffer
-// backwards This is intended to be used with a temporary buffer of length MAX_INT_DIGITS Returns
-// offset of where it stopped filling in
+/**
+ * @brief Converts an uint64 number to string
+ *
+ *        Fills digits, potentially with all leading zeroes, from the end of the buffer backwards
+ *
+ *        This is intended to be used with a temporary buffer of length MAX_INT_DIGITS
+ *
+ * @param dest: result output
+ * @param number: number to convert
+ * @param leading_zeroes: if keep the leading 0
+ * @return size_t: offset of where it stopped filling in
+ */
 static inline size_t convert_number(char dest[MAX_INT_DIGITS],
                                     uint64_t number,
                                     bool leading_zeroes) {
@@ -233,10 +252,19 @@ size_t number_to_string(char *const dest, uint64_t number) {
     return length;
 }
 
-// Microtez are in millionths
+/// Microtez are in millionths
 #define TEZ_SCALE      1000000
 #define DECIMAL_DIGITS 6
 
+/**
+ * @brief Converts an uint64 number to microtez as string
+ *
+ *        These functions output terminating null bytes, and return the ending offset.
+ *
+ * @param dest: output buffer
+ * @param number: number to convert
+ * @return size_t: size of the result
+ */
 size_t microtez_to_string(char *const dest, uint64_t number) {
     check_null(dest);
     uint64_t whole_tez = number / TEZ_SCALE;
