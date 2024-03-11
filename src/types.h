@@ -166,14 +166,6 @@ typedef struct {
 #define PROMPT_WIDTH          16
 #define VALUE_WIDTH           PROTOCOL_HASH_BASE58_STRING_SIZE
 
-// Macros to wrap a static prompt and value strings and ensure they aren't too long.
-#define PROMPT(str)                                                   \
-    ({                                                                \
-        _Static_assert(sizeof(str) <= PROMPT_WIDTH + 1 /*null byte*/, \
-                       str " won't fit in the UI prompt.");           \
-        str;                                                          \
-    })
-
 // Operations
 #define PROTOCOL_HASH_SIZE 32
 

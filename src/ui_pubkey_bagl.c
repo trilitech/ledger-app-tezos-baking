@@ -21,6 +21,7 @@
 
 #ifdef HAVE_BAGL
 #include "apdu_pubkey.h"
+#include "ui_pubkey.h"
 
 #include "apdu.h"
 #include "cx.h"
@@ -33,12 +34,12 @@
 
 #include <string.h>
 
-__attribute__((noreturn)) void prompt_address(bool baking,
-                                              ui_callback_t ok_cb,
-                                              ui_callback_t cxl_cb) {
+__attribute__((noreturn)) void prompt_pubkey(bool authorize,
+                                             ui_callback_t ok_cb,
+                                             ui_callback_t cxl_cb) {
     init_screen_stack();
 
-    if (baking) {
+    if (authorize) {
         push_ui_callback("Authorize Baking", copy_string, "With Public Key?");
         push_ui_callback("Public Key Hash",
                          bip32_path_with_curve_to_pkh_string,
