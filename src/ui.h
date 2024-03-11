@@ -29,18 +29,13 @@
 #include "keys.h"
 
 void ui_initial_screen(void);
-void ui_init(void);
-void ui_refresh(void);
 
 void exit_app(void);  // Might want to send it arguments to use as callback
 
 #ifdef HAVE_BAGL
 void update_baking_idle_screens(void);
-#endif  // HAVE_BAGL
-
 void ux_confirm_screen(ui_callback_t ok_c, ui_callback_t cxl_c);
-
-void ux_idle_screen(ui_callback_t ok_c, ui_callback_t cxl_c);
+#endif  // HAVE_BAGL
 
 /* Initializes the formatter stack. Should be called once before calling `push_ui_callback()`. */
 void init_screen_stack();

@@ -51,7 +51,8 @@ void calculate_baking_idle_screens_data(void) {
 void update_baking_idle_screens(void) {
     init_screen_stack();
     calculate_baking_idle_screens_data();
-    ui_refresh();
+    /// refresh
+    ux_stack_display(0);
 }
 
 // User MUST call `init_screen_stack()` before the first call to this function.
@@ -244,18 +245,6 @@ void display_next_state(bool is_left_ux_step) {
     }
 }
 
-void ui_initial_screen(void) {
-    // reserve a display stack slot if none yet
-    if (G_ux.stack_count == 0) {
-        ux_stack_push();
-    }
-
-    init_screen_stack();
-    calculate_baking_idle_screens_data();
-
-    ux_idle_screen(NULL, NULL);
-}
-
 void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
     global.dynamic_display.screen_stack_size = global.dynamic_display.formatter_index;
     global.dynamic_display.formatter_index = 0;
@@ -269,14 +258,23 @@ void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
     }
 }
 
+void ui_initial_screen(void) {
+    // reserve a display stack slot if none yet
+    if (G_ux.stack_count == 0) {
+        ux_stack_push();
+    }
+
+    init_screen_stack();
+    calculate_baking_idle_screens_data();
+
+    ux_prepare_display(NULL, NULL);
+    ux_flow_init(0, ux_idle_flow, NULL);
+}
+
 void ux_confirm_screen(ui_callback_t ok_c, ui_callback_t cxl_c) {
     ux_prepare_display(ok_c, cxl_c);
     ux_flow_init(0, ux_confirm_flow, NULL);
     THROW(ASYNC_EXCEPTION);
 }
 
-void ux_idle_screen(ui_callback_t ok_c, ui_callback_t cxl_c) {
-    ux_prepare_display(ok_c, cxl_c);
-    ux_flow_init(0, ux_idle_flow, NULL);
-}
 #endif  // HAVE_BAGL

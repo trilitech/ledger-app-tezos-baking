@@ -40,10 +40,6 @@
 static const char* const infoTypes[] = {"Version", "Developer", "Copyright"};
 static const char* const infoContents[] = {VERSION, "Ledger", "(c) 2023 Ledger"};
 
-void ui_initial_screen(void) {
-    ux_idle_screen(NULL, NULL);
-}
-
 #define MAX_LENGTH 200
 static char* bakeInfoContents[3];
 static char buffer[3][MAX_LENGTH];
@@ -90,10 +86,7 @@ void ui_menu_about_baking(void) {
                          NULL);
 }
 
-void ux_idle_screen(ui_callback_t ok_c, ui_callback_t cxl_c) {
-    (void) ok_c;
-    (void) cxl_c;
-
+void ui_initial_screen(void) {
     nbgl_useCaseHome("Tezos Baking", &C_tezos, NULL, false, ui_menu_about_baking, exit_app);
 }
 

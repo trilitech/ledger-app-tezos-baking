@@ -53,12 +53,9 @@ void ux_layout_empty_init(unsigned int stack_slot) {
     ux_stack_display(stack_slot);
 }
 
-void ux_layout_empty_screen_init(__attribute__((unused)) unsigned int x) {
-}
-
 void return_to_idle() {
     global.dynamic_display.is_blank_screen = false;
-    ux_idle_screen(NULL, NULL);
+    ui_initial_screen();
 }
 
 UX_STEP_CB(empty_screen_step, empty, return_to_idle(), {});
