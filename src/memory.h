@@ -25,6 +25,14 @@
 
 #include "exception.h"
 
+/**
+ * @brief Compares two buffer
+ *
+ *        Statically guarantees that buffer sizes match
+ *
+ * @param a: first buffer
+ * @param b: second buffer
+ */
 #define COMPARE(a, b)                                                         \
     ({                                                                        \
         _Static_assert(sizeof(*a) == sizeof(*b), "Size mismatch in COMPARE"); \
@@ -32,4 +40,10 @@
         check_null(b);                                                        \
         memcmp(a, b, sizeof(*a));                                             \
     })
+
+/**
+ * @brief Returns the number of element of an array
+ *
+ * @param a: array
+ */
 #define NUM_ELEMENTS(a) (sizeof(a) / sizeof(*a))
