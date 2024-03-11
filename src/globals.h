@@ -27,6 +27,7 @@
 #include "bolos_target.h"
 
 #include "operations.h"
+#include "ui.h"
 
 // Zeros out all globals that can keep track of APDU instruction state.
 // Notably this does *not* include UI state.

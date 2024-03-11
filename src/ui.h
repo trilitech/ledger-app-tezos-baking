@@ -28,16 +28,51 @@
 
 #include "keys.h"
 
-/* Initializes the formatter stack. Should be called once before calling `push_ui_callback()`. */
+/**
+ * @brief Initializes the formatter stack
+ *
+ *        Must be called once before calling `push_ui_callback()` for the first time
+ *
+ */
 void init_screen_stack(void);
-/* Initializes the formatter stack. Should be called once before calling `push_ui_callback()`. */
+
+/**
+ * @brief Pushes a new screen to the flow
+ *
+ *        Must call `init_screen_stack()` before calling this function for the first time
+ *
+ * @param title: title of the screen
+ * @param cb: callback to generate the string version of the data
+ * @param data: data to display on the screen
+ */
 void push_ui_callback(char *title, string_generation_callback cb, void *data);
 
+/**
+ * @brief Starts the idle flow
+ *
+ */
 void ui_initial_screen(void);
 
-void exit_app(void);  // Might want to send it arguments to use as callback
+/**
+ * @brief Exits the app
+ *
+ */
+void exit_app(void);
 
 #ifdef HAVE_BAGL
+
+/**
+ * @brief Updates the baking screens
+ *
+ */
 void update_baking_idle_screens(void);
+
+/**
+ * @brief Prepare confirmation screens
+ *
+ * @param ok_c: accept callback
+ * @param cxl_c: cancel callback
+ */
 void ux_confirm_screen(ui_callback_t ok_c, ui_callback_t cxl_c);
+
 #endif  // HAVE_BAGL

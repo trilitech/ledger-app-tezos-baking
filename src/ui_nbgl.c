@@ -50,6 +50,13 @@ static const char* const bakeInfoTypes[] = {
     "High Watermark",
 };
 
+/**
+ * @brief Callback to fill the settings page content
+ *
+ * @param page: page of the settings
+ * @param content: content to fill
+ * @return bool: if the page is not out of bounds
+ */
 static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
     UNUSED(page);
 
@@ -76,6 +83,10 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
     return true;
 }
 
+/**
+ * @brief Draws settings pages
+ *
+ */
 void ui_menu_about_baking(void) {
     nbgl_useCaseSettings("Tezos baking",
                          0,

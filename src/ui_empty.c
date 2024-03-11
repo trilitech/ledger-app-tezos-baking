@@ -25,6 +25,10 @@
 #include "globals.h"
 #include "ui.h"
 
+/**
+ * @brief Black screen element
+ *
+ */
 const bagl_element_t empty_screen_elements[] = {{{BAGL_RECTANGLE,
                                                   BAGL_NONE,
                                                   0,
@@ -41,9 +45,20 @@ const bagl_element_t empty_screen_elements[] = {{{BAGL_RECTANGLE,
                                                  .text = NULL},
                                                 {}};
 
+/**
+ * @brief This structure represents the parameters needed for the empty layout
+ *
+ *        No parameters required
+ *
+ */
 typedef struct ux_layout_empty_params_s {
 } ux_layout_empty_params_t;
 
+/**
+ * @brief Initializes the empty layout
+ *
+ * @param stack_slot: index stack_slot
+ */
 void ux_layout_empty_init(unsigned int stack_slot) {
     ux_stack_init(stack_slot);
     G_ux.stack[stack_slot].element_arrays[0].element_array = empty_screen_elements;
@@ -53,11 +68,21 @@ void ux_layout_empty_init(unsigned int stack_slot) {
     ux_stack_display(stack_slot);
 }
 
+/**
+ * @brief Exits the empty screen
+ *
+ */
 void return_to_idle() {
     global.dynamic_display.is_blank_screen = false;
     ui_initial_screen();
 }
 
+/**
+ * @brief Empty screens flow
+ *
+ *        On any click: return_to_idle
+ *
+ */
 UX_STEP_CB(empty_screen_step, empty, return_to_idle(), {});
 UX_STEP_INIT(empty_screen_border, NULL, NULL, { return_to_idle(); });
 UX_FLOW(ux_empty_flow, &empty_screen_step, &empty_screen_border, FLOW_LOOP);

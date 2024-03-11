@@ -25,7 +25,16 @@
 #include "globals.h"
 #include "os.h"
 
-unsigned char io_event(__attribute__((unused)) unsigned char channel) {
+/**
+ * @brief Redefinition of lib_standard_app/io.io_event
+ *
+ *        In order to disable ticker event handling to prevent
+ *        screen-saver from starting
+ *
+ * @param channel: requested channel
+ * @return 1
+ */
+uint8_t io_event(__attribute__((unused)) unsigned char channel) {
     // nothing done with the event, throw an error on the transport layer if
     // needed
 
@@ -81,6 +90,10 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
     return 1;
 }
 
+/**
+ * @brief Invalidates the pin to enforce its requirement.
+ *
+ */
 void require_pin(void) {
     os_global_pin_invalidate();
 }
