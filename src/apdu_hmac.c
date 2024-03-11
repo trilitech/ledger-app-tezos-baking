@@ -25,11 +25,26 @@
 
 #define G global.apdu.u.hmac
 
+/**
+ * @brief Generate the hmac of a message
+ *
+ *        The hmac-key is the signature of a fixed message signed with a given key
+ *
+ * @param out: result output
+ * @param out_size: output size
+ * @param state: hmac state
+ * @param in: input message
+ * @param in_size: input size
+ * @param bip32_path: key path
+ * @param derivation_type: key curve
+ * @return size_t: size of the hmac
+ */
 static inline size_t hmac(uint8_t *const out,
                           size_t const out_size,
                           apdu_hmac_state_t *const state,
                           uint8_t const *const in,
                           size_t const in_size,
+                          bip32_path_t bip32_path,
                           derivation_type_t derivation_type) {
     check_null(out);
     check_null(state);
@@ -51,7 +66,7 @@ static inline size_t hmac(uint8_t *const out,
 
     BEGIN_TRY {
         TRY {
-            generate_key_pair(&key_pair, derivation_type, &global.path_with_curve.bip32_path);
+            generate_key_pair(&key_pair, derivation_type, &bip32_path);
             signed_hmac_key_size = sign(state->signed_hmac_key,
                                         sizeof(state->signed_hmac_key),
                                         derivation_type,
@@ -98,14 +113,20 @@ size_t handle_apdu_hmac(__attribute__((unused)) uint8_t instruction,
 
     derivation_type_t derivation_type = parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
 
+    bip32_path_t bip32_path = {0};
     size_t consumed = 0;
-    consumed += read_bip32_path(&global.path_with_curve.bip32_path, buff, buff_size);
+    consumed += read_bip32_path(&bip32_path, buff, buff_size);
 
     uint8_t const *const data_to_hmac = &buff[consumed];
     size_t const data_to_hmac_size = buff_size - consumed;
 
-    size_t const hmac_size =
-        hmac(G.hmac, sizeof(G.hmac), &G, data_to_hmac, data_to_hmac_size, derivation_type);
+    size_t const hmac_size = hmac(G.hmac,
+                                  sizeof(G.hmac),
+                                  &G,
+                                  data_to_hmac,
+                                  data_to_hmac_size,
+                                  bip32_path,
+                                  derivation_type);
 
     size_t tx = 0;
     memcpy(G_io_apdu_buffer, G.hmac, hmac_size);

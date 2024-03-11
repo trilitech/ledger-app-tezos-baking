@@ -23,4 +23,13 @@
 
 #include "apdu.h"
 
+/**
+ * @brief Handles HMAC instruction
+ *
+ *        Fills apdu response with the hmac
+ *
+ * @param instruction: apdu instruction
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
 size_t handle_apdu_hmac(uint8_t instruction, volatile uint32_t* flags);
