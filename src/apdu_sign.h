@@ -23,7 +23,20 @@
 
 #include "apdu.h"
 
+/**
+ * @brief Handles SIGN instruction
+ *
+ * @param instruction: apdu instruction
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
 size_t handle_apdu_sign(uint8_t instruction, volatile uint32_t* flags);
-size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t* flags);
 
-int perform_signature(bool const on_hash, bool const send_hash);
+/**
+ * @brief Handles SIGN_WITH_HASH instruction
+ *
+ * @param instruction: apdu instruction
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
+size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t* flags);
