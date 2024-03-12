@@ -42,7 +42,7 @@
 static size_t send_word_big_endian(size_t tx, uint32_t word) {
     char word_bytes[sizeof(word)];
 
-    memcpy(word_bytes, &word, sizeof(word));
+    memcpy(word_bytes, (char*) &word, sizeof(word));
 
     // endian.h functions do not compile
     uint32_t i = 0;

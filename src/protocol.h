@@ -54,18 +54,18 @@ static inline uint8_t get_magic_byte(uint8_t const *const data, size_t const len
  * @param type: type of the value
  * @return in: data to read
  */
-#define READ_UNALIGNED_BIG_ENDIAN(type, in)              \
-    ({                                                   \
-        uint8_t const *bytes = (uint8_t const *) in;     \
-        uint8_t out_bytes[sizeof(type)];                 \
-        type res;                                        \
-                                                         \
-        for (size_t i = 0; i < sizeof(type); i++) {      \
-            out_bytes[i] = bytes[sizeof(type) - i - 1u]; \
-        }                                                \
-        memcpy(&res, out_bytes, sizeof(type));           \
-                                                         \
-        res;                                             \
+#define READ_UNALIGNED_BIG_ENDIAN(type, in)                \
+    ({                                                     \
+        uint8_t const *bytes = (uint8_t const *) in;       \
+        uint8_t out_bytes[sizeof(type)];                   \
+        type res;                                          \
+                                                           \
+        for (size_t i = 0; i < sizeof(type); i++) {        \
+            out_bytes[i] = bytes[sizeof(type) - i - 1u];   \
+        }                                                  \
+        memcpy((uint8_t *) &res, out_bytes, sizeof(type)); \
+                                                           \
+        res;                                               \
     })
 
 /**
