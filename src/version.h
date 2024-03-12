@@ -17,14 +17,38 @@
    limitations under the License.
 
 */
+#pragma once
+
+#include <stdint.h>
 
 #define CLASS 1
 
+#ifndef MAJOR_VERSION
+#define MAJOR_VERSION 0
+#endif
+
+#ifndef MINOR_VERSION
+#define MINOR_VERSION 0
+#endif
+
+#ifndef PATCH_VERSION
+#define PATCH_VERSION 0
+#endif
+
+/**
+ * @brief This structure represents the version
+ *
+ */
 typedef struct version {
+    /// 0 for the wallet app, 1 for the baking app
     uint8_t class;
-    uint8_t major;
-    uint8_t minor;
-    uint8_t patch;
+    uint8_t major;  ///< Major version component
+    uint8_t minor;  ///< Minor version component
+    uint8_t patch;  ///< Patch version component
 } version_t;
 
+/**
+ * @brief Constant app version
+ *
+ */
 const version_t version = {CLASS, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION};

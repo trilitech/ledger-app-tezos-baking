@@ -29,6 +29,8 @@
 #include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
+#include "ui_delegation.h"
+#include "ui_empty.h"
 
 #include "cx.h"
 
@@ -38,8 +40,15 @@
 
 #define PARSE_ERROR() THROW(EXC_PARSE_ERROR)
 
-#define B2B_BLOCKBYTES 128
+#define B2B_BLOCKBYTES 128  /// blake2b hash size
 
+size_t perform_signature(bool const on_hash, bool const send_hash);
+
+/**
+ * @brief Initializes the blake2b state if it is not
+ *
+ * @param state: blake2b state
+ */
 static inline void conditional_init_hash_state(blake2b_hash_state_t *const state) {
     check_null(state);
     if (!state->initialized) {
@@ -49,37 +58,62 @@ static inline void conditional_init_hash_state(blake2b_hash_state_t *const state
     }
 }
 
-static void blake2b_incremental_hash(
-    /*in/out*/ uint8_t *const out,
-    size_t const out_size,
-    /*in/out*/ size_t *const out_length,
-    /*in/out*/ blake2b_hash_state_t *const state) {
-    check_null(out);
-    check_null(out_length);
+/**
+ * @brief Hashes incrementally a buffer using a blake2b state
+ *
+ *        The hash remains in the buffer, the buffer content length is
+ *        updated and the blake2b state is also updated
+ *
+ * @param buff: buffer
+ * @param buff_size: buffer size
+ * @param buff_length: buffer content length
+ * @param state: blake2b state
+ */
+static void blake2b_incremental_hash(uint8_t *const buff,
+                                     size_t const buff_size,
+                                     size_t *const buff_length,
+                                     blake2b_hash_state_t *const state) {
+    check_null(buff);
+    check_null(buff_length);
     check_null(state);
 
-    uint8_t *current = out;
-    while (*out_length > B2B_BLOCKBYTES) {
-        if (current - out > (int) out_size) {
+    uint8_t *current = buff;
+    while (*buff_length > B2B_BLOCKBYTES) {
+        if (current - buff > (int) buff_size) {
             THROW(EXC_MEMORY_ERROR);
         }
         conditional_init_hash_state(state);
         CX_THROW(
             cx_hash_no_throw((cx_hash_t *) &state->state, 0, current, B2B_BLOCKBYTES, NULL, 0));
-        *out_length -= B2B_BLOCKBYTES;
+        *buff_length -= B2B_BLOCKBYTES;
         current += B2B_BLOCKBYTES;
     }
     // TODO use circular buffer at some point
-    memmove(out, current, *out_length);
+    memmove(buff, current, *buff_length);
 }
 
-static void blake2b_finish_hash(
-    /*out*/ uint8_t *const out,
-    size_t const out_size,
-    /*in/out*/ uint8_t *const buff,
-    size_t const buff_size,
-    /*in/out*/ size_t *const buff_length,
-    /*in/out*/ blake2b_hash_state_t *const state) {
+/**
+ * @brief Finalizes the hashes of a buffer using a blake2b state
+ *
+ *        The buffer is modified and the buffer content length is
+ *        updated
+ *
+ *        The final hash is stored in the ouput, its size is also
+ *         stored and the blake2b state is updated
+ *
+ * @param out: output buffer
+ * @param out_size: output size
+ * @param buff: buffer
+ * @param buff_size: buffer size
+ * @param buff_length: buffer content length
+ * @param state: blake2b state
+ */
+static void blake2b_finish_hash(uint8_t *const out,
+                                size_t const out_size,
+                                uint8_t *const buff,
+                                size_t const buff_size,
+                                size_t *const buff_length,
+                                blake2b_hash_state_t *const state) {
     check_null(out);
     check_null(buff);
     check_null(buff_length);
@@ -91,26 +125,55 @@ static void blake2b_finish_hash(
         cx_hash_no_throw((cx_hash_t *) &state->state, CX_LAST, buff, *buff_length, out, out_size));
 }
 
+/**
+ * @brief Allows to clear all data related to signature
+ *
+ */
 static inline void clear_data(void) {
     memset(&G, 0, sizeof(G));
 }
 
+/**
+ * @brief Sends asynchronously the signature of the read message
+ *
+ * @return true
+ */
 static bool sign_without_hash_ok(void) {
     delayed_send(perform_signature(true, false));
     return true;
 }
 
+/**
+ * @brief Sends asynchronously the signature of the read message
+ *        preceded by its hash
+ *
+ * @return true
+ */
 static bool sign_with_hash_ok(void) {
     delayed_send(perform_signature(true, true));
     return true;
 }
 
+/**
+ * @brief Rejects the signature
+ *
+ *        Makes sure to keep no trace of the signature
+ *
+ * @return true: to return to idle without showing a reject screen
+ */
 static bool sign_reject(void) {
     clear_data();
     delay_reject();
-    return true;  // Return to idle
+    return true;
 }
 
+/**
+ * @brief Carries out final checks before signing
+ *
+ * @param send_hash: if the message hash is requested
+ * @param flags: request flags
+ * @return size_t: offset of the apdu response
+ */
 size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
     size_t result = 0;
     switch (G.magic_byte) {
@@ -137,7 +200,7 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
                             0) {
                         ui_callback_t const ok_c =
                             send_hash ? sign_with_hash_ok : sign_without_hash_ok;
-                        prompt_register_delegate(ok_c, sign_reject);
+                        prompt_delegation(ok_c, sign_reject);
                         *flags = IO_ASYNCH_REPLY;
                         result = 0;
                     } else {
@@ -166,18 +229,30 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
     return result;
 }
 
-#define P1_FIRST          0x00
-#define P1_NEXT           0x01
-#define P1_HASH_ONLY_NEXT 0x03  // You only need it once
-#define P1_LAST_MARKER    0x80
+/**
+ * @brief Packet indexes
+ *
+ */
+#define P1_FIRST       0x00  /// First packet
+#define P1_NEXT        0x01  /// Other packet
+#define P1_LAST_MARKER 0x80  /// Last packet
 
+/**
+ * @brief Get the magic byte of a buffer
+ *
+ *        Throws an error if the magic byte does not correspond to an expected byte
+ *
+ * @param buff: buffer
+ * @param buff_size: buffer size
+ * @return uint8_t: magic_byte
+ */
 static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const buff_size) {
     uint8_t const magic_byte = get_magic_byte(buff, buff_size);
     switch (magic_byte) {
         case MAGIC_BYTE_BLOCK:
         case MAGIC_BYTE_PREENDORSEMENT:
         case MAGIC_BYTE_ENDORSEMENT:
-        case MAGIC_BYTE_UNSAFE_OP:  // Only for self-delegations
+        case MAGIC_BYTE_UNSAFE_OP:  // Only for self-delegations and reveals
             return magic_byte;
 
         default:
@@ -185,6 +260,15 @@ static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const b
     }
 }
 
+/**
+ * @brief Handles sign instructions
+ *
+ * @param enable_hashing: if data read is hashed before signed
+ * @param enable_parsing: if data read is parsed before signed
+ * @param instruction: apdu instruction
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
 static size_t handle_apdu(bool const enable_hashing,
                           bool const enable_parsing,
                           uint8_t const instruction,
@@ -294,7 +378,20 @@ size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t *flags)
     return handle_apdu(enable_hashing, enable_parsing, instruction, flags);
 }
 
-int perform_signature(bool const on_hash, bool const send_hash) {
+/**
+ * @brief Perfoms the signature of the read message
+ *
+ *        Fills apdu response with the signature
+ *
+ *        Precedes the signature with the message hash if requested
+ *
+ * @param on_hash: if true, the signature is perfomed on the hash of
+ *                 the data, otherwise the signature is performed on
+ *                 the data its-self
+ * @param send_hash: if the message hash is requested
+ * @return size_t: offset of the apdu response
+ */
+size_t perform_signature(bool const on_hash, bool const send_hash) {
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         THROW(EXC_SECURITY);
     }

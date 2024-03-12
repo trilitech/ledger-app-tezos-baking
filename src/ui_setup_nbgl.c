@@ -22,6 +22,7 @@
 
 #include "nbgl_use_case.h"
 #include "apdu_setup.h"
+#include "ui_setup.h"
 
 #include "apdu.h"
 #include "cx.h"
@@ -36,84 +37,102 @@
 
 #define MAX_LENGTH 100
 
+/**
+ * @brief This structure represents a context needed for setup screens navigation
+ *
+ */
 typedef struct {
-    ui_callback_t ok_cb;
-    ui_callback_t cxl_cb;
+    ui_callback_t ok_cb;   /// accept callback
+    ui_callback_t cxl_cb;  /// cancel callback
     nbgl_layoutTagValue_t tagValuePair[4];
     nbgl_layoutTagValueList_t tagValueList;
     nbgl_pageInfoLongPress_t infoLongPress;
-    char buffer[4][MAX_LENGTH];
-} TransactionContext_t;
+    char buffer[4][MAX_LENGTH];  /// values buffers
+} SetupContext_t;
 
-static TransactionContext_t transactionContext;
+/// Current setup context
+static SetupContext_t setup_context;
 
+/**
+ * @brief Callback called when setup is accepted or cancelled
+ *
+ * @param confirm: true if accepted, false if cancelled
+ */
 static void confirmation_callback(bool confirm) {
     if (confirm) {
-        transactionContext.ok_cb();
+        setup_context.ok_cb();
         nbgl_useCaseStatus("SETUP\nCONFIRMED", true, ui_initial_screen);
     } else {
-        transactionContext.cxl_cb();
+        setup_context.cxl_cb();
         nbgl_useCaseStatus("Setup cancelled", false, ui_initial_screen);
     }
 }
 
+/**
+ * @brief Callback called when setup is cancelled
+ *
+ */
 static void cancel_callback(void) {
     confirmation_callback(false);
 }
 
-static void continue_light_callback(void) {
-    transactionContext.infoLongPress.icon = &C_tezos;
-    transactionContext.infoLongPress.longPressText = "Approve";
-    transactionContext.infoLongPress.tuneId = TUNE_TAP_CASUAL;
-    transactionContext.infoLongPress.text = "Confirm baking setup";
+/**
+ * @brief Draws a confirmation page
+ *
+ */
+static void confirm_setup_page(void) {
+    setup_context.infoLongPress.icon = &C_tezos;
+    setup_context.infoLongPress.longPressText = "Approve";
+    setup_context.infoLongPress.tuneId = TUNE_TAP_CASUAL;
+    setup_context.infoLongPress.text = "Confirm baking setup";
 
-    nbgl_useCaseStaticReviewLight(&transactionContext.tagValueList,
-                                  &transactionContext.infoLongPress,
+    nbgl_useCaseStaticReviewLight(&setup_context.tagValueList,
+                                  &setup_context.infoLongPress,
                                   "Cancel",
                                   confirmation_callback);
 }
 
 void prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
-    transactionContext.ok_cb = ok_cb;
-    transactionContext.cxl_cb = cxl_cb;
+    setup_context.ok_cb = ok_cb;
+    setup_context.cxl_cb = cxl_cb;
 
-    bip32_path_with_curve_to_pkh_string(transactionContext.buffer[0],
-                                        sizeof(transactionContext.buffer[0]),
+    bip32_path_with_curve_to_pkh_string(setup_context.buffer[0],
+                                        sizeof(setup_context.buffer[0]),
                                         &global.path_with_curve);
-    chain_id_to_string_with_aliases(transactionContext.buffer[1],
-                                    sizeof(transactionContext.buffer[1]),
+    chain_id_to_string_with_aliases(setup_context.buffer[1],
+                                    sizeof(setup_context.buffer[1]),
                                     &G.main_chain_id);
 
-    number_to_string_indirect32(transactionContext.buffer[2],
-                                sizeof(transactionContext.buffer[2]),
+    number_to_string_indirect32(setup_context.buffer[2],
+                                sizeof(setup_context.buffer[2]),
                                 &G.hwm.main);
 
-    number_to_string_indirect32(transactionContext.buffer[3],
-                                sizeof(transactionContext.buffer[3]),
+    number_to_string_indirect32(setup_context.buffer[3],
+                                sizeof(setup_context.buffer[3]),
                                 &G.hwm.test);
 
-    transactionContext.tagValuePair[0].item = "Address";
-    transactionContext.tagValuePair[0].value = transactionContext.buffer[0];
+    setup_context.tagValuePair[0].item = "Address";
+    setup_context.tagValuePair[0].value = setup_context.buffer[0];
 
-    transactionContext.tagValuePair[1].item = "Chain";
-    transactionContext.tagValuePair[1].value = transactionContext.buffer[1];
+    setup_context.tagValuePair[1].item = "Chain";
+    setup_context.tagValuePair[1].value = setup_context.buffer[1];
 
-    transactionContext.tagValuePair[2].item = "Main Chain HWM";
-    transactionContext.tagValuePair[2].value = transactionContext.buffer[2];
+    setup_context.tagValuePair[2].item = "Main Chain HWM";
+    setup_context.tagValuePair[2].value = setup_context.buffer[2];
 
-    transactionContext.tagValuePair[3].item = "Test Chain HWM";
-    transactionContext.tagValuePair[3].value = transactionContext.buffer[3];
+    setup_context.tagValuePair[3].item = "Test Chain HWM";
+    setup_context.tagValuePair[3].value = setup_context.buffer[3];
 
-    transactionContext.tagValueList.nbPairs = 4;
-    transactionContext.tagValueList.pairs = transactionContext.tagValuePair;
+    setup_context.tagValueList.nbPairs = 4;
+    setup_context.tagValueList.pairs = setup_context.tagValuePair;
 
-    transactionContext.infoLongPress.text = "Confirm baking setup";
+    setup_context.infoLongPress.text = "Confirm baking setup";
 
     nbgl_useCaseReviewStart(&C_tezos,
                             "Setup baking",
                             NULL,
                             "Cancel",
-                            continue_light_callback,
+                            confirm_setup_page,
                             cancel_callback);
 }
 

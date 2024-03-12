@@ -28,20 +28,33 @@
 #include "keys.h"
 #include "to_string.h"
 #include "ui.h"
+#include "ui_setup.h"
 
 #include <string.h>
 
 #define G global.apdu.u.setup
 
+/**
+ * @brief This structure represents the SETUP instruction payload
+ *
+ */
 struct setup_wire {
-    uint32_t main_chain_id;
+    uint32_t main_chain_id;  ///< main chain id
+    /// high watermarks
     struct {
-        uint32_t main;
-        uint32_t test;
+        uint32_t main;  ///< main highest level
+        uint32_t test;  ///< test highest level
     } hwm;
-    struct bip32_path_wire bip32_path;
+    struct bip32_path_wire bip32_path;  ///< authorized key path
 } __attribute__((packed));
 
+/**
+ * @brief Applies the setup
+ *
+ *        Rounds are also reset to 0
+ *
+ * @return true
+ */
 static bool ok(void) {
     UPDATE_NVRAM(ram, {
         copy_bip32_path_with_curve(&ram->baking_key, &global.path_with_curve);
@@ -105,4 +118,17 @@ size_t handle_apdu_setup(__attribute__((unused)) uint8_t instruction, volatile u
     prompt_setup(ok, delay_reject);
     *flags = IO_ASYNCH_REPLY;
     return 0;
+}
+
+size_t handle_apdu_deauthorize(__attribute__((unused)) uint8_t instruction,
+                               __attribute__((unused)) volatile uint32_t *flags) {
+    if (G_io_apdu_buffer[OFFSET_P1] != 0) {
+        THROW(EXC_WRONG_PARAM);
+    }
+    if (G_io_apdu_buffer[OFFSET_LC] != 0) {
+        THROW(EXC_PARSE_ERROR);
+    }
+    UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });
+
+    return finalize_successful_send(0);
 }

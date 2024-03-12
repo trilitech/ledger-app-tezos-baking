@@ -1,4 +1,4 @@
-/* Tezos Ledger application - Baking APDU instruction handling
+/* Tezos Ledger application - Query APDU instruction handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
@@ -24,13 +24,47 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 
-size_t handle_apdu_reset(uint8_t instruction, volatile uint32_t* flags);
+/**
+ * @brief Handles QUERY_AUTH instruction
+ *
+ *        Fills apdu response with the authorized key path
+ *
+ * @param instruction: apdu instruction
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
 size_t handle_apdu_query_auth_key(uint8_t instruction, volatile uint32_t* flags);
+
+/**
+ * @brief Handles QUERY_AUTH_KEY_WITH_CURVE instruction
+ *
+ *        Fills apdu response with the authorized key path and its curve
+ *
+ * @param instruction: apdu instruction
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
 size_t handle_apdu_query_auth_key_with_curve(uint8_t instruction, volatile uint32_t* flags);
+
+/**
+ * @brief Handles QUERY_MAIN_HWM instruction
+ *
+ *        Fills apdu response with main HWM
+ *
+ * @param instruction: apdu instruction
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
 size_t handle_apdu_main_hwm(uint8_t instruction, volatile uint32_t* flags);
+
+/**
+ * @brief Handles QUERY_ALL_HWM instruction
+ *
+ *        Fills apdu response with main HWM, test HWM and main chain id
+ *
+ * @param instruction: apdu instruction
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
 size_t handle_apdu_all_hwm(uint8_t instruction, volatile uint32_t* flags);
-size_t handle_apdu_deauthorize(uint8_t instruction, volatile uint32_t* flags);
-void ui_baking_reset(volatile uint32_t* flags);
-bool reset_ok(void);

@@ -1,8 +1,9 @@
-/* Tezos Ledger application - Public key APDU instruction handling
+/* Tezos Ledger application - Reset APDU instruction handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
    Copyright 2023 Ledger
+   Copyright 2022 Nomadic Labs <contact@nomadic-labs.com>
    Copyright 2019 Obsidian Systems
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,16 +19,18 @@
    limitations under the License.
 
 */
-
 #pragma once
 
-#include "apdu.h"
+#include <stddef.h>
+#include <stdint.h>
 
 /**
- * @brief Handles AUTHORIZE_BAKING, GET_PUBLIC_KEY and PROMPT_PUBLIC_KEY instructions
+ * @brief Handles RESET instruction
+ *
+ *        Asks user to reset
  *
  * @param instruction: apdu instruction
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_get_public_key(uint8_t instruction, volatile uint32_t* flags);
+size_t handle_apdu_reset(uint8_t instruction, volatile uint32_t* flags);

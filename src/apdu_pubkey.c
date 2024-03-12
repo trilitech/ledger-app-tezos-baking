@@ -28,10 +28,16 @@
 #include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
+#include "ui_pubkey.h"
 #include "baking_auth.h"
 
 #include <string.h>
 
+/**
+ * @brief Sends apdu response with the public key
+ *
+ * @return true
+ */
 static bool pubkey_ok(void) {
     cx_ecfp_public_key_t public_key = {0};
     generate_public_key(&public_key,
@@ -41,19 +47,17 @@ static bool pubkey_ok(void) {
     return true;
 }
 
+/**
+ * @brief Authorizes the public key
+ *
+ *        Sends apdu response with the public key
+ *
+ * @return true
+ */
 static bool baking_ok(void) {
     authorize_baking(global.path_with_curve.derivation_type, &global.path_with_curve.bip32_path);
     pubkey_ok();
     return true;
-}
-
-char const *const *get_baking_prompts() {
-    static const char *const baking_prompts[] = {
-        PROMPT("Authorize Baking"),
-        PROMPT("Public Key Hash"),
-        NULL,
-    };
-    return baking_prompts;
 }
 
 size_t handle_apdu_get_public_key(uint8_t instruction, volatile uint32_t *flags) {
@@ -95,7 +99,7 @@ size_t handle_apdu_get_public_key(uint8_t instruction, volatile uint32_t *flags)
             cb = pubkey_ok;
             bake = false;
         }
-        prompt_address(bake, cb, delay_reject);
+        prompt_pubkey(bake, cb, delay_reject);
         *flags = IO_ASYNCH_REPLY;
         return 0;
     }

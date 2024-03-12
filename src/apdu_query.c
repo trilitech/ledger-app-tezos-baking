@@ -1,4 +1,4 @@
-/* Tezos Ledger application - Baking APDU instruction handling
+/* Tezos Ledger application - Query APDU instruction handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
@@ -20,7 +20,7 @@
 
 */
 
-#include "apdu_baking.h"
+#include "apdu_query.h"
 
 #include "apdu.h"
 #include "baking_auth.h"
@@ -32,39 +32,13 @@
 
 #include <string.h>
 
-#define G global.apdu.u.baking
-
-size_t handle_apdu_reset(__attribute__((unused)) uint8_t instruction, volatile uint32_t* flags) {
-    uint8_t* dataBuffer = G_io_apdu_buffer + OFFSET_CDATA;
-    uint32_t dataLength = G_io_apdu_buffer[OFFSET_LC];
-    if (dataLength != sizeof(level_t)) {
-        THROW(EXC_WRONG_LENGTH_FOR_INS);
-    }
-    level_t const lvl = READ_UNALIGNED_BIG_ENDIAN(level_t, dataBuffer);
-    if (!is_valid_level(lvl)) {
-        THROW(EXC_PARSE_ERROR);
-    }
-
-    G.reset_level = lvl;
-    ui_baking_reset(flags);
-    return 0;
-}
-
-bool reset_ok(void) {
-    UPDATE_NVRAM(ram, {
-        ram->hwm.main.highest_level = G.reset_level;
-        ram->hwm.main.highest_round = 0;
-        ram->hwm.main.had_endorsement = false;
-        ram->hwm.test.highest_level = G.reset_level;
-        ram->hwm.test.highest_round = 0;
-        ram->hwm.test.had_endorsement = false;
-    });
-
-    // Send back the response, do not restart the event loop
-    delayed_send(finalize_successful_send(0));
-    return true;
-}
-
+/**
+ * @brief Inserts big endian word in the apdu response
+ *
+ * @param tx: current offset of the apdu response
+ * @param word: big endian word
+ * @return size_t: updated offset of the apdu response
+ */
 size_t send_word_big_endian(size_t tx, uint32_t word) {
     char word_bytes[sizeof(word)];
 
@@ -132,17 +106,4 @@ size_t handle_apdu_query_auth_key_with_curve(__attribute__((unused)) uint8_t ins
     }
 
     return finalize_successful_send(tx);
-}
-
-size_t handle_apdu_deauthorize(__attribute__((unused)) uint8_t instruction,
-                               __attribute__((unused)) volatile uint32_t* flags) {
-    if (G_io_apdu_buffer[OFFSET_P1] != 0) {
-        THROW(EXC_WRONG_PARAM);
-    }
-    if (G_io_apdu_buffer[OFFSET_LC] != 0) {
-        THROW(EXC_PARSE_ERROR);
-    }
-    UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });
-
-    return finalize_successful_send(0);
 }

@@ -1,4 +1,4 @@
-/* Tezos Ledger application - Baking BAGL UI handling
+/* Tezos Ledger application - Delegate UI handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
@@ -18,28 +18,20 @@
    limitations under the License.
 
 */
+#pragma once
 
-#ifdef HAVE_BAGL
+#include "types.h"
 
-#include "apdu_baking.h"
-
-#include "apdu.h"
-#include "baking_auth.h"
-#include "globals.h"
-#include "os_cx.h"
-#include "protocol.h"
-#include "to_string.h"
-#include "ui.h"
-
-#include <string.h>
-
-#define G global.apdu.u.baking
-
-void ui_baking_reset(__attribute__((unused)) volatile uint32_t* flags) {
-    init_screen_stack();
-    push_ui_callback("Reset HWM", number_to_string_indirect32, &G.reset_level);
-
-    ux_confirm_screen(reset_ok, delay_reject);
-}
-
-#endif  // HAVE_BAGL
+/**
+ * @brief Draws delegation confirmation pages flow
+ *
+ *        - Initial screen
+ *        - Values:
+ *          - Address
+ *          - Fee
+ *        - Confirmation screens
+ *
+ * @param ok_cb: accept callback
+ * @param cxl_cb: reject callback
+ */
+void prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);

@@ -1,4 +1,4 @@
-/* Tezos Ledger application - Setup BAGL UI handling
+/* Tezos Ledger application - Delegate BAGL UI handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
@@ -20,28 +20,37 @@
 */
 
 #ifdef HAVE_BAGL
-
-#include "apdu_setup.h"
-#include "ui_setup.h"
+#include "apdu_sign.h"
+#include "ui_delegation.h"
 
 #include "apdu.h"
-#include "cx.h"
+#include "baking_auth.h"
 #include "globals.h"
 #include "keys.h"
+#include "memory.h"
+#include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
+#include "cx.h"
 
 #include <string.h>
 
-#define G global.apdu.u.setup
+#define G global.apdu.u.sign
 
-__attribute__((noreturn)) void prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+#define PARSE_ERROR() THROW(EXC_PARSE_ERROR)
+
+#define B2B_BLOCKBYTES 128
+
+__attribute__((noreturn)) void prompt_delegation(ui_callback_t const ok_cb,
+                                                 ui_callback_t const cxl_cb) {
+    if (!G.maybe_ops.is_valid) {
+        THROW(EXC_MEMORY_ERROR);
+    }
+
     init_screen_stack();
-    push_ui_callback("Setup", copy_string, "Baking?");
+    push_ui_callback("Register", copy_string, "as delegate?");
     push_ui_callback("Address", bip32_path_with_curve_to_pkh_string, &global.path_with_curve);
-    push_ui_callback("Chain", chain_id_to_string_with_aliases, &G.main_chain_id);
-    push_ui_callback("Main Chain HWM", number_to_string_indirect32, &G.hwm.main);
-    push_ui_callback("Test Chain HWM", number_to_string_indirect32, &G.hwm.test);
+    push_ui_callback("Fee", microtez_to_string_indirect, &G.maybe_ops.v.total_fee);
 
     ux_confirm_screen(ok_cb, cxl_cb);
     __builtin_unreachable();

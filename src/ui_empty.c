@@ -19,6 +19,8 @@
 */
 
 #ifdef HAVE_BAGL
+#include "ui_empty.h"
+
 #include "bolos_target.h"
 #include "globals.h"
 #include "ui.h"

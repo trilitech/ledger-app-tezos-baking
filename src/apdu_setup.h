@@ -27,6 +27,24 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ * @brief Handles SET instruction
+ *
+ *        Asks user to check the setup
+ *
+ * @param instruction: apdu instruction
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
 size_t handle_apdu_setup(uint8_t instruction, volatile uint32_t* flags);
 
-void prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);
+/**
+ * @brief Handles DEAUTHORIZE instruction
+ *
+ *        Deauthorizes the authorized key
+ *
+ * @param instruction: apdu instruction
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
+size_t handle_apdu_deauthorize(uint8_t instruction, volatile uint32_t* flags);

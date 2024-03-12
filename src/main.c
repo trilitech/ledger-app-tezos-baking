@@ -19,14 +19,16 @@
 
 */
 
-#include "apdu_baking.h"
 #include "apdu_hmac.h"
 #include "apdu_pubkey.h"
+#include "apdu_query.h"
+#include "apdu_reset.h"
 #include "apdu_setup.h"
 #include "apdu_sign.h"
 #include "apdu.h"
 #include "globals.h"
 #include "memory.h"
+#include "ui.h"
 
 __attribute__((noreturn)) void app_main(void) {
     init_globals();
