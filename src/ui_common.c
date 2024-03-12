@@ -60,8 +60,6 @@ uint8_t io_event(__attribute__((unused)) unsigned char channel) {
                   SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
                 THROW(EXCEPTION_IO_RESET);
             }
-            __attribute__((fallthrough));
-        default:
             UX_DEFAULT_EVENT();
             break;
 
@@ -80,6 +78,9 @@ uint8_t io_event(__attribute__((unused)) unsigned char channel) {
 #else
             UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
 #endif  // HAVE_BAGL
+            break;
+        default:
+            UX_DEFAULT_EVENT();
             break;
     }
 
