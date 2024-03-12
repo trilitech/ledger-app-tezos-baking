@@ -398,7 +398,7 @@ static inline bool parse_byte(uint8_t byte,
                 case OPERATION_TAG_DELEGATION:
                     switch (state->op_step) {
                         case STEP_OP_TYPE_DISPATCH: {
-                            uint8_t delegate_present = NEXT_BYTE;
+                            bool delegate_present = NEXT_BYTE != 0u;
 
                             OP_JMPIF(STEP_HAS_DELEGATE, delegate_present)
                         }

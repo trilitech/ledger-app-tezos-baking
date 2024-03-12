@@ -414,11 +414,10 @@ static size_t perform_signature(bool const on_hash, bool const send_hash) {
     int error = generate_key_pair(&key_pair,
                                   global.path_with_curve.derivation_type,
                                   &global.path_with_curve.bip32_path);
-    if (error) {
+    if (error != 0) {
         THROW(EXC_WRONG_VALUES);
     }
 
-    error = 0;
     BEGIN_TRY {
         TRY {
             signature_size = sign(&G_io_apdu_buffer[tx],
@@ -437,7 +436,7 @@ static size_t perform_signature(bool const on_hash, bool const send_hash) {
     }
     END_TRY;
 
-    if (error) {
+    if (error != 0) {
         THROW(error);
     }
 

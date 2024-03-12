@@ -92,7 +92,7 @@ static int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                                          NULL);
     }
 
-    if (!error) {
+    if (error == 0) {
         // new private_key from raw
         error = cx_ecfp_init_private_key_no_throw(cx_curve, raw_private_key, 32, private_key);
     }
@@ -119,7 +119,7 @@ static int crypto_init_public_key(derivation_type_t const derivation_type,
 
     // generate corresponding public key
     error = cx_ecfp_generate_pair_no_throw(cx_curve, public_key, private_key, 1);
-    if (error) {
+    if (error != 0) {
         return error;
     }
 
@@ -141,7 +141,7 @@ int generate_key_pair(key_pair_t *key_pair,
 
     // derive private key according to BIP32 path
     error = crypto_derive_private_key(&key_pair->private_key, derivation_type, bip32_path);
-    if (error) {
+    if (error != 0) {
         return error;
     }
     // generate corresponding public key
@@ -156,11 +156,11 @@ int generate_public_key(cx_ecfp_public_key_t *public_key,
     int error;
 
     error = crypto_derive_private_key(&private_key, derivation_type, bip32_path);
-    if (error) {
-        return (error);
+    if (error != 0) {
+        return error;
     }
     error = crypto_init_public_key(derivation_type, &private_key, public_key);
-    return (error);
+    return error;
 }
 
 void public_key_hash(uint8_t *const hash_out,
@@ -252,7 +252,7 @@ size_t sign(uint8_t *const out,
                                             &info));
             tx += sig_len;
 
-            if (info & CX_ECCINFO_PARITY_ODD) {
+            if ((info & CX_ECCINFO_PARITY_ODD) != 0) {
                 out[0] |= 0x01;
             }
         } break;
