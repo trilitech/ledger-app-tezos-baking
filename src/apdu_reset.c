@@ -35,7 +35,7 @@
  *
  * @return true
  */
-bool ok(void) {
+static bool ok(void) {
     UPDATE_NVRAM(ram, {
         ram->hwm.main.highest_level = G.reset_level;
         ram->hwm.main.highest_round = 0;

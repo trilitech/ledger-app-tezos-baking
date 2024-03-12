@@ -39,7 +39,7 @@
  * @param word: big endian word
  * @return size_t: updated offset of the apdu response
  */
-size_t send_word_big_endian(size_t tx, uint32_t word) {
+static size_t send_word_big_endian(size_t tx, uint32_t word) {
     char word_bytes[sizeof(word)];
 
     memcpy(word_bytes, &word, sizeof(word));

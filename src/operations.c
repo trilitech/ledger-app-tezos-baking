@@ -206,10 +206,10 @@ static inline bool parse_next_type(uint8_t current_byte,
  * @param bip32_path: bip32 path of the key
  * @param state: parsing state
  */
-void parse_operations_init(struct parsed_operation_group *const out,
-                           derivation_type_t derivation_type,
-                           bip32_path_t const *const bip32_path,
-                           struct parse_state *const state) {
+static void parse_operations_init(struct parsed_operation_group *const out,
+                                  derivation_type_t derivation_type,
+                                  bip32_path_t const *const bip32_path,
+                                  struct parse_state *const state) {
     check_null(out);
     check_null(bip32_path);
     memset(out, 0, sizeof(*out));

@@ -63,9 +63,9 @@ size_t read_bip32_path(bip32_path_t *const out, uint8_t const *const in, size_t 
  * @param bip32_path: bip32 path
  * @return int: error, 0 if none
  */
-int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
-                              derivation_type_t const derivation_type,
-                              bip32_path_t const *const bip32_path) {
+static int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
+                                     derivation_type_t const derivation_type,
+                                     bip32_path_t const *const bip32_path) {
     check_null(bip32_path);
     uint8_t raw_private_key[PRIVATE_KEY_DATA_SIZE] = {0};
     int error = 0;
@@ -110,9 +110,9 @@ int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
  * @param public_key public key output
  * @return int: error, 0 if none
  */
-int crypto_init_public_key(derivation_type_t const derivation_type,
-                           cx_ecfp_private_key_t *private_key,
-                           cx_ecfp_public_key_t *public_key) {
+static int crypto_init_public_key(derivation_type_t const derivation_type,
+                                  cx_ecfp_private_key_t *private_key,
+                                  cx_ecfp_public_key_t *public_key) {
     int error = 0;
     cx_curve_t const cx_curve =
         signature_type_to_cx_curve(derivation_type_to_signature_type(derivation_type));

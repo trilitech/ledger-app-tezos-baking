@@ -119,8 +119,8 @@ static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
  * @param bip32_path: bip32 path of the key
  * @return bool: return true if it has passed checks
  */
-bool is_path_authorized(derivation_type_t const derivation_type,
-                        bip32_path_t const *const bip32_path) {
+static bool is_path_authorized(derivation_type_t const derivation_type,
+                               bip32_path_t const *const bip32_path) {
     check_null(bip32_path);
     return derivation_type != 0 && derivation_type == N_data.baking_key.derivation_type &&
            bip32_path->length > 0 &&
@@ -179,7 +179,7 @@ struct block_wire {
  * @param fitness: fitness
  * @return uint8_t: protocol version result
  */
-uint8_t get_proto_version(void const *const fitness) {
+static uint8_t get_proto_version(void const *const fitness) {
     // Each field is preceded by its size (uint32_t).
     // That's why we need to look at `sizeof(uint32_t)` bytes after
     // the start of `fitness` to get to its first field.
@@ -197,7 +197,9 @@ uint8_t get_proto_version(void const *const fitness) {
  * @param length: input length
  * @return bool: returns false if it is invalid
  */
-bool parse_block(parsed_baking_data_t *const out, void const *const data, size_t const length) {
+static bool parse_block(parsed_baking_data_t *const out,
+                        void const *const data,
+                        size_t const length) {
     if (length < sizeof(struct block_wire) + MINIMUM_FITNESS_SIZE) {
         return false;
     }
@@ -249,9 +251,9 @@ struct consensus_op_wire {
  * @param length: input length
  * @return bool: returns false if it is invalid
  */
-bool parse_consensus_operation(parsed_baking_data_t *const out,
-                               void const *const data,
-                               size_t const length) {
+static bool parse_consensus_operation(parsed_baking_data_t *const out,
+                                      void const *const data,
+                                      size_t const length) {
     if (length < sizeof(struct consensus_op_wire)) {
         return false;
     }

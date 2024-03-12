@@ -32,10 +32,10 @@
 
 #define TICKER_WITH_SPACE " XTZ"
 
-void pkh_to_string(char *const buff,
-                   size_t const buff_size,
-                   signature_type_t const signature_type,
-                   uint8_t const hash[HASH_SIZE]);
+static void pkh_to_string(char *const buff,
+                          size_t const buff_size,
+                          signature_type_t const signature_type,
+                          uint8_t const hash[HASH_SIZE]);
 static size_t microtez_to_string(char *dest, uint64_t number);
 
 void pubkey_to_pkh_string(char *const out,
@@ -68,9 +68,9 @@ void bip32_path_with_curve_to_pkh_string(char *const out,
  * @param data: hash input
  * @param size: input size
  */
-void compute_hash_checksum(uint8_t out[TEZOS_HASH_CHECKSUM_SIZE],
-                           void const *const data,
-                           size_t size) {
+static void compute_hash_checksum(uint8_t out[TEZOS_HASH_CHECKSUM_SIZE],
+                                  void const *const data,
+                                  size_t size) {
     uint8_t checksum[CX_SHA256_SIZE];
     cx_hash_sha256(data, size, checksum, sizeof(checksum));
     cx_hash_sha256(checksum, sizeof(checksum), checksum, sizeof(checksum));
@@ -85,10 +85,10 @@ void compute_hash_checksum(uint8_t out[TEZOS_HASH_CHECKSUM_SIZE],
  * @param signature_type: curve of the key
  * @param hash: public key hash
  */
-void pkh_to_string(char *const buff,
-                   size_t const buff_size,
-                   signature_type_t const signature_type,
-                   uint8_t const hash[HASH_SIZE]) {
+static void pkh_to_string(char *const buff,
+                          size_t const buff_size,
+                          signature_type_t const signature_type,
+                          uint8_t const hash[HASH_SIZE]) {
     check_null(buff);
     check_null(hash);
     if (buff_size < PKH_STRING_SIZE) {
@@ -144,7 +144,9 @@ void pkh_to_string(char *const buff,
  * @param buff_size: output size
  * @param chain_id: chain id to convert
  */
-void chain_id_to_string(char *const buff, size_t const buff_size, chain_id_t const chain_id) {
+static void chain_id_to_string(char *const buff,
+                               size_t const buff_size,
+                               chain_id_t const chain_id) {
     check_null(buff);
     if (buff_size < CHAIN_ID_BASE58_STRING_SIZE) {
         THROW(EXC_WRONG_LENGTH);
@@ -265,7 +267,7 @@ size_t number_to_string(char *const dest, uint64_t number) {
  * @param number: number to convert
  * @return size_t: size of the result
  */
-size_t microtez_to_string(char *const dest, uint64_t number) {
+static size_t microtez_to_string(char *const dest, uint64_t number) {
     check_null(dest);
     uint64_t whole_tez = number / TEZ_SCALE;
     uint64_t fractional = number % TEZ_SCALE;

@@ -42,7 +42,7 @@
 
 #define B2B_BLOCKBYTES 128u  /// blake2b hash size
 
-size_t perform_signature(bool const on_hash, bool const send_hash);
+static size_t perform_signature(bool const on_hash, bool const send_hash);
 
 /**
  * @brief Initializes the blake2b state if it is not
@@ -174,7 +174,7 @@ static bool sign_reject(void) {
  * @param flags: request flags
  * @return size_t: offset of the apdu response
  */
-size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
+static size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
     size_t result = 0;
     switch (G.magic_byte) {
         case MAGIC_BYTE_BLOCK:
@@ -182,7 +182,9 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
         case MAGIC_BYTE_ATTESTATION:
             guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve);
             result = perform_signature(true, send_hash);
+#ifdef HAVE_BAGL
             ux_empty_screen();
+#endif
             break;
 
         case MAGIC_BYTE_UNSAFE_OP: {
@@ -391,7 +393,7 @@ size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t *flags)
  * @param send_hash: if the message hash is requested
  * @return size_t: offset of the apdu response
  */
-size_t perform_signature(bool const on_hash, bool const send_hash) {
+static size_t perform_signature(bool const on_hash, bool const send_hash) {
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         THROW(EXC_SECURITY);
     }

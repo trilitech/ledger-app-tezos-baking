@@ -87,7 +87,7 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
  * @brief Draws settings pages
  *
  */
-void ui_menu_about_baking(void) {
+static void ui_menu_about_baking(void) {
     nbgl_useCaseSettings("Tezos baking",
                          0,
                          2,

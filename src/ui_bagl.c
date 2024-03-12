@@ -54,7 +54,7 @@ void init_screen_stack(void) {
  * @param ok_c: accept callback
  * @param cxl_c: cancel callback
  */
-void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
+static void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
     G_display.screen_stack_size = G_display.formatter_index;
     G_display.formatter_index = 0;
     G_display.current_state = STATIC_SCREEN;
@@ -84,7 +84,7 @@ void push_ui_callback(const char *title, string_generation_callback cb, const vo
  * @brief Clear screen related values
  *
  */
-void clear_data(void) {
+static void clear_data(void) {
     explicit_bzero(&G_display.screen_title, sizeof(G_display.screen_title));
     explicit_bzero(&G_display.screen_value, sizeof(G_display.screen_value));
 }
@@ -97,7 +97,7 @@ void clear_data(void) {
  *        field as a parameter
  *
  */
-void set_screen_data(void) {
+static void set_screen_data(void) {
     struct screen_data *fmt = &G_display.screen_stack[G_display.formatter_index];
     if (fmt->title == NULL) {
         // Avoid seg faulting for bad reasons...
@@ -114,7 +114,7 @@ void set_screen_data(void) {
  *        multiple screens.
  *
  */
-void update_layout(void) {
+static void update_layout(void) {
     G_ux.flow_stack[G_ux.stack_count - 1].prev_index =
         G_ux.flow_stack[G_ux.stack_count - 1].index - 2;
     G_ux.flow_stack[G_ux.stack_count - 1].index--;
@@ -134,7 +134,7 @@ void update_layout(void) {
  *
  * @param is_left_ux_step: if come from the left screen
  */
-void display_next_state(bool is_left_ux_step) {
+static void display_next_state(bool is_left_ux_step) {
     if (is_left_ux_step) {  // We're called from the LEFT ux step
         if (G_display.current_state == STATIC_SCREEN) {
             // The previous screen was a static screen, so we're now entering the stack (from the
@@ -258,7 +258,7 @@ UX_FLOW(ux_idle_flow,
  * @brief Pushes the baking screens
  *
  */
-void calculate_baking_idle_screens_data(void) {
+static void calculate_baking_idle_screens_data(void) {
     push_ui_callback("Tezos Baking", copy_string, VERSION);
     push_ui_callback("Chain", copy_chain, &N_data.main_chain_id);
     push_ui_callback("Public Key Hash", copy_key, &N_data.baking_key);

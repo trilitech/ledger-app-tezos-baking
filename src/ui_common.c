@@ -25,6 +25,8 @@
 #include "globals.h"
 #include "os.h"
 
+uint8_t io_event(unsigned char channel);
+
 /**
  * @brief Redefinition of lib_standard_app/io.io_event
  *
@@ -94,7 +96,7 @@ uint8_t io_event(__attribute__((unused)) unsigned char channel) {
  * @brief Invalidates the pin to enforce its requirement.
  *
  */
-void require_pin(void) {
+static void require_pin(void) {
     os_global_pin_invalidate();
 }
 
