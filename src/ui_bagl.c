@@ -213,7 +213,7 @@ static void display_next_state(bool is_left_ux_step) {
 UX_STEP_INIT(ux_init_upper_border, NULL, NULL, { display_next_state(true); });
 UX_STEP_NOCB(ux_variable_display,
              bnnn_paging,
-             {
+             (const ux_layout_bnnn_paging_params_t){
                  .title = G_display.screen_title,
                  .text = G_display.screen_value,
              });
