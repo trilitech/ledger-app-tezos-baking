@@ -114,7 +114,7 @@ void set_screen_data(void) {
  *        multiple screens.
  *
  */
-void update_layout() {
+void update_layout(void) {
     G_ux.flow_stack[G_ux.stack_count - 1].prev_index =
         G_ux.flow_stack[G_ux.stack_count - 1].index - 2;
     G_ux.flow_stack[G_ux.stack_count - 1].index--;

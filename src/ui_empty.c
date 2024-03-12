@@ -72,7 +72,7 @@ void ux_layout_empty_init(unsigned int stack_slot) {
  * @brief Exits the empty screen
  *
  */
-void return_to_idle() {
+void return_to_idle(void) {
     global.dynamic_display.is_blank_screen = false;
     ui_initial_screen();
 }
@@ -87,13 +87,13 @@ UX_STEP_CB(empty_screen_step, empty, return_to_idle(), {});
 UX_STEP_INIT(empty_screen_border, NULL, NULL, { return_to_idle(); });
 UX_FLOW(ux_empty_flow, &empty_screen_step, &empty_screen_border, FLOW_LOOP);
 
-void ux_empty_screen() {
+void ux_empty_screen(void) {
     if (global.dynamic_display.is_blank_screen == false) {
         global.dynamic_display.is_blank_screen = true;
         ux_flow_init(0, ux_empty_flow, NULL);
     }
 }
 #else
-void ux_empty_screen() {
+void ux_empty_screen(void) {
 }
 #endif
