@@ -29,12 +29,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-// Type-safe versions of true/false
-#undef true
-#define true ((bool) 1)
-#undef false
-#define false ((bool) 0)
-
 /**
  * NOTE: There are *two* ways that "key type" or "curve code" are represented in
  * this code base:
