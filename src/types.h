@@ -155,8 +155,8 @@ static inline void copy_bip32_path(bip32_path_t *const out, bip32_path_t volatil
 static inline bool bip32_paths_eq(bip32_path_t volatile const *const a,
                                   bip32_path_t volatile const *const b) {
     return (a == b) || ((a != NULL) && (b != NULL) && (a->length == b->length) &&
-                        (memcmp((void const *) a->components,
-                                (void const *) b->components,
+                        (memcmp((const uint8_t *) a->components,
+                                (const uint8_t *) b->components,
                                 a->length * sizeof(*a->components)) == 0));
 }
 
