@@ -209,12 +209,14 @@ static inline size_t convert_number(char dest[MAX_INT_DIGITS],
                                     uint64_t number,
                                     bool leading_zeroes) {
     check_null(dest);
+
+    uint64_t rest = number;
     size_t i = MAX_INT_DIGITS;
     do {
         i--;
-        dest[i] = '0' + (number % 10u);
-        number /= 10u;
-    } while ((i > 0u) && (leading_zeroes || (number > 0u)));
+        dest[i] = '0' + (rest % 10u);
+        rest /= 10u;
+    } while ((i > 0u) && (leading_zeroes || (rest > 0u)));
     return i;
 }
 

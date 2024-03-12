@@ -75,10 +75,11 @@ void main_loop(apdu_handler const* const handlers, size_t const handlers_size)
 /**
  * @brief Tags as successful apdu response
  *
- * @param tx: current offset of the apdu response
+ * @param offset: current offset of the apdu response
  * @return size_t: updated offset of the apdu response
  */
-static inline size_t finalize_successful_send(size_t tx) {
+static inline size_t finalize_successful_send(size_t offset) {
+    size_t tx = offset;
     G_io_apdu_buffer[tx] = 0x90;
     tx++;
     G_io_apdu_buffer[tx] = 0x00;
