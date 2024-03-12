@@ -112,21 +112,20 @@ __attribute__((noreturn)) void main_loop(apdu_handler const* const handlers,
                 uint16_t sw = e;
                 PRINTF("Error caught at top level, number: %x\n", sw);
                 switch (sw) {
+                    case 0x6000 ... 0x6FFF:
+                    case 0x9000 ... 0x9FFF:
+                        break;
                     default:
                         sw = 0x6800 | (e & 0x7FF);
-                        __attribute__((fallthrough));
-                    case 0x6000 ... 0x6FFF:
-                    case 0x9000 ... 0x9FFF: {
-                        PRINTF("Line number: %d", sw & 0x0FFF);
-                        size_t tx = 0;
-                        G_io_apdu_buffer[tx] = sw >> 8;
-                        tx++;
-                        G_io_apdu_buffer[tx] = sw;
-                        tx++;
-                        rx = io_exchange(CHANNEL_APDU, tx);
                         break;
-                    }
                 }
+                PRINTF("Line number: %d", sw & 0x0FFF);
+                size_t tx = 0;
+                G_io_apdu_buffer[tx] = sw >> 8;
+                tx++;
+                G_io_apdu_buffer[tx] = sw;
+                tx++;
+                rx = io_exchange(CHANNEL_APDU, tx);
             }
             FINALLY {
             }

@@ -320,6 +320,7 @@ static inline bool parse_byte(uint8_t byte,
 
                 default:
                     PARSE_ERROR();
+                    break;
             }
 
             // If the source is an implicit contract,...
@@ -394,38 +395,34 @@ static inline bool parse_byte(uint8_t byte,
             __attribute__((fallthrough));
         default:
 
-            switch (state->tag) {
-                case OPERATION_TAG_DELEGATION:
-                    switch (state->op_step) {
-                        case STEP_OP_TYPE_DISPATCH: {
-                            bool delegate_present = NEXT_BYTE != 0u;
+            if (state->tag == OPERATION_TAG_DELEGATION) {
+                switch (state->op_step) {
+                    case STEP_OP_TYPE_DISPATCH: {
+                        bool delegate_present = NEXT_BYTE != 0u;
 
-                            OP_JMPIF(STEP_HAS_DELEGATE, delegate_present)
-                        }
-                            // Else branch: Encode "not present"
-                            out->operation.destination.originated = 0;
-                            out->operation.destination.signature_type = SIGNATURE_TYPE_UNSET;
-
-                            JMP_TO_TOP;  // These go back to the top to catch any reveals.
-
-                        case STEP_HAS_DELEGATE: {
-                            const struct delegation_contents *dlg =
-                                NEXT_TYPE(struct delegation_contents);
-                            parse_implicit(&out->operation.destination,
-                                           &dlg->signature_type,
-                                           dlg->hash);
-                        }
-                            JMP_TO_TOP;  // These go back to the top to catch any reveals.
-                        default:         // Any other tag; probably not possible here.
-                            PARSE_ERROR();
+                        OP_JMPIF(STEP_HAS_DELEGATE, delegate_present)
                     }
+                        // Else branch: Encode "not present"
+                        out->operation.destination.originated = 0;
+                        out->operation.destination.signature_type = SIGNATURE_TYPE_UNSET;
 
-                default:  // Any other tag; probably not possible here.
-                    PARSE_ERROR();
+                        JMP_TO_TOP;  // These go back to the top to catch any reveals.
+
+                    case STEP_HAS_DELEGATE: {
+                        const struct delegation_contents *dlg =
+                            NEXT_TYPE(struct delegation_contents);
+                        parse_implicit(&out->operation.destination,
+                                       &dlg->signature_type,
+                                       dlg->hash);
+                    }
+                        JMP_TO_TOP;  // These go back to the top to catch any reveals.
+                    default:         // Any other tag; probably not possible here.
+                        PARSE_ERROR();
+                }
             }
     }
 
-    PARSE_ERROR();  // Probably not reachable, but removes a warning.
+    PARSE_ERROR();
 }
 
 #define G global.apdu.u.sign

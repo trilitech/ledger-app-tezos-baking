@@ -258,8 +258,9 @@ static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const b
             return magic_byte;
 
         default:
-            PARSE_ERROR();
+            break;
     }
+    PARSE_ERROR();
 }
 
 /**
