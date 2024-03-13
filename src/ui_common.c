@@ -25,22 +25,16 @@
 #include "globals.h"
 #include "os.h"
 
-#ifdef HAVE_BAGL
-void io_seproxyhal_display(const bagl_element_t *element);
-
-void io_seproxyhal_display(const bagl_element_t *element) {
-    return io_seproxyhal_display_default((bagl_element_t *) element);
-}
-
-void ui_refresh(void) {
-    ux_stack_display(0);
-}
-#endif  // HAVE_BAGL
-
-// CALLED BY THE SDK
-unsigned char io_event(unsigned char channel);
-
-unsigned char io_event(__attribute__((unused)) unsigned char channel) {
+/**
+ * @brief Redefinition of lib_standard_app/io.io_event
+ *
+ *        In order to disable ticker event handling to prevent
+ *        screen-saver from starting
+ *
+ * @param channel: requested channel
+ * @return 1
+ */
+uint8_t io_event(__attribute__((unused)) unsigned char channel) {
     // nothing done with the event, throw an error on the transport layer if
     // needed
 
@@ -95,15 +89,11 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
     // command has been processed, DO NOT reset the current APDU transport
     return 1;
 }
-void ui_init(void) {
-#ifdef HAVE_BAGL
-    UX_INIT();
-#endif  // HAVE_BAGL
-#ifdef HAVE_NBGL
-    nbgl_objInit();
-#endif  // HAVE_NBGL
-}
 
+/**
+ * @brief Invalidates the pin to enforce its requirement.
+ *
+ */
 void require_pin(void) {
     os_global_pin_invalidate();
 }

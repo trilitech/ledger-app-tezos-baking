@@ -33,7 +33,10 @@
 
 #define STEP_HARD_FAIL -2
 
-// Argument is to distinguish between different parse errors for debugging purposes only
+/**
+ * @brief Raises an exception and force hard fail if continue to parse
+ *
+ */
 __attribute__((noreturn)) static void parse_error(void) {
     global.apdu.u.sign.parse_state.op_step = STEP_HARD_FAIL;
     THROW(EXC_PARSE_ERROR);
@@ -41,8 +44,14 @@ __attribute__((noreturn)) static void parse_error(void) {
 
 #define PARSE_ERROR() parse_error()
 
-// Conversion/check functions
+/// Conversion/check functions
 
+/**
+ * @brief Get signature_type from a raw signature_type
+ *
+ * @param raw_signature_type: raw signature_type
+ * @return signature_type_t: signature_type result
+ */
 static inline signature_type_t parse_raw_tezos_header_signature_type(
     raw_tezos_header_signature_type_t const *const raw_signature_type) {
     check_null(raw_signature_type);
@@ -58,6 +67,14 @@ static inline signature_type_t parse_raw_tezos_header_signature_type(
     }
 }
 
+/**
+ * @brief Extracts a compressed_pubkey and a contract from a key
+ *
+ * @param compressed_pubkey_out: compressed_pubkey output
+ * @param contract_out: contract output
+ * @param derivation_type: curve of the key
+ * @param bip32_path: bip32 path of the key
+ */
 static inline void compute_pkh(cx_ecfp_public_key_t *const compressed_pubkey_out,
                                parsed_contract_t *const contract_out,
                                derivation_type_t const derivation_type,
@@ -79,6 +96,13 @@ static inline void compute_pkh(cx_ecfp_public_key_t *const compressed_pubkey_out
     contract_out->originated = 0;
 }
 
+/**
+ * @brief Parses implict contract
+ *
+ * @param out:  implict contract output
+ * @param raw_signature_type: raw signature_type
+ * @param hash: input hash
+ */
 static inline void parse_implicit(parsed_contract_t *const out,
                                   raw_tezos_header_signature_type_t const *const raw_signature_type,
                                   uint8_t const hash[HASH_SIZE]) {
@@ -88,20 +112,30 @@ static inline void parse_implicit(parsed_contract_t *const out,
     memcpy(out->hash, hash, sizeof(out->hash));
 }
 
+/**
+ * @brief Helpers for sub parser
+ *
+ *       Subparsers: no function here should be called anywhere in
+ *       this file without using the CALL_SUBPARSER macro above.
+ *
+ */
 #define CALL_SUBPARSER_LN(func, line, ...) \
     if (func(__VA_ARGS__, line)) {         \
         return true;                       \
     }
 #define CALL_SUBPARSER(func, ...) CALL_SUBPARSER_LN(func, __LINE__, __VA_ARGS__)
 
-// Subparsers: no function here should be called anywhere in this file without using the
-// CALL_SUBPARSER macro above. Verify this with
-// /<funcname>\s*(
-// the only result should be the functiond definition.
-
 #define NEXT_BYTE (byte)
 
 // TODO: this function cannot parse z values than would not fit in a uint64
+/**
+ * @brief Parses a Z number
+ *
+ * @param current_byte: the current read byte
+ * @param state: parsing state
+ * @param lineno: line number of the caller
+ * @return bool: if has finished to read the number
+ */
 static inline bool parse_z(uint8_t current_byte,
                            struct int_subparser_state *state,
                            uint32_t lineno) {
@@ -119,13 +153,21 @@ static inline bool parse_z(uint8_t current_byte,
     state->shift += 7;
     return current_byte & 0x80;  // Return true if we need more bytes.
 }
-
 #define PARSE_Z                                                             \
     ({                                                                      \
         CALL_SUBPARSER(parse_z, (byte), &(state)->subparser_state.integer); \
         (state)->subparser_state.integer.value;                             \
     })
 
+/**
+ * @brief Parses a wire type
+ *
+ * @param current_byte: the current read byte
+ * @param state: parsing state
+ * @param sizeof_type: size of the type
+ * @param lineno: line number of the caller
+ * @return bool: if has finished to read the type
+ */
 static inline bool parse_next_type(uint8_t current_byte,
                                    struct nexttype_subparser_state *state,
                                    uint32_t sizeof_type,
@@ -147,7 +189,6 @@ static inline bool parse_next_type(uint8_t current_byte,
 
     return state->fill_idx < sizeof_type;  // Return true if we need more bytes.
 }
-
 // do _NOT_ keep pointers to this data around.
 #define NEXT_TYPE(type)                                                                          \
     ({                                                                                           \
@@ -157,6 +198,14 @@ static inline bool parse_next_type(uint8_t current_byte,
 
 // End of subparsers.
 
+/**
+ * @brief Initialize the operation parser
+ *
+ * @param out: parsing output
+ * @param derivation_type: curve of the key
+ * @param bip32_path: bip32 path of the key
+ * @param state: parsing state
+ */
 void parse_operations_init(struct parsed_operation_group *const out,
                            derivation_type_t derivation_type,
                            bip32_path_t const *const bip32_path,
@@ -178,7 +227,7 @@ void parse_operations_init(struct parsed_operation_group *const out,
     state->tag = OPERATION_TAG_NONE;  // This and the rest shouldn't be required.
 }
 
-// Named steps in the top-level state machine
+/// Named steps in the top-level state machine
 #define STEP_END_OF_MESSAGE       -1
 #define STEP_OP_TYPE_DISPATCH     10001
 #define STEP_AFTER_MANAGER_FIELDS 10002
@@ -192,6 +241,14 @@ bool parse_operations_final(struct parse_state *const state,
     return state->op_step == STEP_END_OF_MESSAGE || state->op_step == 1;
 }
 
+/**
+ * @brief Parse one bytes regarding the current parsing state
+ *
+ * @param byte: byte to read
+ * @param state: parsing state
+ * @param out: parsing output
+ * @return bool: returns true on success
+ */
 static inline bool parse_byte(uint8_t byte,
                               struct parse_state *const state,
                               struct parsed_operation_group *const out) {
@@ -371,6 +428,17 @@ static inline bool parse_byte(uint8_t byte,
 
 #define G global.apdu.u.sign
 
+/**
+ * @brief Parses a group of operation
+ *
+ *        Throws on parsing failure
+ *
+ * @param out: output
+ * @param data: input
+ * @param length: input length
+ * @param derivation_type: curve of the key
+ * @param bip32_path: bip32 path of the key
+ */
 static void parse_operations_throws_parse_error(struct parsed_operation_group *const out,
                                                 void const *const data,
                                                 size_t length,

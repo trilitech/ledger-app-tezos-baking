@@ -129,6 +129,9 @@ size_t handle_apdu_deauthorize(__attribute__((unused)) uint8_t instruction,
         THROW(EXC_PARSE_ERROR);
     }
     UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });
+#ifdef HAVE_BAGL
+    update_baking_idle_screens();
+#endif  // HAVE_BAGL
 
     return finalize_successful_send(0);
 }

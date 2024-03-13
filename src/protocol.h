@@ -29,16 +29,31 @@
 #include "cx.h"
 #include "types.h"
 
-#define MAGIC_BYTE_INVALID        0x00
-#define MAGIC_BYTE_UNSAFE_OP      0x03
-#define MAGIC_BYTE_BLOCK          0x11
-#define MAGIC_BYTE_PREATTESTATION 0x12
-#define MAGIC_BYTE_ATTESTATION    0x13
+/// Magic byte values
+/// See: https://tezos.gitlab.io/user/key-management.html#signer-requests
+#define MAGIC_BYTE_INVALID        0x00  /// No magic byte
+#define MAGIC_BYTE_UNSAFE_OP      0x03  /// magic byte of an operation
+#define MAGIC_BYTE_BLOCK          0x11  /// magic byte of a block
+#define MAGIC_BYTE_PREATTESTATION 0x12  /// magic byte of a pre-attestation
+#define MAGIC_BYTE_ATTESTATION    0x13  /// magic byte of an attestation
 
+/**
+ * @brief Get the magic byte of a data
+ *
+ * @param data: data
+ * @param length: data length
+ * @return uint8_t: magic byte result
+ */
 static inline uint8_t get_magic_byte(uint8_t const *const data, size_t const length) {
     return (data == NULL || length == 0) ? MAGIC_BYTE_INVALID : *data;
 }
 
+/**
+ * @brief Reads unaligned big endian value
+ *
+ * @param type: type of the value
+ * @return in: data to read
+ */
 #define READ_UNALIGNED_BIG_ENDIAN(type, in)             \
     ({                                                  \
         uint8_t const *bytes = (uint8_t const *) in;    \
@@ -53,8 +68,12 @@ static inline uint8_t get_magic_byte(uint8_t const *const data, size_t const len
         res;                                            \
     })
 
-// Same as READ_UNALIGNED_BIG_ENDIAN but helps keep track of how many bytes
-// have been read by adding sizeof(type) to the given counter.
+/**
+ * @brief Same as READ_UNALIGNED_BIG_ENDIAN but helps keep track of
+ *        how many bytes have been read by adding sizeof(type) to the
+ *        given counter
+ *
+ */
 #define CONSUME_UNALIGNED_BIG_ENDIAN(counter, type, addr) \
     ({                                                    \
         counter += sizeof(type);                          \

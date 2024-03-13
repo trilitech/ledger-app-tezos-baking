@@ -40,10 +40,6 @@
 static const char* const infoTypes[] = {"Version", "Developer", "Copyright"};
 static const char* const infoContents[] = {VERSION, "Ledger", "(c) 2023 Ledger"};
 
-void ui_initial_screen(void) {
-    ux_idle_screen(NULL, NULL);
-}
-
 #define MAX_LENGTH 200
 static char* bakeInfoContents[3];
 static char buffer[3][MAX_LENGTH];
@@ -54,9 +50,13 @@ static const char* const bakeInfoTypes[] = {
     "High Watermark",
 };
 
-void update_baking_idle_screens(void) {
-}
-
+/**
+ * @brief Callback to fill the settings page content
+ *
+ * @param page: page of the settings
+ * @param content: content to fill
+ * @return bool: if the page is not out of bounds
+ */
 static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
     UNUSED(page);
 
@@ -83,6 +83,10 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
     return true;
 }
 
+/**
+ * @brief Draws settings pages
+ *
+ */
 void ui_menu_about_baking(void) {
     nbgl_useCaseSettings("Tezos baking",
                          0,
@@ -93,10 +97,7 @@ void ui_menu_about_baking(void) {
                          NULL);
 }
 
-void ux_idle_screen(ui_callback_t ok_c, ui_callback_t cxl_c) {
-    (void) ok_c;
-    (void) cxl_c;
-
+void ui_initial_screen(void) {
     nbgl_useCaseHome("Tezos Baking", &C_tezos, NULL, false, ui_menu_about_baking, exit_app);
 }
 

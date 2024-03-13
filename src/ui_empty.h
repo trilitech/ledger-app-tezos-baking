@@ -19,4 +19,12 @@
 */
 #pragma once
 
+/**
+ * @brief Empties the screen
+ *
+ *        Waits a click to return to home screen
+ *
+ *        Applies only for Nano devices
+ *
+ */
 void ux_empty_screen(void);
