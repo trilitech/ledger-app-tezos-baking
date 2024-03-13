@@ -61,13 +61,13 @@ static bool ok(void) {
         ram->main_chain_id = G.main_chain_id;
         ram->hwm.main.highest_level = G.hwm.main;
         ram->hwm.main.highest_round = 0;
-        ram->hwm.main.had_endorsement = false;
-        ram->hwm.main.had_preendorsement = false;
+        ram->hwm.main.had_attestation = false;
+        ram->hwm.main.had_preattestation = false;
         ram->hwm.main.migrated_to_tenderbake = false;
         ram->hwm.test.highest_level = G.hwm.test;
         ram->hwm.test.highest_round = 0;
-        ram->hwm.test.had_endorsement = false;
-        ram->hwm.test.had_preendorsement = false;
+        ram->hwm.test.had_attestation = false;
+        ram->hwm.test.had_preattestation = false;
         ram->hwm.test.migrated_to_tenderbake = false;
     });
 

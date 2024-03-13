@@ -39,10 +39,10 @@ bool ok(void) {
     UPDATE_NVRAM(ram, {
         ram->hwm.main.highest_level = G.reset_level;
         ram->hwm.main.highest_round = 0;
-        ram->hwm.main.had_endorsement = false;
+        ram->hwm.main.had_attestation = false;
         ram->hwm.test.highest_level = G.reset_level;
         ram->hwm.test.highest_round = 0;
-        ram->hwm.test.had_endorsement = false;
+        ram->hwm.test.had_attestation = false;
     });
 
     // Send back the response, do not restart the event loop

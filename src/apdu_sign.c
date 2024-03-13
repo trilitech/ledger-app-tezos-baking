@@ -178,8 +178,8 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
     size_t result = 0;
     switch (G.magic_byte) {
         case MAGIC_BYTE_BLOCK:
-        case MAGIC_BYTE_PREENDORSEMENT:
-        case MAGIC_BYTE_ENDORSEMENT:
+        case MAGIC_BYTE_PREATTESTATION:
+        case MAGIC_BYTE_ATTESTATION:
             guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve);
             result = perform_signature(true, send_hash);
             ux_empty_screen();
@@ -250,8 +250,8 @@ static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const b
     uint8_t const magic_byte = get_magic_byte(buff, buff_size);
     switch (magic_byte) {
         case MAGIC_BYTE_BLOCK:
-        case MAGIC_BYTE_PREENDORSEMENT:
-        case MAGIC_BYTE_ENDORSEMENT:
+        case MAGIC_BYTE_PREATTESTATION:
+        case MAGIC_BYTE_ATTESTATION:
         case MAGIC_BYTE_UNSAFE_OP:  // Only for self-delegations and reveals
             return magic_byte;
 
