@@ -47,13 +47,13 @@ void write_high_water_mark(parsed_baking_data_t const *const in) {
         // If the chain matches the main chain *or* the main chain is not set, then use 'main' HWM.
         high_watermark_t volatile *const dest = select_hwm_by_chain(in->chain_id, ram);
         if ((in->level > dest->highest_level) || (in->round > dest->highest_round)) {
-            dest->had_endorsement = false;
-            dest->had_preendorsement = false;
+            dest->had_attestation = false;
+            dest->had_preattestation = false;
         };
         dest->highest_level = CUSTOM_MAX(in->level, dest->highest_level);
         dest->highest_round = in->round;
-        dest->had_endorsement |= in->type == BAKING_TYPE_ENDORSEMENT;
-        dest->had_preendorsement |= in->type == BAKING_TYPE_PREENDORSEMENT;
+        dest->had_attestation |= in->type == BAKING_TYPE_ATTESTATION;
+        dest->had_preattestation |= in->type == BAKING_TYPE_PREATTESTATION;
         dest->migrated_to_tenderbake |= in->is_tenderbake;
     });
 }
@@ -86,18 +86,18 @@ static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
                (baking_info->level == hwm->highest_level &&
                 baking_info->round > hwm->highest_round) ||
 
-               // It is ok to sign an endorsement if we have not already signed an endorsement for
+               // It is ok to sign an attestation if we have not already signed an attestation for
                // the level/round
                (baking_info->level == hwm->highest_level &&
                 baking_info->round == hwm->highest_round &&
-                baking_info->type == BAKING_TYPE_ENDORSEMENT && !hwm->had_endorsement) ||
+                baking_info->type == BAKING_TYPE_ATTESTATION && !hwm->had_attestation) ||
 
-               // It is ok to sign a preendorsement if we have not already signed neither an
-               // endorsement nor a preendorsement for the level/round
+               // It is ok to sign a preattestation if we have not already signed neither an
+               // attestation nor a preattestation for the level/round
                (baking_info->level == hwm->highest_level &&
                 baking_info->round == hwm->highest_round &&
-                baking_info->type == BAKING_TYPE_PREENDORSEMENT && !hwm->had_endorsement &&
-                !hwm->had_preendorsement);
+                baking_info->type == BAKING_TYPE_PREATTESTATION && !hwm->had_attestation &&
+                !hwm->had_preattestation);
 
     } else {
         return false;
@@ -210,12 +210,12 @@ bool parse_consensus_operation(parsed_baking_data_t *const out,
     out->round = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &op->round);
 
     switch (op->tag) {
-        case 20:  // preendorsement
-            out->type = BAKING_TYPE_PREENDORSEMENT;
+        case 20:  // Preattestation
+            out->type = BAKING_TYPE_PREATTESTATION;
             break;
-        case 21:  // endorsement
-        case 23:  // endorsement + DAL
-            out->type = BAKING_TYPE_ENDORSEMENT;
+        case 21:  // Attestation
+        case 23:  // Attestation + DAL
+            out->type = BAKING_TYPE_ATTESTATION;
             break;
         default:
             return false;
@@ -227,8 +227,8 @@ bool parse_baking_data(parsed_baking_data_t *const out,
                        void const *const data,
                        size_t const length) {
     switch (get_magic_byte(data, length)) {
-        case MAGIC_BYTE_PREENDORSEMENT:
-        case MAGIC_BYTE_ENDORSEMENT:
+        case MAGIC_BYTE_PREATTESTATION:
+        case MAGIC_BYTE_ATTESTATION:
             return parse_consensus_operation(out, data, length);
         case MAGIC_BYTE_BLOCK:
             return parse_block(out, data, length);

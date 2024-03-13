@@ -62,8 +62,8 @@ typedef enum {
 
 typedef enum {
     BAKING_TYPE_BLOCK = 2,
-    BAKING_TYPE_ENDORSEMENT = 3,
-    BAKING_TYPE_PREENDORSEMENT = 4
+    BAKING_TYPE_ATTESTATION = 3,
+    BAKING_TYPE_PREATTESTATION = 4
 } baking_type_t;
 
 // Return number of bytes to transmit (tx)
@@ -142,8 +142,8 @@ static inline bool bip32_path_with_curve_eq(bip32_path_with_curve_t volatile con
 typedef struct {
     level_t highest_level;
     round_t highest_round;
-    bool had_endorsement;
-    bool had_preendorsement;
+    bool had_attestation;
+    bool had_preattestation;
     bool migrated_to_tenderbake;
 } high_watermark_t;
 

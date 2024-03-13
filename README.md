@@ -8,7 +8,7 @@
 This repository contains Ledger application to support baking on Tezos blockchain:
 
 1. The "Tezos Baking" application (Nano S only) is for baking: signing new blocks and
-endorsements. For more information about baking, see
+attestations. For more information about baking, see
 *[Benefits and Risks of Home Baking](https://medium.com/@tezos_91823/benefits-and-risks-of-home-baking-a631c9ca745)*.
 
 It is possible to do all of these things without a hardware wallet, but using a
@@ -238,9 +238,9 @@ The Tezos Baking Application supports the following operations:
   2. Setup ledger for baking
   3. Reset high watermark
   4. Get high watermark
-  5. Sign (blocks and endorsements)
+  5. Sign (blocks and attestations)
 
-It will only sign block headers and endorsements, as the purpose of the baking
+It will only sign block headers and attestations, as the purpose of the baking
 application is that it cannot be co-opted to perform other types of operations (like
 transferring XTZ). If a Ledger device is running with the Tezos Baking Application, it
 is the expectation of its owner that no transactions will need to be signed with
@@ -308,11 +308,11 @@ Use the following command to store your address in environmental variable `MY_BA
 $ MY_BAKER="$(./octez-client show address ledger_<...> | head -n 1 | cut -d ' ' -f 2)"
 ```
 
-### Setup ledger device to bake and endorse
+### Setup ledger device to bake and attest
 
 You need to run a specific command to authorize a key for baking. Once a key is
 authorized for baking, the user will not have to approve this command again. If
-a key is not authorized for baking, signing endorsements and block headers with
+a key is not authorized for baking, signing attestations and block headers with
 that key will be rejected. This authorization data is persisted across runs of
 the application, but not across application installations. Only one key can be authorized for baking per Ledger hardware wallet at a
 time.
@@ -354,11 +354,11 @@ $ octez-client stake <amount> ledger_<...>
 
 ### Sign
 
-The sign operation is for signing block headers and endorsements.
+The sign operation is for signing block headers and attestations.
 
 Block headers must have monotonically increasing levels; that is, each
 block must have a higher level than all previous blocks signed with the Ledger device.
-This is intended to prevent double baking and double endorsing at the device level, as a security
+This is intended to prevent double baking and double attesting at the device level, as a security
 measure against potential vulnerabilities where the computer might be tricked
 into double baking. This feature will hopefully be a redundant precaution, but
 it's implemented at the device level because the point of the Ledger hardware wallet is to not
@@ -369,7 +369,7 @@ persisted between runs of the device.
 The sign operation will be sent to the hardware wallet by the baking daemon when
 configured to bake with a Ledger device key. The Ledger device uses the first byte of the
 information to be signed -- the magic number -- to tell whether it is a block
-header (which is verified with the High Watermark), an endorsement (which is
+header (which is verified with the High Watermark), an attestation (which is
 not), or some other operation (which it will reject, unless it is a
 self-delegation).
 
@@ -488,7 +488,7 @@ and the computer will automatically determine which one to send information to.
 
 If you have one running the baking app, it is bad for security to also have the wallet app
 plugged in simultaneously. Plug the wallet application in as-needed, removing the baking app, at a time
-when you are not going to be needed for endorsement or baking. Alternatively, use a different
+when you are not going to be needed for attestation or baking. Alternatively, use a different
 computer for wallet transactions.
 
 ### unexpected seq num

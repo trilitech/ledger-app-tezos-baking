@@ -65,8 +65,8 @@ class MagicByte(IntEnum):
     UNSAFE_OP2                = 0x04
     UNSAFE_OP3                = 0x05
     TENDERBAKE_BLOCK          = 0x11
-    TENDERBAKE_PREENDORSEMENT = 0x12
-    TENDERBAKE_ENDORSEMENT    = 0x13
+    TENDERBAKE_PREATTESTATION = 0x12
+    TENDERBAKE_ATTESTATION    = 0x13
 
 class ConsensusProtocol(IntEnum):
     """Class representing the consensus protocol."""
@@ -189,7 +189,7 @@ class Preattestation:
             forge.forge_base58(branch) + \
             bytes(self)
         watermark = \
-            forge_int_fixed(MagicByte.TENDERBAKE_PREENDORSEMENT, 1) + \
+            forge_int_fixed(MagicByte.TENDERBAKE_PREATTESTATION, 1) + \
             forge.forge_base58(chain_id)
         raw = watermark + raw_operation
         return RawMessage(raw)
@@ -229,7 +229,7 @@ class Attestation:
             forge.forge_base58(branch) + \
             bytes(self)
         watermark = \
-            forge_int_fixed(MagicByte.TENDERBAKE_ENDORSEMENT, 1) + \
+            forge_int_fixed(MagicByte.TENDERBAKE_ATTESTATION, 1) + \
             forge.forge_base58(chain_id)
         raw = watermark + raw_operation
         return RawMessage(raw)
@@ -273,7 +273,7 @@ class AttestationDal:
             forge.forge_base58(branch) + \
             bytes(self)
         watermark = \
-            forge_int_fixed(MagicByte.TENDERBAKE_ENDORSEMENT, 1) + \
+            forge_int_fixed(MagicByte.TENDERBAKE_ATTESTATION, 1) + \
             forge.forge_base58(chain_id)
         raw = watermark + raw_operation
         return RawMessage(raw)
