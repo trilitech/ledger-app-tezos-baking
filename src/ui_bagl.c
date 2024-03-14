@@ -32,7 +32,6 @@
 #include "memory.h"
 #include "os_cx.h"  // ui-menu
 #include "to_string.h"
-#include "ui_empty.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -63,7 +62,7 @@ static HomeContext_t home_context;
  *        - Exit screen
  *
  */
-UX_STEP_CB(ux_app_is_ready_step, nn, ux_empty_screen(), {"Application", "is ready"});
+UX_STEP_NOCB(ux_app_is_ready_step, nn, {"Application", "is ready"});
 UX_STEP_NOCB(ux_version_step, bnnn_paging, {"Tezos Baking", VERSION});
 UX_STEP_NOCB(ux_chain_id_step, bnnn_paging, {"Chain", home_context.chain_id});
 UX_STEP_NOCB(ux_authorized_key_step, bnnn_paging, {"Public Key Hash", home_context.authorized_key});

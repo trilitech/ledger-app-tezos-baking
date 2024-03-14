@@ -171,8 +171,7 @@ class TezosNavigator(metaclass=MetaScreen):
                           chain_id: str,
                           main_hwm: Hwm,
                           test_hwm: Hwm,
-                          snap_path: Path = Path(""),
-                          black_screen: bool = False) -> None:
+                          snap_path: Path = Path("")) -> None:
         """Check that the app context."""
 
         received_chain_id, received_main_hwm, received_test_hwm = self.client.get_all_hwm()
@@ -199,12 +198,7 @@ class TezosNavigator(metaclass=MetaScreen):
 
         snap_path = snap_path / "app_context"
         if self.firmware.is_nano:
-            if black_screen:
-                self.backend.wait_for_screen_change()
-                self.assert_screen("black_screen", snap_path=snap_path)
-                self.backend.both_click()
-                self.backend.wait_for_screen_change()
-            self.assert_screen("home_screen", snap_path=snap_path)
+            self.backend.wait_for_home_screen()
             self.backend.right_click()
             self.backend.wait_for_screen_change()
             self.assert_screen("version", snap_path=snap_path)

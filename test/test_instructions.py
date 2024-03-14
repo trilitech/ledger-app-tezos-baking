@@ -104,18 +104,6 @@ def test_review_home(account: Optional[Account],
         screen("exit")
         right()
         screen("home_screen")
-        both()
-        screen("black_screen")
-        both()
-        screen("home_screen")
-        both()
-        screen("black_screen")
-        left()
-        screen("home_screen")
-        both()
-        screen("black_screen")
-        right()
-        screen("home_screen")
         left()
         screen("exit")
         left()
@@ -135,10 +123,6 @@ def test_review_home(account: Optional[Account],
         screen("chain_id")
         left()
         screen("version")
-        left()
-        screen("home_screen")
-        both()
-        screen("black_screen")
         left()
         screen("home_screen")
         left()
@@ -495,9 +479,7 @@ def test_sign_preattestation(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path,
-        black_screen=True
-    )
+        snap_path=snap_path    )
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -541,9 +523,7 @@ def test_sign_attestation(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path,
-        black_screen=True
-    )
+        snap_path=snap_path)
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -587,9 +567,7 @@ def test_sign_attestation_dal(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path,
-        black_screen=True
-    )
+        snap_path=snap_path)
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -633,9 +611,7 @@ def test_sign_block(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path,
-        black_screen=True
-    )
+        snap_path=snap_path)
 
 
 def test_sign_block_at_reset_level(client: TezosClient, tezos_navigator: TezosNavigator) -> None:
@@ -1144,9 +1120,7 @@ def test_sign_when_no_chain_setup(
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_1_0"),
-        black_screen=True
-    )
+        snap_path=Path("sign_1_0"))
 
     attestation = build_attestation(
         2, 0,
@@ -1160,9 +1134,7 @@ def test_sign_when_no_chain_setup(
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(2, 0),
         test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_2_0"),
-        black_screen=True
-    )
+        snap_path=Path("sign_2_0"))
 
     attestation = build_attestation(
         2, 0,
@@ -1208,9 +1180,7 @@ def test_sign_when_chain_is_setup(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_1_0"),
-        black_screen=True
-    )
+        snap_path=Path("sign_1_0"))
 
     attestation = build_attestation(
         2, 0,
@@ -1224,9 +1194,7 @@ def test_sign_when_chain_is_setup(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(2, 0),
-        snap_path=Path("sign_2_0"),
-        black_screen=True
-    )
+        snap_path=Path("sign_2_0"))
 
     attestation = build_attestation(
         2, 0,
