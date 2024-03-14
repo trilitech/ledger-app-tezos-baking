@@ -54,7 +54,7 @@ void init_screen_stack(void) {
  * @param ok_c: accept callback
  * @param cxl_c: cancel callback
  */
-void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
+static void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
     G_display.screen_stack_size = G_display.formatter_index;
     G_display.formatter_index = 0;
     G_display.current_state = STATIC_SCREEN;
@@ -67,8 +67,8 @@ void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
     }
 }
 
-void push_ui_callback(char *title, string_generation_callback cb, void *data) {
-    if (G_display.formatter_index + 1 >= MAX_SCREEN_STACK_SIZE) {
+void push_ui_callback(const char *title, string_generation_callback cb, const void *data) {
+    if ((G_display.formatter_index + 1u) >= MAX_SCREEN_STACK_SIZE) {
         THROW(0x6124);
     }
     struct screen_data *fmt = &G_display.screen_stack[G_display.formatter_index];
@@ -84,7 +84,7 @@ void push_ui_callback(char *title, string_generation_callback cb, void *data) {
  * @brief Clear screen related values
  *
  */
-void clear_data(void) {
+static void clear_data(void) {
     explicit_bzero(&G_display.screen_title, sizeof(G_display.screen_title));
     explicit_bzero(&G_display.screen_value, sizeof(G_display.screen_value));
 }
@@ -97,7 +97,7 @@ void clear_data(void) {
  *        field as a parameter
  *
  */
-void set_screen_data(void) {
+static void set_screen_data(void) {
     struct screen_data *fmt = &G_display.screen_stack[G_display.formatter_index];
     if (fmt->title == NULL) {
         // Avoid seg faulting for bad reasons...
@@ -114,7 +114,7 @@ void set_screen_data(void) {
  *        multiple screens.
  *
  */
-void update_layout() {
+static void update_layout(void) {
     G_ux.flow_stack[G_ux.stack_count - 1].prev_index =
         G_ux.flow_stack[G_ux.stack_count - 1].index - 2;
     G_ux.flow_stack[G_ux.stack_count - 1].index--;
@@ -134,7 +134,7 @@ void update_layout() {
  *
  * @param is_left_ux_step: if come from the left screen
  */
-void display_next_state(bool is_left_ux_step) {
+static void display_next_state(bool is_left_ux_step) {
     if (is_left_ux_step) {  // We're called from the LEFT ux step
         if (G_display.current_state == STATIC_SCREEN) {
             // The previous screen was a static screen, so we're now entering the stack (from the
@@ -150,7 +150,7 @@ void display_next_state(bool is_left_ux_step) {
             ux_flow_next();
         } else {
             // The previous screen was NOT a static screen, so we were already in the stack.
-            if (G_display.formatter_index == 0) {
+            if (G_display.formatter_index == 0u) {
                 // If `formatter_index` is 0 then we need to exit the dynamic display.
 
                 // Update the current_state accordingly.
@@ -175,7 +175,7 @@ void display_next_state(bool is_left_ux_step) {
             // Update the current_state.
             G_display.current_state = DYNAMIC_SCREEN;
             // We're starting the stack from the end, so the index is the size - 1.
-            G_display.formatter_index = G_display.screen_stack_size - 1;
+            G_display.formatter_index = G_display.screen_stack_size - 1u;
             // Update the screen data.
             set_screen_data();
             // Since we're called from the RIGHT ux step, if we wish to display
@@ -213,7 +213,7 @@ void display_next_state(bool is_left_ux_step) {
 UX_STEP_INIT(ux_init_upper_border, NULL, NULL, { display_next_state(true); });
 UX_STEP_NOCB(ux_variable_display,
              bnnn_paging,
-             {
+             (const ux_layout_bnnn_paging_params_t){
                  .title = G_display.screen_title,
                  .text = G_display.screen_value,
              });
@@ -258,7 +258,7 @@ UX_FLOW(ux_idle_flow,
  * @brief Pushes the baking screens
  *
  */
-void calculate_baking_idle_screens_data(void) {
+static void calculate_baking_idle_screens_data(void) {
     push_ui_callback("Tezos Baking", copy_string, VERSION);
     push_ui_callback("Chain", copy_chain, &N_data.main_chain_id);
     push_ui_callback("Public Key Hash", copy_key, &N_data.baking_key);

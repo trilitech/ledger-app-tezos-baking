@@ -30,6 +30,8 @@
 #include "memory.h"
 #include "ui.h"
 
+__attribute__((noreturn)) void app_main(void);
+
 __attribute__((noreturn)) void app_main(void) {
     init_globals();
     ui_initial_screen();

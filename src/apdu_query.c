@@ -39,15 +39,15 @@
  * @param word: big endian word
  * @return size_t: updated offset of the apdu response
  */
-size_t send_word_big_endian(size_t tx, uint32_t word) {
+static size_t send_word_big_endian(size_t tx, uint32_t word) {
     char word_bytes[sizeof(word)];
 
-    memcpy(word_bytes, &word, sizeof(word));
+    memcpy(word_bytes, (char*) &word, sizeof(word));
 
     // endian.h functions do not compile
     uint32_t i = 0;
     for (; i < sizeof(word); i++) {
-        G_io_apdu_buffer[i + tx] = word_bytes[sizeof(word) - i - 1];
+        G_io_apdu_buffer[i + tx] = word_bytes[sizeof(word) - i - 1u];
     }
 
     return tx + i;
@@ -57,7 +57,7 @@ size_t handle_apdu_all_hwm(__attribute__((unused)) uint8_t instruction,
                            __attribute__((unused)) volatile uint32_t* flags) {
     size_t tx = 0;
     tx = send_word_big_endian(tx, N_data.hwm.main.highest_level);
-    int has_a_chain_migrated =
+    bool has_a_chain_migrated =
         N_data.hwm.main.migrated_to_tenderbake || N_data.hwm.test.migrated_to_tenderbake;
     if (has_a_chain_migrated) {
         tx = send_word_big_endian(tx, N_data.hwm.main.highest_round);
@@ -85,7 +85,8 @@ size_t handle_apdu_query_auth_key(__attribute__((unused)) uint8_t instruction,
     uint8_t const length = N_data.baking_key.bip32_path.length;
 
     size_t tx = 0;
-    G_io_apdu_buffer[tx++] = length;
+    G_io_apdu_buffer[tx] = length;
+    tx++;
 
     for (uint8_t i = 0; i < length; ++i) {
         tx = send_word_big_endian(tx, N_data.baking_key.bip32_path.components[i]);
@@ -99,8 +100,10 @@ size_t handle_apdu_query_auth_key_with_curve(__attribute__((unused)) uint8_t ins
     uint8_t const length = N_data.baking_key.bip32_path.length;
 
     size_t tx = 0;
-    G_io_apdu_buffer[tx++] = unparse_derivation_type(N_data.baking_key.derivation_type);
-    G_io_apdu_buffer[tx++] = length;
+    G_io_apdu_buffer[tx] = unparse_derivation_type(N_data.baking_key.derivation_type);
+    tx++;
+    G_io_apdu_buffer[tx] = length;
+    tx++;
     for (uint8_t i = 0; i < length; ++i) {
         tx = send_word_big_endian(tx, N_data.baking_key.bip32_path.components[i]);
     }

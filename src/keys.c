@@ -40,10 +40,10 @@ size_t read_bip32_path(bip32_path_t *const out, uint8_t const *const in, size_t 
     size_t ix = 0;
     out->length = CONSUME_UNALIGNED_BIG_ENDIAN(ix, uint8_t, &buf_as_bip32->length);
 
-    if (in_size - ix < out->length * sizeof(*buf_as_bip32->components)) {
+    if ((in_size - ix) < (out->length * sizeof(*buf_as_bip32->components))) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
-    if (out->length == 0 || out->length > NUM_ELEMENTS(out->components)) {
+    if ((out->length == 0u) || (out->length > NUM_ELEMENTS(out->components))) {
         THROW(EXC_WRONG_VALUES);
     }
 
@@ -63,9 +63,9 @@ size_t read_bip32_path(bip32_path_t *const out, uint8_t const *const in, size_t 
  * @param bip32_path: bip32 path
  * @return int: error, 0 if none
  */
-int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
-                              derivation_type_t const derivation_type,
-                              bip32_path_t const *const bip32_path) {
+static int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
+                                     derivation_type_t const derivation_type,
+                                     bip32_path_t const *const bip32_path) {
     check_null(bip32_path);
     uint8_t raw_private_key[PRIVATE_KEY_DATA_SIZE] = {0};
     int error = 0;
@@ -92,7 +92,7 @@ int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                                          NULL);
     }
 
-    if (!error) {
+    if (error == 0) {
         // new private_key from raw
         error = cx_ecfp_init_private_key_no_throw(cx_curve, raw_private_key, 32, private_key);
     }
@@ -110,16 +110,16 @@ int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
  * @param public_key public key output
  * @return int: error, 0 if none
  */
-int crypto_init_public_key(derivation_type_t const derivation_type,
-                           cx_ecfp_private_key_t *private_key,
-                           cx_ecfp_public_key_t *public_key) {
+static int crypto_init_public_key(derivation_type_t const derivation_type,
+                                  cx_ecfp_private_key_t *private_key,
+                                  cx_ecfp_public_key_t *public_key) {
     int error = 0;
     cx_curve_t const cx_curve =
         signature_type_to_cx_curve(derivation_type_to_signature_type(derivation_type));
 
     // generate corresponding public key
     error = cx_ecfp_generate_pair_no_throw(cx_curve, public_key, private_key, 1);
-    if (error) {
+    if (error != 0) {
         return error;
     }
 
@@ -141,7 +141,7 @@ int generate_key_pair(key_pair_t *key_pair,
 
     // derive private key according to BIP32 path
     error = crypto_derive_private_key(&key_pair->private_key, derivation_type, bip32_path);
-    if (error) {
+    if (error != 0) {
         return error;
     }
     // generate corresponding public key
@@ -156,18 +156,18 @@ int generate_public_key(cx_ecfp_public_key_t *public_key,
     int error;
 
     error = crypto_derive_private_key(&private_key, derivation_type, bip32_path);
-    if (error) {
-        return (error);
+    if (error != 0) {
+        return error;
     }
     error = crypto_init_public_key(derivation_type, &private_key, public_key);
-    return (error);
+    return error;
 }
 
 void public_key_hash(uint8_t *const hash_out,
                      size_t const hash_out_size,
                      cx_ecfp_public_key_t *compressed_out,
                      derivation_type_t const derivation_type,
-                     cx_ecfp_public_key_t const *const restrict public_key) {
+                     cx_ecfp_public_key_t const *const public_key) {
     check_null(hash_out);
     check_null(public_key);
     if (hash_out_size < HASH_SIZE) {
@@ -194,7 +194,7 @@ void public_key_hash(uint8_t *const hash_out,
 
     cx_blake2b_t hash_state;
     // cx_blake2b_init takes size in bits.
-    CX_THROW(cx_blake2b_init_no_throw(&hash_state, HASH_SIZE * 8));
+    CX_THROW(cx_blake2b_init_no_throw(&hash_state, HASH_SIZE * 8u));
     CX_THROW(cx_hash_no_throw((cx_hash_t *) &hash_state,
                               CX_LAST,
                               compressed.W,
@@ -219,7 +219,7 @@ size_t sign(uint8_t *const out,
     size_t tx = 0;
     switch (derivation_type_to_signature_type(derivation_type)) {
         case SIGNATURE_TYPE_ED25519: {
-            static size_t const SIG_SIZE = 64;
+            static size_t const SIG_SIZE = 64u;
             if (out_size < SIG_SIZE) {
                 THROW(EXC_WRONG_LENGTH);
             }
@@ -236,7 +236,7 @@ size_t sign(uint8_t *const out,
         } break;
         case SIGNATURE_TYPE_SECP256K1:
         case SIGNATURE_TYPE_SECP256R1: {
-            static size_t const SIG_SIZE = 100;
+            static size_t const SIG_SIZE = 100u;
             if (out_size < SIG_SIZE) {
                 THROW(EXC_WRONG_LENGTH);
             }
@@ -252,7 +252,7 @@ size_t sign(uint8_t *const out,
                                             &info));
             tx += sig_len;
 
-            if (info & CX_ECCINFO_PARITY_ODD) {
+            if ((info & CX_ECCINFO_PARITY_ODD) != 0) {
                 out[0] |= 0x01;
             }
         } break;

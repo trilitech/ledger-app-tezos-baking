@@ -51,4 +51,4 @@ typedef struct version {
  * @brief Constant app version
  *
  */
-const version_t version = {CLASS, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION};
+static const version_t version = {CLASS, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION};

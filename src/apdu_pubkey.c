@@ -71,11 +71,11 @@ size_t handle_apdu_get_public_key(uint8_t instruction, volatile uint32_t *flags)
 
     size_t const cdata_size = G_io_apdu_buffer[OFFSET_LC];
 
-    if (cdata_size == 0 && instruction == INS_AUTHORIZE_BAKING) {
+    if ((cdata_size == 0u) && (instruction == INS_AUTHORIZE_BAKING)) {
         copy_bip32_path_with_curve(&global.path_with_curve, &N_data.baking_key);
     } else {
         read_bip32_path(&global.path_with_curve.bip32_path, dataBuffer, cdata_size);
-        if (global.path_with_curve.bip32_path.length == 0) {
+        if (global.path_with_curve.bip32_path.length == 0u) {
             THROW(EXC_WRONG_LENGTH_FOR_INS);
         }
     }

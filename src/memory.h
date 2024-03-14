@@ -38,7 +38,7 @@
         _Static_assert(sizeof(*a) == sizeof(*b), "Size mismatch in COMPARE"); \
         check_null(a);                                                        \
         check_null(b);                                                        \
-        memcmp(a, b, sizeof(*a));                                             \
+        memcmp((const uint8_t *) a, (const uint8_t *) b, sizeof(*a));         \
     })
 
 /**

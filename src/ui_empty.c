@@ -29,21 +29,21 @@
  * @brief Black screen element
  *
  */
-const bagl_element_t empty_screen_elements[] = {{{BAGL_RECTANGLE,
-                                                  BAGL_NONE,
-                                                  0,
-                                                  0,
-                                                  BAGL_WIDTH,
-                                                  BAGL_HEIGHT,
-                                                  0,
-                                                  0,
-                                                  BAGL_FILL,
-                                                  0x000000,
-                                                  0xFFFFFF,
-                                                  0,
-                                                  0},
-                                                 .text = NULL},
-                                                {}};
+static const bagl_element_t empty_screen_elements[] = {{{BAGL_RECTANGLE,
+                                                         BAGL_NONE,
+                                                         0,
+                                                         0,
+                                                         BAGL_WIDTH,
+                                                         BAGL_HEIGHT,
+                                                         0,
+                                                         0,
+                                                         BAGL_FILL,
+                                                         0x000000,
+                                                         0xFFFFFF,
+                                                         0,
+                                                         0},
+                                                        .text = NULL},
+                                                       {}};
 
 /**
  * @brief This structure represents the parameters needed for the empty layout
@@ -59,7 +59,7 @@ typedef struct ux_layout_empty_params_s {
  *
  * @param stack_slot: index stack_slot
  */
-void ux_layout_empty_init(unsigned int stack_slot) {
+static void ux_layout_empty_init(unsigned int stack_slot) {
     ux_stack_init(stack_slot);
     G_ux.stack[stack_slot].element_arrays[0].element_array = empty_screen_elements;
     G_ux.stack[stack_slot].element_arrays[0].element_array_count = ARRAYLEN(empty_screen_elements);
@@ -72,7 +72,7 @@ void ux_layout_empty_init(unsigned int stack_slot) {
  * @brief Exits the empty screen
  *
  */
-void return_to_idle() {
+static void return_to_idle(void) {
     global.dynamic_display.is_blank_screen = false;
     ui_initial_screen();
 }
@@ -87,13 +87,10 @@ UX_STEP_CB(empty_screen_step, empty, return_to_idle(), {});
 UX_STEP_INIT(empty_screen_border, NULL, NULL, { return_to_idle(); });
 UX_FLOW(ux_empty_flow, &empty_screen_step, &empty_screen_border, FLOW_LOOP);
 
-void ux_empty_screen() {
+void ux_empty_screen(void) {
     if (global.dynamic_display.is_blank_screen == false) {
         global.dynamic_display.is_blank_screen = true;
         ux_flow_init(0, ux_empty_flow, NULL);
     }
-}
-#else
-void ux_empty_screen() {
 }
 #endif

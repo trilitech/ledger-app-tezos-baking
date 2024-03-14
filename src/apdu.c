@@ -35,7 +35,8 @@ size_t provide_pubkey(uint8_t* const io_buffer, cx_ecfp_public_key_t const* cons
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         THROW(EXC_SECURITY);
     }
-    io_buffer[tx++] = pubkey->W_len;
+    io_buffer[tx] = pubkey->W_len;
+    tx++;
     memmove(io_buffer + tx, pubkey->W, pubkey->W_len);
     tx += pubkey->W_len;
     return finalize_successful_send(tx);
@@ -73,7 +74,7 @@ __attribute__((noreturn)) void main_loop(apdu_handler const* const handlers,
                 PRINTF("New APDU received:\n%.*H\n", rx, G_io_apdu_buffer);
                 // Process APDU of size rx
 
-                if (rx == 0) {
+                if (!rx) {
                     // no apdu received, well, reset the session, and reset the
                     // bootloader configuration
                     THROW(EXC_SECURITY);
@@ -86,13 +87,13 @@ __attribute__((noreturn)) void main_loop(apdu_handler const* const handlers,
                 // The amount of bytes we get in our APDU must match what the APDU declares
                 // its own content length is. All these values are unsigned, so this implies
                 // that if rx < OFFSET_CDATA it also throws.
-                if (rx != G_io_apdu_buffer[OFFSET_LC] + OFFSET_CDATA) {
+                if (rx != (G_io_apdu_buffer[OFFSET_LC] + OFFSET_CDATA)) {
                     THROW(EXC_WRONG_LENGTH);
                 }
 
                 uint8_t const instruction = G_io_apdu_buffer[OFFSET_INS];
                 apdu_handler const cb =
-                    instruction >= handlers_size ? handle_apdu_error : handlers[instruction];
+                    (instruction >= handlers_size) ? handle_apdu_error : handlers[instruction];
 
                 size_t const tx = cb(instruction, &flags);
                 rx = io_exchange(CHANNEL_APDU | flags, tx);
@@ -111,19 +112,20 @@ __attribute__((noreturn)) void main_loop(apdu_handler const* const handlers,
                 uint16_t sw = e;
                 PRINTF("Error caught at top level, number: %x\n", sw);
                 switch (sw) {
+                    case 0x6000 ... 0x6FFF:
+                    case 0x9000 ... 0x9FFF:
+                        break;
                     default:
                         sw = 0x6800 | (e & 0x7FF);
-                        __attribute__((fallthrough));
-                    case 0x6000 ... 0x6FFF:
-                    case 0x9000 ... 0x9FFF: {
-                        PRINTF("Line number: %d", sw & 0x0FFF);
-                        size_t tx = 0;
-                        G_io_apdu_buffer[tx++] = sw >> 8;
-                        G_io_apdu_buffer[tx++] = sw;
-                        rx = io_exchange(CHANNEL_APDU, tx);
                         break;
-                    }
                 }
+                PRINTF("Line number: %d", sw & 0x0FFF);
+                size_t tx = 0;
+                G_io_apdu_buffer[tx] = sw >> 8;
+                tx++;
+                G_io_apdu_buffer[tx] = sw;
+                tx++;
+                rx = io_exchange(CHANNEL_APDU, tx);
             }
             FINALLY {
             }

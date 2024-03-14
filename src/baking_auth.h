@@ -72,5 +72,5 @@ void write_high_water_mark(parsed_baking_data_t const *const in);
  * @return bool: returns false if it is invalid
  */
 bool parse_baking_data(parsed_baking_data_t *const out,
-                       void const *const data,
+                       uint8_t const *const data,
                        size_t const length);

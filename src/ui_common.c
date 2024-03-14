@@ -25,6 +25,8 @@
 #include "globals.h"
 #include "os.h"
 
+uint8_t io_event(unsigned char channel);
+
 /**
  * @brief Redefinition of lib_standard_app/io.io_event
  *
@@ -53,13 +55,11 @@ uint8_t io_event(__attribute__((unused)) unsigned char channel) {
             break;
 
         case SEPROXYHAL_TAG_STATUS_EVENT:
-            if (G_io_apdu_media == IO_APDU_MEDIA_USB_HID &&
+            if ((G_io_apdu_media == IO_APDU_MEDIA_USB_HID) &&
                 !(U4BE(G_io_seproxyhal_spi_buffer, 3) &
                   SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
                 THROW(EXCEPTION_IO_RESET);
             }
-            __attribute__((fallthrough));
-        default:
             UX_DEFAULT_EVENT();
             break;
 
@@ -79,6 +79,9 @@ uint8_t io_event(__attribute__((unused)) unsigned char channel) {
             UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
 #endif  // HAVE_BAGL
             break;
+        default:
+            UX_DEFAULT_EVENT();
+            break;
     }
 
     // close the event if not done previously (by a display or whatever)
@@ -94,7 +97,7 @@ uint8_t io_event(__attribute__((unused)) unsigned char channel) {
  * @brief Invalidates the pin to enforce its requirement.
  *
  */
-void require_pin(void) {
+static void require_pin(void) {
     os_global_pin_invalidate();
 }
 

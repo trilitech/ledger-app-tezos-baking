@@ -19,6 +19,8 @@
 */
 #pragma once
 
+#ifdef HAVE_BAGL
+
 /**
  * @brief Empties the screen
  *
@@ -28,3 +30,5 @@
  *
  */
 void ux_empty_screen(void);
+
+#endif

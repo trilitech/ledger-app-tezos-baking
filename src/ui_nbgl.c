@@ -68,7 +68,7 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
     copy_key(buffer[1], sizeof(buffer[1]), &N_data.baking_key);
     copy_hwm(buffer[2], sizeof(buffer[2]), &N_data.hwm.main);
 
-    if (page == 0) {
+    if (page == 0u) {
         content->type = INFOS_LIST;
         content->infosList.nbInfos = 3;
         content->infosList.infoTypes = bakeInfoTypes;
@@ -87,7 +87,7 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
  * @brief Draws settings pages
  *
  */
-void ui_menu_about_baking(void) {
+static void ui_menu_about_baking(void) {
     nbgl_useCaseSettings("Tezos baking",
                          0,
                          2,

@@ -16,4 +16,4 @@ jobs:
           ref: ${{ github.ref }}
 
       - name: Check
-        run: cppcheck --addon=misra.json --quiet --error-exitcode=1 src/
+        run: cppcheck --enable=warning --addon=misra.json --quiet --error-exitcode=1 src/

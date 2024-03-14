@@ -46,7 +46,7 @@ typedef struct {
     nbgl_layoutTagValue_t tagValuePair[1];
     nbgl_layoutTagValueList_t tagValueList;
     nbgl_pageInfoLongPress_t infoLongPress;
-    char buffer[MAX_INT_DIGITS + 1];  /// value buffer
+    char buffer[MAX_INT_DIGITS + 1u];  /// value buffer
 } ResetContext_t;
 
 /// Current reset context

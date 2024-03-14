@@ -29,12 +29,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-// Type-safe versions of true/false
-#undef true
-#define true ((bool) 1)
-#undef false
-#define false ((bool) 0)
-
 /**
  * NOTE: There are *two* ways that "key type" or "curve code" are represented in
  * this code base:
@@ -85,7 +79,7 @@ typedef uint32_t round_t;
 
 #define CHAIN_ID_BASE58_STRING_SIZE sizeof("NetXdQprcVkpaWU")
 
-#define MAX_INT_DIGITS 20
+#define MAX_INT_DIGITS 20u
 
 /**
  * @brief This structure represents chain id
@@ -147,7 +141,7 @@ typedef struct {
 static inline void copy_bip32_path(bip32_path_t *const out, bip32_path_t volatile const *const in) {
     check_null(out);
     check_null(in);
-    memcpy(out->components, (void *) in->components, in->length * sizeof(*in->components));
+    memcpy(out->components, in->components, in->length * sizeof(*in->components));
     out->length = in->length;
 }
 
@@ -160,10 +154,10 @@ static inline void copy_bip32_path(bip32_path_t *const out, bip32_path_t volatil
  */
 static inline bool bip32_paths_eq(bip32_path_t volatile const *const a,
                                   bip32_path_t volatile const *const b) {
-    return a == b || (a != NULL && b != NULL && a->length == b->length &&
-                      memcmp((void const *) a->components,
-                             (void const *) b->components,
-                             a->length * sizeof(*a->components)) == 0);
+    return (a == b) || ((a != NULL) && (b != NULL) && (a->length == b->length) &&
+                        (memcmp((const uint8_t *) a->components,
+                                (const uint8_t *) b->components,
+                                a->length * sizeof(*a->components)) == 0));
 }
 
 /**
@@ -200,8 +194,9 @@ static inline void copy_bip32_path_with_curve(bip32_path_with_curve_t *const out
  */
 static inline bool bip32_path_with_curve_eq(bip32_path_with_curve_t volatile const *const a,
                                             bip32_path_with_curve_t volatile const *const b) {
-    return a == b || (a != NULL && b != NULL && bip32_paths_eq(&a->bip32_path, &b->bip32_path) &&
-                      a->derivation_type == b->derivation_type);
+    return (a == b) ||
+           ((a != NULL) && (b != NULL) && bip32_paths_eq(&a->bip32_path, &b->bip32_path) &&
+            (a->derivation_type == b->derivation_type));
 }
 
 /**
@@ -231,18 +226,18 @@ typedef struct {
     bip32_path_with_curve_t baking_key;  ///< authorized key
 } nvram_data;
 
-#define SIGN_HASH_SIZE 32  // TODO: Rename or use a different constant.
+#define SIGN_HASH_SIZE 32u  // TODO: Rename or use a different constant.
 
-#define PKH_STRING_SIZE 40  // includes null byte // TODO: use sizeof for this.
+#define PKH_STRING_SIZE 40u  // includes null byte // TODO: use sizeof for this.
 #define PROTOCOL_HASH_BASE58_STRING_SIZE \
     sizeof("ProtoBetaBetaBetaBetaBetaBetaBetaBetaBet11111a5ug96")
 
-#define MAX_SCREEN_STACK_SIZE 7  // Maximum number of screens in a flow.
-#define PROMPT_WIDTH          16
+#define MAX_SCREEN_STACK_SIZE 7u  // Maximum number of screens in a flow.
+#define PROMPT_WIDTH          16u
 #define VALUE_WIDTH           PROTOCOL_HASH_BASE58_STRING_SIZE
 
 // TODO: Rename to KEY_HASH_SIZE
-#define HASH_SIZE 20
+#define HASH_SIZE 20u
 
 /**
  * @brief This structure represents the content of a parsed baking data
@@ -303,7 +298,7 @@ struct parsed_operation_group {
     struct parsed_operation operation;  ///< operation parsed
 };
 
-#define INS_MAX 0x0F
+#define INS_MAX 0x0Fu
 
 #define APDU_INS(x)                                                        \
     ({                                                                     \
@@ -311,16 +306,16 @@ struct parsed_operation_group {
         x;                                                                 \
     })
 
-#define CUSTOM_MAX(a, b)                   \
-    ({                                     \
-        __typeof__(a) ____a_ = (a);        \
-        __typeof__(b) ____b_ = (b);        \
-        ____a_ > ____b_ ? ____a_ : ____b_; \
+#define CUSTOM_MAX(a, b)                     \
+    ({                                       \
+        __typeof__(a) ____a_ = (a);          \
+        __typeof__(b) ____b_ = (b);          \
+        (____a_ > ____b_) ? ____a_ : ____b_; \
     })
 
-#define CUSTOM_MIN(a, b)                   \
-    ({                                     \
-        __typeof__(a) ____a_ = (a);        \
-        __typeof__(b) ____b_ = (b);        \
-        ____a_ < ____b_ ? ____a_ : ____b_; \
+#define CUSTOM_MIN(a, b)                     \
+    ({                                       \
+        __typeof__(a) ____a_ = (a);          \
+        __typeof__(b) ____b_ = (b);          \
+        (____a_ < ____b_) ? ____a_ : ____b_; \
     })

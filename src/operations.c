@@ -146,12 +146,12 @@ static inline bool parse_z(uint8_t current_byte,
         state->shift = 0;
     }
     // Fails when the resulting shifted value overflows 64 bits
-    if (state->shift > 63 || (state->shift == 63 && current_byte != 1)) {
+    if ((state->shift > 63u) || ((state->shift == 63u) && (current_byte != 1u))) {
         PARSE_ERROR();
     }
-    state->value |= ((uint64_t) current_byte & 0x7F) << state->shift;
-    state->shift += 7;
-    return current_byte & 0x80;  // Return true if we need more bytes.
+    state->value |= ((uint64_t) current_byte & 0x7Fu) << state->shift;
+    state->shift += 7u;
+    return current_byte & 0x80u;  // Return true if we need more bytes.
 }
 #define PARSE_Z                                                             \
     ({                                                                      \
@@ -206,10 +206,10 @@ static inline bool parse_next_type(uint8_t current_byte,
  * @param bip32_path: bip32 path of the key
  * @param state: parsing state
  */
-void parse_operations_init(struct parsed_operation_group *const out,
-                           derivation_type_t derivation_type,
-                           bip32_path_t const *const bip32_path,
-                           struct parse_state *const state) {
+static void parse_operations_init(struct parsed_operation_group *const out,
+                                  derivation_type_t derivation_type,
+                                  bip32_path_t const *const bip32_path,
+                                  struct parse_state *const state) {
     check_null(out);
     check_null(bip32_path);
     memset(out, 0, sizeof(*out));
@@ -235,10 +235,10 @@ void parse_operations_init(struct parsed_operation_group *const out,
 
 bool parse_operations_final(struct parse_state *const state,
                             struct parsed_operation_group *const out) {
-    if (out->operation.tag == OPERATION_TAG_NONE && !out->has_reveal) {
+    if ((out->operation.tag == OPERATION_TAG_NONE) && !out->has_reveal) {
         return false;
     }
-    return state->op_step == STEP_END_OF_MESSAGE || state->op_step == 1;
+    return ((state->op_step == STEP_END_OF_MESSAGE) || (state->op_step == 1));
 }
 
 /**
@@ -320,10 +320,11 @@ static inline bool parse_byte(uint8_t byte,
 
                 default:
                     PARSE_ERROR();
+                    break;
             }
 
             // If the source is an implicit contract,...
-            if (out->operation.source.originated == 0) {
+            if (!out->operation.source.originated) {
                 // ... it had better match our key, otherwise why are we signing it?
                 if (COMPARE(&out->operation.source, &out->signing) != 0) {
                     PARSE_ERROR();
@@ -387,43 +388,41 @@ static inline bool parse_byte(uint8_t byte,
 
             // This is the one allowable non-reveal operation per set
 
-            out->operation.tag = (uint8_t) state->tag;
+            out->operation.tag = state->tag;
 
             // Deliberate epsilon-transition.
             state->op_step = STEP_OP_TYPE_DISPATCH;
             __attribute__((fallthrough));
         default:
 
-            switch (state->tag) {
-                case OPERATION_TAG_DELEGATION:
-                    switch (state->op_step) {
-                        case STEP_OP_TYPE_DISPATCH: {
-                            uint8_t delegate_present = NEXT_BYTE;
+            if (state->tag == OPERATION_TAG_DELEGATION) {
+                switch (state->op_step) {
+                    case STEP_OP_TYPE_DISPATCH: {
+                        bool delegate_present = NEXT_BYTE != 0u;
 
-                            OP_JMPIF(STEP_HAS_DELEGATE, delegate_present)
-                        }
-                            // Else branch: Encode "not present"
-                            out->operation.destination.originated = 0;
-                            out->operation.destination.signature_type = SIGNATURE_TYPE_UNSET;
-
-                            JMP_TO_TOP;  // These go back to the top to catch any reveals.
-
-                        case STEP_HAS_DELEGATE: {
-                            const struct delegation_contents *dlg =
-                                NEXT_TYPE(struct delegation_contents);
-                            parse_implicit(&out->operation.destination,
-                                           &dlg->signature_type,
-                                           dlg->hash);
-                        }
-                            JMP_TO_TOP;  // These go back to the top to catch any reveals.
+                        OP_JMPIF(STEP_HAS_DELEGATE, delegate_present)
                     }
+                        // Else branch: Encode "not present"
+                        out->operation.destination.originated = 0;
+                        out->operation.destination.signature_type = SIGNATURE_TYPE_UNSET;
 
-                default:  // Any other tag; probably not possible here.
-                    PARSE_ERROR();
+                        JMP_TO_TOP;  // These go back to the top to catch any reveals.
+
+                    case STEP_HAS_DELEGATE: {
+                        const struct delegation_contents *dlg =
+                            NEXT_TYPE(struct delegation_contents);
+                        parse_implicit(&out->operation.destination,
+                                       &dlg->signature_type,
+                                       dlg->hash);
+                    }
+                        JMP_TO_TOP;  // These go back to the top to catch any reveals.
+                    default:         // Any other tag; probably not possible here.
+                        PARSE_ERROR();
+                }
             }
     }
 
-    PARSE_ERROR();  // Probably not reachable, but removes a warning.
+    PARSE_ERROR();
 }
 
 #define G global.apdu.u.sign
@@ -440,7 +439,7 @@ static inline bool parse_byte(uint8_t byte,
  * @param bip32_path: bip32 path of the key
  */
 static void parse_operations_throws_parse_error(struct parsed_operation_group *const out,
-                                                void const *const data,
+                                                uint8_t const *const data,
                                                 size_t length,
                                                 derivation_type_t derivation_type,
                                                 bip32_path_t const *const bip32_path) {
@@ -449,7 +448,7 @@ static void parse_operations_throws_parse_error(struct parsed_operation_group *c
     parse_operations_init(out, derivation_type, bip32_path, &G.parse_state);
 
     while (ix < length) {
-        uint8_t byte = ((uint8_t *) data)[ix];
+        uint8_t byte = data[ix];
         parse_byte(byte, &G.parse_state, out);
         PRINTF("Byte: %x - Next op_step state: %d\n", byte, G.parse_state.op_step);
         ix++;

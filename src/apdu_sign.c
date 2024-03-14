@@ -40,9 +40,9 @@
 
 #define PARSE_ERROR() THROW(EXC_PARSE_ERROR)
 
-#define B2B_BLOCKBYTES 128  /// blake2b hash size
+#define B2B_BLOCKBYTES 128u  /// blake2b hash size
 
-size_t perform_signature(bool const on_hash, bool const send_hash);
+static size_t perform_signature(bool const on_hash, bool const send_hash);
 
 /**
  * @brief Initializes the blake2b state if it is not
@@ -53,7 +53,7 @@ static inline void conditional_init_hash_state(blake2b_hash_state_t *const state
     check_null(state);
     if (!state->initialized) {
         // cx_blake2b_init takes size in bits.
-        CX_THROW(cx_blake2b_init_no_throw(&state->state, SIGN_HASH_SIZE * 8));
+        CX_THROW(cx_blake2b_init_no_throw(&state->state, SIGN_HASH_SIZE * 8u));
         state->initialized = true;
     }
 }
@@ -79,7 +79,7 @@ static void blake2b_incremental_hash(uint8_t *const buff,
 
     uint8_t *current = buff;
     while (*buff_length > B2B_BLOCKBYTES) {
-        if (current - buff > (int) buff_size) {
+        if ((current - buff) > (int) buff_size) {
             THROW(EXC_MEMORY_ERROR);
         }
         conditional_init_hash_state(state);
@@ -174,7 +174,7 @@ static bool sign_reject(void) {
  * @param flags: request flags
  * @return size_t: offset of the apdu response
  */
-size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
+static size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
     size_t result = 0;
     switch (G.magic_byte) {
         case MAGIC_BYTE_BLOCK:
@@ -182,7 +182,9 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
         case MAGIC_BYTE_ATTESTATION:
             guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve);
             result = perform_signature(true, send_hash);
+#ifdef HAVE_BAGL
             ux_empty_screen();
+#endif
             break;
 
         case MAGIC_BYTE_UNSAFE_OP: {
@@ -233,9 +235,9 @@ size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
  * @brief Packet indexes
  *
  */
-#define P1_FIRST       0x00  /// First packet
-#define P1_NEXT        0x01  /// Other packet
-#define P1_LAST_MARKER 0x80  /// Last packet
+#define P1_FIRST       0x00u  /// First packet
+#define P1_NEXT        0x01u  /// Other packet
+#define P1_LAST_MARKER 0x80u  /// Last packet
 
 /**
  * @brief Get the magic byte of a buffer
@@ -256,8 +258,9 @@ static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const b
             return magic_byte;
 
         default:
-            PARSE_ERROR();
+            break;
     }
+    PARSE_ERROR();
 }
 
 /**
@@ -283,7 +286,7 @@ static size_t handle_apdu(bool const enable_hashing,
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
 
-    bool last = (p1 & P1_LAST_MARKER) != 0;
+    bool last = (p1 & P1_LAST_MARKER) != 0u;
     switch (p1 & ~P1_LAST_MARKER) {
         case P1_FIRST:
             clear_data();
@@ -292,12 +295,12 @@ static size_t handle_apdu(bool const enable_hashing,
                 parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
             return finalize_successful_send(0);
         case P1_NEXT:
-            if (global.path_with_curve.bip32_path.length == 0) {
+            if (global.path_with_curve.bip32_path.length == 0u) {
                 THROW(EXC_WRONG_LENGTH_FOR_INS);
             }
 
             // Guard against overflow
-            if (G.packet_index >= 0xFF) {
+            if (G.packet_index >= 0xFFu) {
                 PARSE_ERROR();
             }
             G.packet_index++;
@@ -308,7 +311,7 @@ static size_t handle_apdu(bool const enable_hashing,
     }
 
     if (enable_parsing) {
-        if (G.packet_index != 1) {
+        if (G.packet_index != 1u) {
             PARSE_ERROR();  // Only parse a single packet when baking
         }
 
@@ -336,7 +339,7 @@ static size_t handle_apdu(bool const enable_hashing,
                                  &G.hash_state);
     }
 
-    if (G.message_data_length + buff_size > sizeof(G.message_data)) {
+    if ((G.message_data_length + buff_size) > sizeof(G.message_data)) {
         PARSE_ERROR();
     }
 
@@ -391,7 +394,7 @@ size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t *flags)
  * @param send_hash: if the message hash is requested
  * @return size_t: offset of the apdu response
  */
-size_t perform_signature(bool const on_hash, bool const send_hash) {
+static size_t perform_signature(bool const on_hash, bool const send_hash) {
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         THROW(EXC_SECURITY);
     }
@@ -412,11 +415,10 @@ size_t perform_signature(bool const on_hash, bool const send_hash) {
     int error = generate_key_pair(&key_pair,
                                   global.path_with_curve.derivation_type,
                                   &global.path_with_curve.bip32_path);
-    if (error) {
+    if (error != 0) {
         THROW(EXC_WRONG_VALUES);
     }
 
-    error = 0;
     BEGIN_TRY {
         TRY {
             signature_size = sign(&G_io_apdu_buffer[tx],
@@ -435,7 +437,7 @@ size_t perform_signature(bool const on_hash, bool const send_hash) {
     }
     END_TRY;
 
-    if (error) {
+    if (error != 0) {
         THROW(error);
     }
 

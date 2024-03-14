@@ -32,17 +32,17 @@
  *        https://www.eftlab.co.uk/index.php/site-map/knowledge-base/118-apdu-response-list
  *
  */
-#define EXC_WRONG_PARAM               0x6B00
-#define EXC_WRONG_LENGTH              0x6C00
-#define EXC_INVALID_INS               0x6D00
-#define EXC_WRONG_LENGTH_FOR_INS      0x917E
-#define EXC_REJECT                    0x6985
-#define EXC_PARSE_ERROR               0x9405
-#define EXC_REFERENCED_DATA_NOT_FOUND 0x6A88
-#define EXC_WRONG_VALUES              0x6A80
-#define EXC_SECURITY                  0x6982
-#define EXC_CLASS                     0x6E00
-#define EXC_MEMORY_ERROR              0x9200
+#define EXC_WRONG_PARAM               0x6B00u
+#define EXC_WRONG_LENGTH              0x6C00u
+#define EXC_INVALID_INS               0x6D00u
+#define EXC_WRONG_LENGTH_FOR_INS      0x917Eu
+#define EXC_REJECT                    0x6985u
+#define EXC_PARSE_ERROR               0x9405u
+#define EXC_REFERENCED_DATA_NOT_FOUND 0x6A88u
+#define EXC_WRONG_VALUES              0x6A80u
+#define EXC_SECURITY                  0x6982u
+#define EXC_CLASS                     0x6E00u
+#define EXC_MEMORY_ERROR              0x9200u
 
 /**
  * @brief Checks if a pointer is NULL

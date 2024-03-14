@@ -28,14 +28,14 @@
 
 #include <string.h>
 
-#define TEZOS_HASH_CHECKSUM_SIZE 4
+#define TEZOS_HASH_CHECKSUM_SIZE 4u
 
 #define TICKER_WITH_SPACE " XTZ"
 
-void pkh_to_string(char *const buff,
-                   size_t const buff_size,
-                   signature_type_t const signature_type,
-                   uint8_t const hash[HASH_SIZE]);
+static void pkh_to_string(char *const buff,
+                          size_t const buff_size,
+                          signature_type_t const signature_type,
+                          uint8_t const hash[HASH_SIZE]);
 static size_t microtez_to_string(char *dest, uint64_t number);
 
 void pubkey_to_pkh_string(char *const out,
@@ -68,9 +68,9 @@ void bip32_path_with_curve_to_pkh_string(char *const out,
  * @param data: hash input
  * @param size: input size
  */
-void compute_hash_checksum(uint8_t out[TEZOS_HASH_CHECKSUM_SIZE],
-                           void const *const data,
-                           size_t size) {
+static void compute_hash_checksum(uint8_t out[TEZOS_HASH_CHECKSUM_SIZE],
+                                  void const *const data,
+                                  size_t size) {
     uint8_t checksum[CX_SHA256_SIZE];
     cx_hash_sha256(data, size, checksum, sizeof(checksum));
     cx_hash_sha256(checksum, sizeof(checksum), checksum, sizeof(checksum));
@@ -85,10 +85,10 @@ void compute_hash_checksum(uint8_t out[TEZOS_HASH_CHECKSUM_SIZE],
  * @param signature_type: curve of the key
  * @param hash: public key hash
  */
-void pkh_to_string(char *const buff,
-                   size_t const buff_size,
-                   signature_type_t const signature_type,
-                   uint8_t const hash[HASH_SIZE]) {
+static void pkh_to_string(char *const buff,
+                          size_t const buff_size,
+                          signature_type_t const signature_type,
+                          uint8_t const hash[HASH_SIZE]) {
     check_null(buff);
     check_null(hash);
     if (buff_size < PKH_STRING_SIZE) {
@@ -105,24 +105,24 @@ void pkh_to_string(char *const buff,
     // prefix
     switch (signature_type) {
         case SIGNATURE_TYPE_UNSET:
-            data.prefix[0] = 2;
-            data.prefix[1] = 90;
-            data.prefix[2] = 121;
+            data.prefix[0] = 2u;
+            data.prefix[1] = 90u;
+            data.prefix[2] = 121u;
             break;
         case SIGNATURE_TYPE_ED25519:
-            data.prefix[0] = 6;
-            data.prefix[1] = 161;
-            data.prefix[2] = 159;
+            data.prefix[0] = 6u;
+            data.prefix[1] = 161u;
+            data.prefix[2] = 159u;
             break;
         case SIGNATURE_TYPE_SECP256K1:
-            data.prefix[0] = 6;
-            data.prefix[1] = 161;
-            data.prefix[2] = 161;
+            data.prefix[0] = 6u;
+            data.prefix[1] = 161u;
+            data.prefix[2] = 161u;
             break;
         case SIGNATURE_TYPE_SECP256R1:
-            data.prefix[0] = 6;
-            data.prefix[1] = 161;
-            data.prefix[2] = 164;
+            data.prefix[0] = 6u;
+            data.prefix[1] = 161u;
+            data.prefix[2] = 164u;
             break;
         default:
             THROW(EXC_WRONG_PARAM);  // Should not reach
@@ -144,7 +144,9 @@ void pkh_to_string(char *const buff,
  * @param buff_size: output size
  * @param chain_id: chain id to convert
  */
-void chain_id_to_string(char *const buff, size_t const buff_size, chain_id_t const chain_id) {
+static void chain_id_to_string(char *const buff,
+                               size_t const buff_size,
+                               chain_id_t const chain_id) {
     check_null(buff);
     if (buff_size < CHAIN_ID_BASE58_STRING_SIZE) {
         THROW(EXC_WRONG_LENGTH);
@@ -180,7 +182,7 @@ void chain_id_to_string_with_aliases(char *const out,
                                      chain_id_t const *const chain_id) {
     check_null(out);
     check_null(chain_id);
-    if (chain_id->v == 0) {
+    if (!chain_id->v) {
         STRCPY_OR_THROW(out, out_size, "any", EXC_WRONG_LENGTH);
     } else if (chain_id->v == mainnet_chain_id.v) {
         STRCPY_OR_THROW(out, out_size, "mainnet", EXC_WRONG_LENGTH);
@@ -207,15 +209,15 @@ static inline size_t convert_number(char dest[MAX_INT_DIGITS],
                                     uint64_t number,
                                     bool leading_zeroes) {
     check_null(dest);
-    char *const end = dest + MAX_INT_DIGITS;
-    for (char *ptr = end - 1; ptr >= dest; ptr--) {
-        *ptr = '0' + number % 10;
-        number /= 10;
-        if (!leading_zeroes && number == 0) {  // TODO: This is ugly
-            return ptr - dest;
-        }
-    }
-    return 0;
+
+    uint64_t rest = number;
+    size_t i = MAX_INT_DIGITS;
+    do {
+        i--;
+        dest[i] = '0' + (rest % 10u);
+        rest /= 10u;
+    } while ((i > 0u) && (leading_zeroes || (rest > 0u)));
+    return i;
 }
 
 void number_to_string_indirect32(char *const dest,
@@ -223,7 +225,7 @@ void number_to_string_indirect32(char *const dest,
                                  uint32_t const *const number) {
     check_null(dest);
     check_null(number);
-    if (buff_size < MAX_INT_DIGITS + 1) {
+    if (buff_size < (MAX_INT_DIGITS + 1u)) {
         THROW(EXC_WRONG_LENGTH);  // terminating null
     }
     number_to_string(dest, *number);
@@ -234,7 +236,7 @@ void microtez_to_string_indirect(char *const dest,
                                  uint64_t const *const number) {
     check_null(dest);
     check_null(number);
-    if (buff_size < MAX_INT_DIGITS + sizeof(TICKER_WITH_SPACE) + 1) {
+    if (buff_size < MAX_INT_DIGITS + sizeof(TICKER_WITH_SPACE) + 1u) {
         THROW(EXC_WRONG_LENGTH);  // + terminating null + decimal point
     }
     microtez_to_string(dest, *number);
@@ -253,8 +255,8 @@ size_t number_to_string(char *const dest, uint64_t number) {
 }
 
 /// Microtez are in millionths
-#define TEZ_SCALE      1000000
-#define DECIMAL_DIGITS 6
+#define TEZ_SCALE      1000000u
+#define DECIMAL_DIGITS 6u
 
 /**
  * @brief Converts an uint64 number to microtez as string
@@ -265,19 +267,20 @@ size_t number_to_string(char *const dest, uint64_t number) {
  * @param number: number to convert
  * @return size_t: size of the result
  */
-size_t microtez_to_string(char *const dest, uint64_t number) {
+static size_t microtez_to_string(char *const dest, uint64_t number) {
     check_null(dest);
     uint64_t whole_tez = number / TEZ_SCALE;
     uint64_t fractional = number % TEZ_SCALE;
     size_t off = number_to_string(dest, whole_tez);
-    if (fractional == 0) {
+    if (fractional == 0u) {
         // Append the ticker at the end of the amount.
         memcpy(dest + off, TICKER_WITH_SPACE, sizeof(TICKER_WITH_SPACE));
         off += sizeof(TICKER_WITH_SPACE);
 
         return off;
     }
-    dest[off++] = '.';
+    dest[off] = '.';
+    off++;
 
     char tmp[MAX_INT_DIGITS];
     convert_number(tmp, number, true);
@@ -285,7 +288,7 @@ size_t microtez_to_string(char *const dest, uint64_t number) {
     // Eliminate trailing 0s
     char *start = tmp + MAX_INT_DIGITS - DECIMAL_DIGITS;
     char *end;
-    for (end = tmp + MAX_INT_DIGITS - 1; end >= start; end--) {
+    for (end = tmp + MAX_INT_DIGITS - 1u; end >= start; end--) {
         if (*end != '0') {
             end++;
             break;

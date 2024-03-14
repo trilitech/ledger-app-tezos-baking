@@ -46,22 +46,22 @@
  * @brief Codes of handled instructions
  *
  */
-#define INS_VERSION                   0x00
-#define INS_AUTHORIZE_BAKING          0x01
-#define INS_GET_PUBLIC_KEY            0x02
-#define INS_PROMPT_PUBLIC_KEY         0x03
-#define INS_SIGN                      0x04
-#define INS_SIGN_UNSAFE               0x05
-#define INS_RESET                     0x06
-#define INS_QUERY_AUTH_KEY            0x07
-#define INS_QUERY_MAIN_HWM            0x08
-#define INS_GIT                       0x09
-#define INS_SETUP                     0x0A
-#define INS_QUERY_ALL_HWM             0x0B
-#define INS_DEAUTHORIZE               0x0C
-#define INS_QUERY_AUTH_KEY_WITH_CURVE 0x0D
-#define INS_HMAC                      0x0E
-#define INS_SIGN_WITH_HASH            0x0F
+#define INS_VERSION                   0x00u
+#define INS_AUTHORIZE_BAKING          0x01u
+#define INS_GET_PUBLIC_KEY            0x02u
+#define INS_PROMPT_PUBLIC_KEY         0x03u
+#define INS_SIGN                      0x04u
+#define INS_SIGN_UNSAFE               0x05u
+#define INS_RESET                     0x06u
+#define INS_QUERY_AUTH_KEY            0x07u
+#define INS_QUERY_MAIN_HWM            0x08u
+#define INS_GIT                       0x09u
+#define INS_SETUP                     0x0Au
+#define INS_QUERY_ALL_HWM             0x0Bu
+#define INS_DEAUTHORIZE               0x0Cu
+#define INS_QUERY_AUTH_KEY_WITH_CURVE 0x0Du
+#define INS_HMAC                      0x0Eu
+#define INS_SIGN_WITH_HASH            0x0Fu
 
 /**
  * @brief Loops indefinitely while handling the incoming apdus
@@ -75,12 +75,15 @@ void main_loop(apdu_handler const* const handlers, size_t const handlers_size)
 /**
  * @brief Tags as successful apdu response
  *
- * @param tx: current offset of the apdu response
+ * @param offset: current offset of the apdu response
  * @return size_t: updated offset of the apdu response
  */
-static inline size_t finalize_successful_send(size_t tx) {
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
+static inline size_t finalize_successful_send(size_t offset) {
+    size_t tx = offset;
+    G_io_apdu_buffer[tx] = 0x90;
+    tx++;
+    G_io_apdu_buffer[tx] = 0x00;
+    tx++;
     return tx;
 }
 
@@ -100,8 +103,10 @@ static inline void delayed_send(size_t tx) {
  */
 static inline bool delay_reject(void) {
     size_t tx = 0;
-    G_io_apdu_buffer[tx++] = EXC_REJECT >> 8;
-    G_io_apdu_buffer[tx++] = EXC_REJECT & 0xFF;
+    G_io_apdu_buffer[tx] = EXC_REJECT >> 8;
+    tx++;
+    G_io_apdu_buffer[tx] = EXC_REJECT & 0xFFu;
+    tx++;
     delayed_send(tx);
     return true;
 }
