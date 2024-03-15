@@ -175,16 +175,6 @@ class TezosNavigator(metaclass=MetaScreen):
                           black_screen: bool = False) -> None:
         """Check that the app context."""
 
-        if black_screen:
-            self.assert_screen(
-                name="black_screen",
-                snap_path=snap_path / "app_context"
-            )
-            self.backend.right_click()
-            self.assert_screen(
-                name="home_screen",
-                snap_path=snap_path / "app_context"
-            )
         received_chain_id, received_main_hwm, received_test_hwm = self.client.get_all_hwm()
 
         assert received_chain_id == chain_id, \
@@ -209,33 +199,47 @@ class TezosNavigator(metaclass=MetaScreen):
 
         snap_path = snap_path / "app_context"
         if self.firmware.is_nano:
-            self.navigator.navigate(
-                [NavInsID.RIGHT_CLICK] * 2,
-                screen_change_before_first_instruction=False
-            )
+            if black_screen:
+                self.backend.wait_for_screen_change()
+                self.assert_screen("black_screen", snap_path=snap_path)
+                self.backend.both_click()
+                self.backend.wait_for_screen_change()
+            self.assert_screen("home_screen", snap_path=snap_path)
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("version", snap_path=snap_path)
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
             self.assert_screen("chain_id", snap_path=snap_path)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
             if account is not None and self.firmware.device == "nanos":
-                self.assert_screen("public_key_hash_1", snap_path=snap_path)
-                self.backend.right_click()
-                self.backend.wait_for_screen_change()
-                self.assert_screen("public_key_hash_2", snap_path=snap_path)
+                for i in range(1, account.nanos_screens + 1):
+                    self.assert_screen("public_key_hash_" + str(i), snap_path=snap_path)
+                    self.backend.right_click()
+                    self.backend.wait_for_screen_change()
             else:
                 self.assert_screen("public_key_hash", snap_path=snap_path)
+                self.backend.right_click()
+                self.backend.wait_for_screen_change()
+            self.assert_screen("high_watermark", snap_path=snap_path)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
-            self.assert_screen("high_watermark", snap_path=snap_path)
-            self.navigator.navigate(
-                [NavInsID.LEFT_CLICK] * 4,
-                screen_change_before_first_instruction=False
-            )
+            self.assert_screen("exit", snap_path=snap_path)
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("home_screen", snap_path=snap_path)
         else:
+            self.assert_screen("home_screen", snap_path=snap_path)
             self.home.settings()
             self.backend.wait_for_screen_change()
             self.assert_screen("app_context", snap_path=snap_path)
+            self.settings.next()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("description", snap_path=snap_path)
             self.settings.multi_page_exit()
             self.backend.wait_for_screen_change()
+            self.assert_screen("home_screen", snap_path=snap_path)
 
     def accept_key_navigate(self, **kwargs):
         """Navigate until accept key"""
