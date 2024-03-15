@@ -24,8 +24,8 @@ import hmac
 import pytest
 from pytezos import pytezos
 
+from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
-from ragger.navigator import NavInsID
 from utils.client import TezosClient, Version, Hwm, StatusCode
 from utils.account import Account
 from utils.helper import get_current_commit
@@ -51,22 +51,131 @@ from common import (
     ZEBRA_ACCOUNTS,
 )
 
-
-def test_review_home(firmware: Firmware, tezos_navigator: TezosNavigator) -> None:
+@pytest.mark.parametrize("account", [None, *ACCOUNTS])
+def test_review_home(account: Optional[Account],
+                     backend: BackendInterface,
+                     firmware: Firmware,
+                     tezos_navigator: TezosNavigator) -> None:
     """Test the display of the home/info pages."""
+    snap_path = \
+        Path("") if account is None else \
+        Path(f"{account}")
 
-    instructions = [NavInsID.RIGHT_CLICK] * 5 if firmware.is_nano else \
-        [
-            NavInsID.USE_CASE_HOME_SETTINGS,
-            NavInsID.USE_CASE_SETTINGS_NEXT
-        ]
+    if account is not None:
+        main_chain_id = "NetXH12AexHqTQa" # Chain = 1
+        main_hwm = Hwm(1)
+        test_hwm = Hwm(2)
 
-    tezos_navigator.navigate_and_compare(
-        snap_path=Path(""),
-        instructions=instructions,
-        screen_change_before_first_instruction=False
-    )
+        tezos_navigator.setup_app_context(
+            account,
+            main_chain_id,
+            main_hwm,
+            test_hwm
+        )
 
+    def screen(name):
+        tezos_navigator.assert_screen(name, snap_path=snap_path)
+    def right():
+        backend.right_click()
+        backend.wait_for_screen_change()
+    def left():
+        backend.left_click()
+        backend.wait_for_screen_change()
+    def both():
+        backend.both_click()
+        backend.wait_for_screen_change()
+
+    if firmware.is_nano:
+        screen("home_screen")
+        right()
+        screen("version")
+        right()
+        screen("chain_id")
+        right()
+        if account is not None and firmware.device == "nanos":
+            for i in range(1, account.nanos_screens + 1):
+                screen("public_key_hash_" + str(i))
+                right()
+        else:
+            screen("public_key_hash")
+            right()
+        screen("high_watermark")
+        right()
+        screen("exit")
+        right()
+        screen("home_screen")
+        both()
+        screen("black_screen")
+        both()
+        screen("home_screen")
+        both()
+        screen("black_screen")
+        left()
+        screen("home_screen")
+        both()
+        screen("black_screen")
+        right()
+        screen("home_screen")
+        left()
+        screen("exit")
+        left()
+        screen("high_watermark")
+        left()
+        if account is not None and tezos_navigator.firmware.device == "nanos":
+            screen("public_key_hash_1")
+            right()
+            screen("public_key_hash_2")
+            left()
+            screen("public_key_hash_1")
+        else:
+            screen("public_key_hash")
+        left()
+        screen("chain_id")
+        left()
+        screen("version")
+        right()
+        screen("chain_id")
+        left()
+        screen("version")
+        left()
+        screen("home_screen")
+        both()
+        screen("black_screen")
+        left()
+        screen("home_screen")
+        left()
+        screen("exit")
+        left()
+        screen("high_watermark")
+    else:
+        screen("home_screen")
+        tezos_navigator.home.settings()
+        backend.wait_for_screen_change()
+        screen("app_context")
+        tezos_navigator.settings.next()
+        backend.wait_for_screen_change()
+        screen("description")
+        tezos_navigator.settings.previous()
+        backend.wait_for_screen_change()
+        screen("app_context")
+        tezos_navigator.settings.multi_page_exit()
+        backend.wait_for_screen_change()
+        screen("home_screen")
+        tezos_navigator.home.settings()
+        backend.wait_for_screen_change()
+        screen("app_context")
+        tezos_navigator.settings.next()
+        backend.wait_for_screen_change()
+        screen("description")
+        tezos_navigator.settings.previous()
+        backend.wait_for_screen_change()
+        screen("app_context")
+        tezos_navigator.settings.next()
+        backend.wait_for_screen_change()
+        screen("description")
+        tezos_navigator.settings.multi_page_exit()
+        backend.wait_for_screen_change()
+        screen("home_screen")
 
 def test_version(client: TezosClient) -> None:
     """Test the VERSION instruction."""
