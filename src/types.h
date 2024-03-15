@@ -65,15 +65,6 @@ typedef enum {
     BAKING_TYPE_PREATTESTATION
 } baking_type_t;
 
-/**
- * @brief Generic APDU instruction handler
- *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-typedef size_t (*apdu_handler)(uint8_t instruction, volatile uint32_t *flags);
-
 typedef uint32_t level_t;
 typedef uint32_t round_t;
 
@@ -280,14 +271,6 @@ struct parsed_operation_group {
     struct parsed_contract signing;     ///< contract form of signer
     struct parsed_operation operation;  ///< operation parsed
 };
-
-#define INS_MAX 0x0Fu
-
-#define APDU_INS(x)                                                        \
-    ({                                                                     \
-        _Static_assert(x <= INS_MAX, "APDU instruction is out of bounds"); \
-        x;                                                                 \
-    })
 
 #define CUSTOM_MAX(a, b)                     \
     ({                                       \

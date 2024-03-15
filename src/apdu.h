@@ -120,36 +120,3 @@ static inline bool delay_reject(void) {
  * @return size_t: offset of the apdu response
  */
 size_t provide_pubkey(uint8_t* const io_buffer, cx_ecfp_public_key_t const* const pubkey);
-
-/**
- * @brief Handles unknown instructions
- *
- *        Raises an invalid instruction exception
- *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-size_t handle_apdu_error(uint8_t instruction, volatile uint32_t* flags);
-
-/**
- * @brief Handles VERSION instruction
- *
- *        Fills apdu response with the app version
- *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-size_t handle_apdu_version(uint8_t instruction, volatile uint32_t* flags);
-
-/**
- * @brief Handles GIT instruction
- *
- *        Fills apdu response with the app commit
- *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-size_t handle_apdu_git(uint8_t instruction, volatile uint32_t* flags);
