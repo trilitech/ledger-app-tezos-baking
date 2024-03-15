@@ -64,13 +64,12 @@
 #define INS_SIGN_WITH_HASH            0x0Fu
 
 /**
- * @brief Loops indefinitely while handling the incoming apdus
+ * @brief Dispatch APDU command received to the right handler
  *
- * @param handlers: list of apdu handler
- * @param handlers_size: updated offset of the apdu response
+ * @param flags: io flags
+ * @param size_t: offset of the apdu response
  */
-void main_loop(apdu_handler const* const handlers, size_t const handlers_size)
-    __attribute__((noreturn));
+size_t apdu_dispatcher(volatile uint32_t* flags);
 
 /**
  * @brief Tags as successful apdu response

@@ -56,5 +56,63 @@ __attribute__((noreturn)) void app_main(void) {
     global.handlers[APDU_INS(INS_QUERY_AUTH_KEY_WITH_CURVE)] =
         handle_apdu_query_auth_key_with_curve;
     global.handlers[APDU_INS(INS_HMAC)] = handle_apdu_hmac;
-    main_loop(global.handlers, NUM_ELEMENTS(global.handlers));
+
+    volatile size_t rx = io_exchange(CHANNEL_APDU, 0);
+    volatile uint32_t flags = 0;
+    while (true) {
+        BEGIN_TRY {
+            TRY {
+                PRINTF("New APDU received:\n%.*H\n", rx, G_io_apdu_buffer);
+                // Process APDU of size rx
+
+                if (!rx) {
+                    // no apdu received, well, reset the session, and reset the
+                    // bootloader configuration
+                    THROW(EXC_SECURITY);
+                }
+
+                // The amount of bytes we get in our APDU must match what the APDU declares
+                // its own content length is. All these values are unsigned, so this implies
+                // that if rx < OFFSET_CDATA it also throws.
+                if (rx != (G_io_apdu_buffer[OFFSET_LC] + OFFSET_CDATA)) {
+                    THROW(EXC_WRONG_LENGTH);
+                }
+
+                size_t const tx = apdu_dispatcher(&flags);
+                rx = io_exchange(CHANNEL_APDU | flags, tx);
+                flags = 0;
+            }
+            CATCH(ASYNC_EXCEPTION) {
+                rx = io_exchange(CHANNEL_APDU | IO_ASYNCH_REPLY, 0);
+            }
+            CATCH(EXCEPTION_IO_RESET) {
+                THROW(EXCEPTION_IO_RESET);
+            }
+            CATCH_OTHER(e) {
+                clear_apdu_globals();  // IMPORTANT: Application state must not persist through
+                                       // errors
+
+                uint16_t sw = e;
+                PRINTF("Error caught at top level, number: %x\n", sw);
+                switch (sw) {
+                    case 0x6000 ... 0x6FFF:
+                    case 0x9000 ... 0x9FFF:
+                        break;
+                    default:
+                        sw = 0x6800 | (e & 0x7FF);
+                        break;
+                }
+                PRINTF("Line number: %d", sw & 0x0FFF);
+                size_t tx = 0;
+                G_io_apdu_buffer[tx] = sw >> 8;
+                tx++;
+                G_io_apdu_buffer[tx] = sw;
+                tx++;
+                rx = io_exchange(CHANNEL_APDU, tx);
+            }
+            FINALLY {
+            }
+        }
+        END_TRY;
+    }
 }

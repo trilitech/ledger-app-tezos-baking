@@ -64,72 +64,14 @@ size_t handle_apdu_git(uint8_t __attribute__((unused)) instruction,
 
 #define CLA 0x80  /// The only APDU class that will be used
 
-__attribute__((noreturn)) void main_loop(apdu_handler const* const handlers,
-                                         size_t const handlers_size) {
-    volatile size_t rx = io_exchange(CHANNEL_APDU, 0);
-    volatile uint32_t flags = 0;
-    while (true) {
-        BEGIN_TRY {
-            TRY {
-                PRINTF("New APDU received:\n%.*H\n", rx, G_io_apdu_buffer);
-                // Process APDU of size rx
-
-                if (!rx) {
-                    // no apdu received, well, reset the session, and reset the
-                    // bootloader configuration
-                    THROW(EXC_SECURITY);
-                }
-
-                if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
-                    THROW(EXC_CLASS);
-                }
-
-                // The amount of bytes we get in our APDU must match what the APDU declares
-                // its own content length is. All these values are unsigned, so this implies
-                // that if rx < OFFSET_CDATA it also throws.
-                if (rx != (G_io_apdu_buffer[OFFSET_LC] + OFFSET_CDATA)) {
-                    THROW(EXC_WRONG_LENGTH);
-                }
-
-                uint8_t const instruction = G_io_apdu_buffer[OFFSET_INS];
-                apdu_handler const cb =
-                    (instruction >= handlers_size) ? handle_apdu_error : handlers[instruction];
-
-                size_t const tx = cb(instruction, &flags);
-                rx = io_exchange(CHANNEL_APDU | flags, tx);
-                flags = 0;
-            }
-            CATCH(ASYNC_EXCEPTION) {
-                rx = io_exchange(CHANNEL_APDU | IO_ASYNCH_REPLY, 0);
-            }
-            CATCH(EXCEPTION_IO_RESET) {
-                THROW(EXCEPTION_IO_RESET);
-            }
-            CATCH_OTHER(e) {
-                clear_apdu_globals();  // IMPORTANT: Application state must not persist through
-                                       // errors
-
-                uint16_t sw = e;
-                PRINTF("Error caught at top level, number: %x\n", sw);
-                switch (sw) {
-                    case 0x6000 ... 0x6FFF:
-                    case 0x9000 ... 0x9FFF:
-                        break;
-                    default:
-                        sw = 0x6800 | (e & 0x7FF);
-                        break;
-                }
-                PRINTF("Line number: %d", sw & 0x0FFF);
-                size_t tx = 0;
-                G_io_apdu_buffer[tx] = sw >> 8;
-                tx++;
-                G_io_apdu_buffer[tx] = sw;
-                tx++;
-                rx = io_exchange(CHANNEL_APDU, tx);
-            }
-            FINALLY {
-            }
-        }
-        END_TRY;
+size_t apdu_dispatcher(volatile uint32_t* flags) {
+    if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
+        THROW(EXC_CLASS);
     }
+
+    uint8_t const instruction = G_io_apdu_buffer[OFFSET_INS];
+    apdu_handler const cb =
+        (instruction >= (INS_MAX + 1u)) ? handle_apdu_error : global.handlers[instruction];
+
+    return cb(instruction, flags);
 }
