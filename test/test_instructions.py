@@ -121,15 +121,13 @@ def test_review_home(account: Optional[Account],
         left()
         screen("high_watermark")
         left()
-        if account is not None and tezos_navigator.firmware.device == "nanos":
-            screen("public_key_hash_1")
-            right()
-            screen("public_key_hash_2")
-            left()
-            screen("public_key_hash_1")
+        if account is not None and firmware.device == "nanos":
+            for i in reversed(range(1, account.nanos_screens + 1)):
+                screen("public_key_hash_" + str(i))
+                left()
         else:
             screen("public_key_hash")
-        left()
+            left()
         screen("chain_id")
         left()
         screen("version")
