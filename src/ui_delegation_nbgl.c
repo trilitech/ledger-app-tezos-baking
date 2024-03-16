@@ -41,6 +41,10 @@
 
 #define PARSE_ERROR() THROW(EXC_PARSE_ERROR)
 
+/**
+ * @brief This structure represents a context needed for delegation screens navigation
+ *
+ */
 typedef struct {
     ui_callback_t ok_cb;   /// accept callback
     ui_callback_t cxl_cb;  /// cancel callback

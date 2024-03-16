@@ -38,7 +38,7 @@
 void clear_apdu_globals(void);
 
 /**
- * @brief string_generation_callback for chains
+ * @brief Converts a chain id to string
  *
  * @param out: output buffer
  * @param out_size: output size
@@ -47,7 +47,9 @@ void clear_apdu_globals(void);
 void copy_chain(char *out, size_t out_size, chain_id_t *chain_id);
 
 /**
- * @brief string_generation_callback for keys
+ * @brief Converts a baking key to string
+ *
+ *        if the baking is empty, copies "No Key Authorized" in the output
  *
  * @param out: output buffer
  * @param out_size: output size
@@ -56,7 +58,7 @@ void copy_chain(char *out, size_t out_size, chain_id_t *chain_id);
 void copy_key(char *out, size_t out_size, bip32_path_with_curve_t *baking_key);
 
 /**
- * @brief string_generation_callback for high watermarks
+ * @brief Converts a high watermark to string
  *
  * @param out: output buffer
  * @param out_size: output size
@@ -127,52 +129,16 @@ typedef struct {
 } apdu_sign_state_t;
 
 /**
- * @brief This structure represents data used to compute what we need to display on the screen.
- *
- */
-struct screen_data {
-    char *title;                             ///< title of the screen
-    string_generation_callback callback_fn;  ///< callback to convert the data to string
-    void *data;                              ///< value to display on the screen
-};
-
-/**
- * @brief State of the dynamic display
- *
- *        Used to keep track on whether we are displaying screens inside the stack, or outside the
- *        stack (for example confirmation screens)
- *
- */
-enum e_state {
-    STATIC_SCREEN,
-    DYNAMIC_SCREEN,
-};
-
-/**
  * @brief This structure holds all structure needed
  *
  */
 typedef struct {
     /// dynamic display state
     struct {
-        struct screen_data screen_stack[MAX_SCREEN_STACK_SIZE];
-        enum e_state current_state;  ///< State of the dynamic display
-
-        /// Size of the screen stack
-        uint8_t screen_stack_size;
-
-        /// Current index in the screen_stack.
-        uint8_t formatter_index;
-
         /// Callback function if user accepted prompt.
         ui_callback_t ok_callback;
         /// Callback function if user rejected prompt.
         ui_callback_t cxl_callback;
-
-        /// Title to be displayed on the screen.
-        char screen_title[PROMPT_WIDTH + 1u];
-        /// Value to be displayed on the screen.
-        char screen_value[VALUE_WIDTH + 1u];
         /// Screensaver is on/off.
         bool is_blank_screen;
     } dynamic_display;

@@ -37,23 +37,41 @@
 
 #define G global.apdu.u.sign
 
-#define PARSE_ERROR() THROW(EXC_PARSE_ERROR)
+/**
+ * @brief This structure represents a context needed for delegation screens navigation
+ *
+ */
+typedef struct {
+    char address[PKH_STRING_SIZE];
+    char fee[MAX_INT_DIGITS + sizeof(TICKER_WITH_SPACE) + 1u];
+} DelegationContext_t;
 
-#define B2B_BLOCKBYTES 128
+/// Current delegation context
+static DelegationContext_t delegation_context;
 
-__attribute__((noreturn)) void prompt_delegation(ui_callback_t const ok_cb,
-                                                 ui_callback_t const cxl_cb) {
+UX_STEP_NOCB(ux_register_step, bnnn_paging, {"Register", "as delegate?"});
+UX_STEP_NOCB(ux_delegate_step, bnnn_paging, {"Address", delegation_context.address});
+UX_STEP_NOCB(ux_fee_step, bnnn_paging, {"Fee", delegation_context.fee});
+
+UX_CONFIRM_FLOW(ux_delegation_flow, &ux_register_step, &ux_delegate_step, &ux_fee_step);
+
+void prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     if (!G.maybe_ops.is_valid) {
         THROW(EXC_MEMORY_ERROR);
     }
 
-    init_screen_stack();
-    push_ui_callback("Register", copy_string, "as delegate?");
-    push_ui_callback("Address", bip32_path_with_curve_to_pkh_string, &global.path_with_curve);
-    push_ui_callback("Fee", microtez_to_string_indirect, &G.maybe_ops.v.total_fee);
+    memset(&delegation_context, 0, sizeof(delegation_context));
 
-    ux_confirm_screen(ok_cb, cxl_cb);
-    __builtin_unreachable();
+    bip32_path_with_curve_to_pkh_string(delegation_context.address,
+                                        sizeof(delegation_context.address),
+                                        &global.path_with_curve);
+
+    microtez_to_string_indirect(delegation_context.fee,
+                                sizeof(delegation_context.fee),
+                                &G.maybe_ops.v.total_fee);
+
+    ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
+    ux_flow_init(0, ux_delegation_flow, NULL);
 }
 
 #endif  // HAVE_BAGL

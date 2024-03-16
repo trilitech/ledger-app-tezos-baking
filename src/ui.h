@@ -29,25 +29,6 @@
 #include "keys.h"
 
 /**
- * @brief Initializes the formatter stack
- *
- *        Must be called once before calling `push_ui_callback()` for the first time
- *
- */
-void init_screen_stack(void);
-
-/**
- * @brief Pushes a new screen to the flow
- *
- *        Must call `init_screen_stack()` before calling this function for the first time
- *
- * @param title: title of the screen
- * @param cb: callback to generate the string version of the data
- * @param data: data to display on the screen
- */
-void push_ui_callback(const char *title, string_generation_callback cb, const void *data);
-
-/**
  * @brief Starts the idle flow
  *
  */
@@ -68,11 +49,30 @@ void exit_app(void);
 void update_baking_idle_screens(void);
 
 /**
- * @brief Prepare confirmation screens
+ * @brief Prepare confirmation screens callbacks
  *
  * @param ok_c: accept callback
  * @param cxl_c: cancel callback
  */
-void ux_confirm_screen(ui_callback_t ok_c, ui_callback_t cxl_c);
+void ux_prepare_confirm_callbacks(ui_callback_t ok_c, ui_callback_t cxl_c);
+
+/**
+ * @brief Confirmation flow
+ *
+ *        - Initial screen
+ *        - Values
+ *        - Reject screen
+ *        - Accept screen
+ *
+ */
+extern const ux_flow_step_t ux_eye_step;
+extern const ux_flow_step_t ux_prompt_flow_reject_step;
+extern const ux_flow_step_t ux_prompt_flow_accept_step;
+#define UX_CONFIRM_FLOW(flow_name, ...)  \
+    UX_FLOW(flow_name,                   \
+            &ux_eye_step,                \
+            __VA_ARGS__,                 \
+            &ux_prompt_flow_reject_step, \
+            &ux_prompt_flow_accept_step)
 
 #endif  // HAVE_BAGL
