@@ -1,4 +1,4 @@
-/* Tezos Ledger application - Public key APDU instruction handling
+/* Tezos Ledger application - Get public key handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
@@ -24,10 +24,17 @@
 #include "apdu.h"
 
 /**
- * @brief Handles AUTHORIZE_BAKING, GET_PUBLIC_KEY and PROMPT_PUBLIC_KEY instructions
+ * @brief Gets the public key
  *
- * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
+ * @param cdata: data containing the BIP32 path of the key
+ * @param derivation_type: derivation_type of the key
+ * @param authorize: whether to authorize the address or not
+ * @param prompt: whether to display address on screen or not
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_get_public_key(const command_t* cmd, volatile uint32_t* flags);
+size_t handle_get_public_key(buffer_t *cdata,
+                             derivation_type_t derivation_type,
+                             bool authorize,
+                             bool prompt,
+                             volatile uint32_t *flags);

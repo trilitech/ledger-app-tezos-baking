@@ -27,12 +27,12 @@
 #include <stdint.h>
 
 /**
- * @brief Handles RESET instruction
+ * @brief Handles HWM level
  *
  *        Asks user to reset
  *
- * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
+ * @param cdata: data containing the reset level
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_reset(const command_t* cmd, volatile uint32_t* flags);
+size_t handle_reset(buffer_t* cdata, volatile uint32_t* flags);

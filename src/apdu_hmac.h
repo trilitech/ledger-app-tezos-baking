@@ -24,11 +24,12 @@
 #include "apdu.h"
 
 /**
- * @brief Handles HMAC instruction
+ * @brief Signs with the HMAC protocol a message
  *
- *        Fills apdu response with the hmac
+ *        The hmac-key is a fixed signed with a key
  *
- * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
+ * @param cdata: data containing the message and the BIP32 path of the key
+ * @param derivation_type: derivation_type of the key
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_hmac(const command_t *cmd);
+size_t handle_hmac(buffer_t *cdata, derivation_type_t derivation_type);

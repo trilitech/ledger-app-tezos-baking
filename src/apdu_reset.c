@@ -50,14 +50,14 @@ static bool ok(void) {
     return true;
 }
 
-size_t handle_apdu_reset(const command_t* cmd, volatile uint32_t* flags) {
-    check_null(cmd);
+size_t handle_reset(buffer_t* cdata, volatile uint32_t* flags) {
+    check_null(cdata);
 
-    if (cmd->lc != sizeof(level_t)) {
+    if (cdata->size != sizeof(level_t)) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
 
-    level_t const lvl = READ_UNALIGNED_BIG_ENDIAN(level_t, cmd->data);
+    level_t const lvl = READ_UNALIGNED_BIG_ENDIAN(level_t, cdata->ptr);
     if (!is_valid_level(lvl)) {
         THROW(EXC_PARSE_ERROR);
     }

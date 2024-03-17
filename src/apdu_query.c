@@ -53,7 +53,7 @@ static size_t send_word_big_endian(size_t tx, uint32_t word) {
     return tx + i;
 }
 
-size_t handle_apdu_all_hwm(void) {
+size_t handle_query_all_hwm(void) {
     size_t tx = 0;
     tx = send_word_big_endian(tx, N_data.hwm.main.highest_level);
     bool has_a_chain_migrated =
@@ -69,7 +69,7 @@ size_t handle_apdu_all_hwm(void) {
     return finalize_successful_send(tx);
 }
 
-size_t handle_apdu_main_hwm(void) {
+size_t handle_query_main_hwm(void) {
     size_t tx = 0;
     tx = send_word_big_endian(tx, N_data.hwm.main.highest_level);
     if (N_data.hwm.main.migrated_to_tenderbake) {
@@ -78,7 +78,7 @@ size_t handle_apdu_main_hwm(void) {
     return finalize_successful_send(tx);
 }
 
-size_t handle_apdu_query_auth_key(void) {
+size_t handle_query_auth_key(void) {
     uint8_t const length = N_data.baking_key.bip32_path.length;
 
     size_t tx = 0;
@@ -92,7 +92,7 @@ size_t handle_apdu_query_auth_key(void) {
     return finalize_successful_send(tx);
 }
 
-size_t handle_apdu_query_auth_key_with_curve(void) {
+size_t handle_query_auth_key_with_curve(void) {
     uint8_t const length = N_data.baking_key.bip32_path.length;
 
     size_t tx = 0;

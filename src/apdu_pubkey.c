@@ -60,19 +60,19 @@ static bool baking_ok(void) {
     return true;
 }
 
-size_t handle_apdu_get_public_key(const command_t *cmd, volatile uint32_t *flags) {
-    check_null(cmd);
+size_t handle_get_public_key(buffer_t *cdata,
+                             derivation_type_t derivation_type,
+                             bool authorize,
+                             bool prompt,
+                             volatile uint32_t *flags) {
+    check_null(cdata);
 
-    if (cmd->p1 != 0) {
-        THROW(EXC_WRONG_PARAM);
-    }
+    global.path_with_curve.derivation_type = derivation_type;
 
-    global.path_with_curve.derivation_type = parse_derivation_type(cmd->p2);
-
-    if ((cmd->lc == 0u) && (cmd->ins == INS_AUTHORIZE_BAKING)) {
+    if ((cdata->size == 0u) && authorize) {
         copy_bip32_path_with_curve(&global.path_with_curve, &N_data.baking_key);
     } else {
-        read_bip32_path(&global.path_with_curve.bip32_path, cmd->data, cmd->lc);
+        read_bip32_path(&global.path_with_curve.bip32_path, cdata->ptr, cdata->size);
         if (global.path_with_curve.bip32_path.length == 0u) {
             THROW(EXC_WRONG_LENGTH_FOR_INS);
         }
@@ -83,13 +83,13 @@ size_t handle_apdu_get_public_key(const command_t *cmd, volatile uint32_t *flags
                         global.path_with_curve.derivation_type,
                         &global.path_with_curve.bip32_path);
 
-    if (cmd->ins == INS_GET_PUBLIC_KEY) {
+    if (!prompt) {
         return provide_pubkey(G_io_apdu_buffer, &public_key);
     } else {
         // INS_PROMPT_PUBLIC_KEY || INS_AUTHORIZE_BAKING
         ui_callback_t cb;
         bool bake;
-        if (cmd->ins == INS_AUTHORIZE_BAKING) {
+        if (authorize) {
             cb = baking_ok;
             bake = true;
         } else {

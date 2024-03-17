@@ -28,22 +28,23 @@
 #include <stdint.h>
 
 /**
- * @brief Handles SET instruction
+ * @brief Handles baking information setup
  *
  *        Asks user to check the setup
  *
- * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
+ * @param cdata: data containing the chain_id, the two HWM and the
+ *               BIP32 path of the key
+ * @param derivation_type: derivation_type of the key
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_setup(const command_t *cmd, volatile uint32_t *flags);
+size_t handle_setup(buffer_t *cdata, derivation_type_t derivation_type, volatile uint32_t *flags);
 
 /**
- * @brief Handles DEAUTHORIZE instruction
+ * @brief Handles deauthorize
  *
  *        Deauthorizes the authorized key
  *
- * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_deauthorize(const command_t *cmd);
+size_t handle_deauthorize(void);

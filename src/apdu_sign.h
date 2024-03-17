@@ -1,4 +1,4 @@
-/* Tezos Ledger application - Sign APDU instruction handling
+/* Tezos Ledger application - Sign handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
@@ -24,10 +24,22 @@
 #include "apdu.h"
 
 /**
- * @brief Handles SIGN and SIGN_WITH_HASH instructions
+ * @brief Selects the key with which the message will be signed
  *
- * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
+ * @param cdata: data containing the BIP32 path of the key
+ * @param derivation_type: derivation_type of the key
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_sign(const command_t* cmd, volatile uint32_t* flags);
+size_t select_signing_key(buffer_t *cdata, derivation_type_t derivation_type);
+
+/**
+ * @brief Parse and signs a message
+ *
+ * @param cdata: data containing the message to sign
+ * @param last: whether the part of the message is the last one or not
+ * @param with_hash: whether the hash of the message is requested or not
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
+size_t handle_sign(buffer_t *cdata, bool last, bool with_hash, volatile uint32_t *flags);

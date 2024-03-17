@@ -231,14 +231,6 @@ static size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flag
 }
 
 /**
- * @brief Packet indexes
- *
- */
-#define P1_FIRST       0x00u  /// First packet
-#define P1_NEXT        0x01u  /// Other packet
-#define P1_LAST_MARKER 0x80u  /// Last packet
-
-/**
  * @brief Get the magic byte of a buffer
  *
  *        Throws an error if the magic byte does not correspond to an expected byte
@@ -262,32 +254,18 @@ static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const b
     PARSE_ERROR();
 }
 
-/**
- * @brief Selects the key with which the message will be signed
- *
- * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
- * @return size_t: offset of the apdu response
- */
-static size_t select_signing_key(const command_t *cmd) {
-    check_null(cmd);
+size_t select_signing_key(buffer_t *cdata, derivation_type_t derivation_type) {
+    check_null(cdata);
 
     clear_data();
-    read_bip32_path(&global.path_with_curve.bip32_path, cmd->data, cmd->lc);
-    global.path_with_curve.derivation_type = parse_derivation_type(cmd->p2);
+    read_bip32_path(&global.path_with_curve.bip32_path, cdata->ptr, cdata->size);
+    global.path_with_curve.derivation_type = derivation_type;
     return finalize_successful_send(0);
 }
 
-/**
- * @brief Parse and signs a message
- *
- * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-static size_t handle_next_apdu_sign(const command_t *cmd, volatile uint32_t *flags) {
-    check_null(cmd);
+size_t handle_sign(buffer_t *cdata, bool last, bool with_hash, volatile uint32_t *flags) {
+    check_null(cdata);
 
-    bool last = (cmd->p1 & P1_LAST_MARKER) != 0u;
     if (global.path_with_curve.bip32_path.length == 0u) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
@@ -302,17 +280,17 @@ static size_t handle_next_apdu_sign(const command_t *cmd, volatile uint32_t *fla
         PARSE_ERROR();  // Only parse a single packet when baking
     }
 
-    G.magic_byte = get_magic_byte_or_throw(cmd->data, cmd->lc);
+    G.magic_byte = get_magic_byte_or_throw(cdata->ptr, cdata->size);
     if (G.magic_byte == MAGIC_BYTE_UNSAFE_OP) {
         // Parse the operation. It will be verified in `baking_sign_complete`.
         G.maybe_ops.is_valid = parse_operations(&G.maybe_ops.v,
-                                                cmd->data,
-                                                cmd->lc,
+                                                cdata->ptr,
+                                                cdata->size,
                                                 global.path_with_curve.derivation_type,
                                                 &global.path_with_curve.bip32_path);
     } else {
         // This should be a baking operation so parse it.
-        if (!parse_baking_data(&G.parsed_baking_data, cmd->data, cmd->lc)) {
+        if (!parse_baking_data(&G.parsed_baking_data, cdata->ptr, cdata->size)) {
             PARSE_ERROR();
         }
     }
@@ -323,12 +301,12 @@ static size_t handle_next_apdu_sign(const command_t *cmd, volatile uint32_t *fla
                              &G.message_data_length,
                              &G.hash_state);
 
-    if ((G.message_data_length + cmd->lc) > sizeof(G.message_data)) {
+    if ((G.message_data_length + cdata->size) > sizeof(G.message_data)) {
         PARSE_ERROR();
     }
 
-    memmove(G.message_data + G.message_data_length, cmd->data, cmd->lc);
-    G.message_data_length += cmd->lc;
+    memmove(G.message_data + G.message_data_length, cdata->ptr, cdata->size);
+    G.message_data_length += cdata->size;
 
     if (last) {
         // Hash contents of *this* message and then get the final hash value.
@@ -345,27 +323,9 @@ static size_t handle_next_apdu_sign(const command_t *cmd, volatile uint32_t *fla
 
         G.maybe_ops.is_valid = parse_operations_final(&G.parse_state, &G.maybe_ops.v);
 
-        return baking_sign_complete(cmd->ins == INS_SIGN_WITH_HASH, flags);
+        return baking_sign_complete(with_hash, flags);
     } else {
         return finalize_successful_send(0);
-    }
-}
-
-size_t handle_apdu_sign(const command_t *cmd, volatile uint32_t *flags) {
-    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
-        THROW(EXC_SECURITY);
-    }
-    if (cmd->lc > MAX_APDU_SIZE) {
-        THROW(EXC_WRONG_LENGTH_FOR_INS);
-    }
-
-    switch (cmd->p1 & ~P1_LAST_MARKER) {
-        case P1_FIRST:
-            return select_signing_key(cmd);
-        case P1_NEXT:
-            return handle_next_apdu_sign(cmd, flags);
-        default:
-            THROW(EXC_WRONG_PARAM);
     }
 }
 

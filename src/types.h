@@ -43,6 +43,7 @@
  *      code for the mapping.
  */
 typedef enum {
+    DERIVATION_TYPE_UNSET = 0,
     DERIVATION_TYPE_SECP256K1 = 1,
     DERIVATION_TYPE_SECP256R1 = 2,
     DERIVATION_TYPE_ED25519 = 3,

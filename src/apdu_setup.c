@@ -79,21 +79,17 @@ static bool ok(void) {
     return true;
 }
 
-size_t handle_apdu_setup(const command_t *cmd, volatile uint32_t *flags) {
-    check_null(cmd);
+size_t handle_setup(buffer_t *cdata, derivation_type_t derivation_type, volatile uint32_t *flags) {
+    check_null(cdata);
 
-    if (cmd->p1 != 0u) {
-        THROW(EXC_WRONG_PARAM);
-    }
-
-    if (cmd->lc < sizeof(struct setup_wire)) {
+    if (cdata->size < sizeof(struct setup_wire)) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
 
-    global.path_with_curve.derivation_type = parse_derivation_type(cmd->p2);
+    global.path_with_curve.derivation_type = derivation_type;
 
     {
-        struct setup_wire const *const buff_as_setup = (struct setup_wire const *) cmd->data;
+        struct setup_wire const *const buff_as_setup = (struct setup_wire const *) cdata->ptr;
 
         size_t consumed = 0;
         G.main_chain_id.v =
@@ -108,9 +104,9 @@ size_t handle_apdu_setup(const command_t *cmd, volatile uint32_t *flags) {
                                                   (uint8_t const *) &buff_as_setup->hwm.test);
         consumed += read_bip32_path(&global.path_with_curve.bip32_path,
                                     (uint8_t const *) &buff_as_setup->bip32_path,
-                                    cmd->lc - consumed);
+                                    cdata->size - consumed);
 
-        if (consumed != cmd->lc) {
+        if (consumed != cdata->size) {
             THROW(EXC_WRONG_LENGTH);
         }
     }
@@ -120,15 +116,7 @@ size_t handle_apdu_setup(const command_t *cmd, volatile uint32_t *flags) {
     return 0;
 }
 
-size_t handle_apdu_deauthorize(const command_t *cmd) {
-    check_null(cmd);
-
-    if (cmd->p1 != 0u) {
-        THROW(EXC_WRONG_PARAM);
-    }
-    if (cmd->lc != 0u) {
-        THROW(EXC_PARSE_ERROR);
-    }
+size_t handle_deauthorize(void) {
     UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });
 #ifdef HAVE_BAGL
     update_baking_idle_screens();

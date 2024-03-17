@@ -1,4 +1,4 @@
-/* Tezos Ledger application - Query APDU instruction handling
+/* Tezos Ledger application - Query handling
 
    Copyright 2024 TriliTech <contact@trili.tech>
    Copyright 2024 Functori <contact@functori.com>
@@ -26,37 +26,29 @@
 #include <stdint.h>
 
 /**
- * @brief Handles QUERY_AUTH instruction
- *
- *        Fills apdu response with the authorized key path
+ * @brief Get the authorized key BIP32 path
  *
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_query_auth_key(void);
+size_t handle_query_auth_key(void);
 
 /**
- * @brief Handles QUERY_AUTH_KEY_WITH_CURVE instruction
- *
- *        Fills apdu response with the authorized key path and its curve
+ * @brief Get the authorized key BIP32 path and its curve
  *
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_query_auth_key_with_curve(void);
+size_t handle_query_auth_key_with_curve(void);
 
 /**
- * @brief Handles QUERY_MAIN_HWM instruction
- *
- *        Fills apdu response with main HWM
+ * @brief Get the main HWM
  *
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_main_hwm(void);
+size_t handle_query_main_hwm(void);
 
 /**
- * @brief Handles QUERY_ALL_HWM instruction
- *
- *        Fills apdu response with main HWM, test HWM and main chain id
+ * @brief Get the main chain id, the main HWM and the test HWM
  *
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_all_hwm(void);
+size_t handle_query_all_hwm(void);

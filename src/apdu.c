@@ -50,26 +50,22 @@ size_t provide_pubkey(uint8_t* const io_buffer, cx_ecfp_public_key_t const* cons
 }
 
 /**
- * @brief Handles VERSION instruction
- *
- *        Fills apdu response with the app version
+ * @brief Gets the version
  *
  * @return size_t: offset of the apdu response
  */
-static size_t handle_apdu_version(void) {
+static size_t handle_version(void) {
     memcpy(G_io_apdu_buffer, &version, sizeof(version_t));
     size_t tx = sizeof(version_t);
     return finalize_successful_send(tx);
 }
 
 /**
- * @brief Handles GIT instruction
- *
- *        Fills apdu response with the app commit
+ * @brief Gets the git commit
  *
  * @return size_t: offset of the apdu response
  */
-static size_t handle_apdu_git(void) {
+static size_t handle_git(void) {
     static const char commit[] = COMMIT;
     memcpy(G_io_apdu_buffer, commit, sizeof(commit));
     size_t tx = sizeof(commit);
@@ -78,53 +74,196 @@ static size_t handle_apdu_git(void) {
 
 #define CLA 0x80  /// The only APDU class that will be used
 
+/// Packet indexes
+#define P1_FIRST       0x00u  /// First packet
+#define P1_NEXT        0x01u  /// Other packet
+#define P1_LAST_MARKER 0x80u  /// Last packet
+
 size_t apdu_dispatcher(const command_t* cmd, volatile uint32_t* flags) {
     check_null(cmd);
+
+    if (cmd->lc > MAX_APDU_SIZE) {
+        THROW(EXC_WRONG_LENGTH_FOR_INS);
+    }
 
     if (cmd->cla != CLA) {
         THROW(EXC_CLASS);
     }
 
     int result = 0;
+    buffer_t buf = {0};
+    derivation_type_t derivation_type = DERIVATION_TYPE_UNSET;
+
+#define ASSERT_NO_P1                \
+    do {                            \
+        if (cmd->p1 != 0u) {        \
+            THROW(EXC_WRONG_PARAM); \
+        }                           \
+    } while (0)
+
+#define ASSERT_NO_P2                \
+    do {                            \
+        if (cmd->p2 != 0u) {        \
+            THROW(EXC_WRONG_PARAM); \
+        }                           \
+    } while (0)
+
+#define READ_P2_DERIVATION_TYPE                           \
+    do {                                                  \
+        derivation_type = parse_derivation_type(cmd->p2); \
+        if (derivation_type == DERIVATION_TYPE_UNSET) {   \
+            THROW(EXC_WRONG_PARAM);                       \
+        }                                                 \
+    } while (0)
+
+#define ASSERT_NO_DATA               \
+    do {                             \
+        if (cmd->data != NULL) {     \
+            THROW(EXC_WRONG_VALUES); \
+        }                            \
+    } while (0)
+
+#define READ_DATA            \
+    do {                     \
+        buf.ptr = cmd->data; \
+        buf.size = cmd->lc;  \
+        buf.offset = 0u;     \
+    } while (0)
+
     switch (cmd->ins) {
         case INS_VERSION:
-            result = handle_apdu_version();
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_version();
+
             break;
         case INS_GIT:
-            result = handle_apdu_git();
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_git();
+
             break;
         case INS_GET_PUBLIC_KEY:
         case INS_PROMPT_PUBLIC_KEY:
         case INS_AUTHORIZE_BAKING:
-            result = handle_apdu_get_public_key(cmd, flags);
+
+            ASSERT_NO_P1;
+            READ_P2_DERIVATION_TYPE;
+            READ_DATA;
+
+            bool authorize = cmd->ins == INS_AUTHORIZE_BAKING;
+            bool prompt = (cmd->ins == INS_AUTHORIZE_BAKING) || (cmd->ins == INS_PROMPT_PUBLIC_KEY);
+
+            result = handle_get_public_key(&buf, derivation_type, authorize, prompt, flags);
+
             break;
         case INS_DEAUTHORIZE:
-            result = handle_apdu_deauthorize(cmd);
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_deauthorize();
+
             break;
         case INS_SETUP:
-            result = handle_apdu_setup(cmd, flags);
+
+            ASSERT_NO_P1;
+            READ_P2_DERIVATION_TYPE;
+            READ_DATA;
+
+            result = handle_setup(&buf, derivation_type, flags);
+
             break;
         case INS_RESET:
-            result = handle_apdu_reset(cmd, flags);
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            READ_DATA;
+
+            result = handle_reset(&buf, flags);
+
             break;
         case INS_QUERY_AUTH_KEY:
-            result = handle_apdu_query_auth_key();
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_query_auth_key();
+
             break;
         case INS_QUERY_AUTH_KEY_WITH_CURVE:
-            result = handle_apdu_query_auth_key_with_curve();
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_query_auth_key_with_curve();
+
             break;
         case INS_QUERY_MAIN_HWM:
-            result = handle_apdu_main_hwm();
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_query_main_hwm();
+
             break;
         case INS_QUERY_ALL_HWM:
-            result = handle_apdu_all_hwm();
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_query_all_hwm();
+
             break;
         case INS_SIGN:
         case INS_SIGN_WITH_HASH:
-            result = handle_apdu_sign(cmd, flags);
+            if (os_global_pin_is_validated() != BOLOS_UX_OK) {
+                THROW(EXC_SECURITY);
+            }
+
+            switch (cmd->p1 & ~P1_LAST_MARKER) {
+                case P1_FIRST:
+
+                    READ_P2_DERIVATION_TYPE;
+                    READ_DATA;
+
+                    result = select_signing_key(&buf, derivation_type);
+
+                    break;
+                case P1_NEXT:
+
+                    READ_DATA;
+
+                    bool with_hash = cmd->ins == INS_SIGN_WITH_HASH;
+                    bool last = (cmd->p1 & P1_LAST_MARKER) != 0;
+
+                    result = handle_sign(&buf, last, with_hash, flags);
+
+                    break;
+                default:
+                    THROW(EXC_WRONG_PARAM);
+            }
+
             break;
         case INS_HMAC:
-            result = handle_apdu_hmac(cmd);
+
+            ASSERT_NO_P1;
+            READ_P2_DERIVATION_TYPE;
+            READ_DATA;
+
+            result = handle_hmac(&buf, derivation_type);
+
             break;
         default:
             THROW(EXC_INVALID_INS);

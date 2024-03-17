@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "buffer.h"
 #include "exception.h"
 #include "keys.h"
 #include "parser.h"
