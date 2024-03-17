@@ -262,39 +262,41 @@ static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const b
     PARSE_ERROR();
 }
 
-size_t handle_apdu_sign(const command_t *cmd, volatile uint32_t *flags) {
+/**
+ * @brief Selects the key with which the message will be signed
+ *
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
+ * @return size_t: offset of the apdu response
+ */
+static size_t select_signing_key(const command_t *cmd) {
     check_null(cmd);
 
-    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
-        THROW(EXC_SECURITY);
-    }
+    clear_data();
+    read_bip32_path(&global.path_with_curve.bip32_path, cmd->data, cmd->lc);
+    global.path_with_curve.derivation_type = parse_derivation_type(cmd->p2);
+    return finalize_successful_send(0);
+}
 
-    if (cmd->lc > MAX_APDU_SIZE) {
+/**
+ * @brief Parse and signs a message
+ *
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
+ * @param flags: io flags
+ * @return size_t: offset of the apdu response
+ */
+static size_t handle_next_apdu_sign(const command_t *cmd, volatile uint32_t *flags) {
+    check_null(cmd);
+
+    bool last = (cmd->p1 & P1_LAST_MARKER) != 0u;
+    if (global.path_with_curve.bip32_path.length == 0u) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
 
-    bool last = (cmd->p1 & P1_LAST_MARKER) != 0u;
-    switch (cmd->p1 & ~P1_LAST_MARKER) {
-        case P1_FIRST:
-            clear_data();
-            read_bip32_path(&global.path_with_curve.bip32_path, cmd->data, cmd->lc);
-            global.path_with_curve.derivation_type = parse_derivation_type(cmd->p2);
-            return finalize_successful_send(0);
-        case P1_NEXT:
-            if (global.path_with_curve.bip32_path.length == 0u) {
-                THROW(EXC_WRONG_LENGTH_FOR_INS);
-            }
-
-            // Guard against overflow
-            if (G.packet_index >= 0xFFu) {
-                PARSE_ERROR();
-            }
-            G.packet_index++;
-
-            break;
-        default:
-            THROW(EXC_WRONG_PARAM);
+    // Guard against overflow
+    if (G.packet_index >= 0xFFu) {
+        PARSE_ERROR();
     }
+    G.packet_index++;
 
     if (G.packet_index != 1u) {
         PARSE_ERROR();  // Only parse a single packet when baking
@@ -346,6 +348,24 @@ size_t handle_apdu_sign(const command_t *cmd, volatile uint32_t *flags) {
         return baking_sign_complete(cmd->ins == INS_SIGN_WITH_HASH, flags);
     } else {
         return finalize_successful_send(0);
+    }
+}
+
+size_t handle_apdu_sign(const command_t *cmd, volatile uint32_t *flags) {
+    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
+        THROW(EXC_SECURITY);
+    }
+    if (cmd->lc > MAX_APDU_SIZE) {
+        THROW(EXC_WRONG_LENGTH_FOR_INS);
+    }
+
+    switch (cmd->p1 & ~P1_LAST_MARKER) {
+        case P1_FIRST:
+            return select_signing_key(cmd);
+        case P1_NEXT:
+            return handle_next_apdu_sign(cmd, flags);
+        default:
+            THROW(EXC_WRONG_PARAM);
     }
 }
 
