@@ -27,6 +27,9 @@
 __attribute__((noreturn)) void app_main(void);
 
 __attribute__((noreturn)) void app_main(void) {
+    // Structured APDU command
+    command_t cmd;
+
     init_globals();
     ui_initial_screen();
 
@@ -44,14 +47,13 @@ __attribute__((noreturn)) void app_main(void) {
                     THROW(EXC_SECURITY);
                 }
 
-                // The amount of bytes we get in our APDU must match what the APDU declares
-                // its own content length is. All these values are unsigned, so this implies
-                // that if rx < OFFSET_CDATA it also throws.
-                if (rx != (G_io_apdu_buffer[OFFSET_LC] + OFFSET_CDATA)) {
+                // Parse APDU command from G_io_apdu_buffer
+                if (!apdu_parser(&cmd, G_io_apdu_buffer, rx)) {
+                    PRINTF("=> /!\\ BAD LENGTH: %.*H\n", rx, G_io_apdu_buffer);
                     THROW(EXC_WRONG_LENGTH);
                 }
 
-                size_t const tx = apdu_dispatcher(&flags);
+                size_t const tx = apdu_dispatcher(&cmd, &flags);
                 rx = io_exchange(CHANNEL_APDU | flags, tx);
                 flags = 0;
             }

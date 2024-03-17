@@ -32,19 +32,18 @@
  *
  *        Asks user to check the setup
  *
- * @param instruction: apdu instruction
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_setup(uint8_t instruction, volatile uint32_t* flags);
+size_t handle_apdu_setup(const command_t *cmd, volatile uint32_t *flags);
 
 /**
  * @brief Handles DEAUTHORIZE instruction
  *
  *        Deauthorizes the authorized key
  *
- * @param instruction: apdu instruction
- * @param flags: io flags
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_deauthorize(uint8_t instruction, volatile uint32_t* flags);
+size_t handle_apdu_deauthorize(const command_t *cmd);

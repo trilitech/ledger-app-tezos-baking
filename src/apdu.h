@@ -23,6 +23,7 @@
 
 #include "exception.h"
 #include "keys.h"
+#include "parser.h"
 #include "types.h"
 #include "ui.h"
 
@@ -30,17 +31,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-
-/**
- * @brief Offset for the different items in an APDU
- *
- */
-#define OFFSET_CLA   0  /// APDU class
-#define OFFSET_INS   1  /// instruction code
-#define OFFSET_P1    2  /// packet index
-#define OFFSET_CURVE 3  /// key curve: derivation_type_t
-#define OFFSET_LC    4  /// length of payload
-#define OFFSET_CDATA 5  /// payload
 
 /**
  * @brief Codes of handled instructions
@@ -66,10 +56,11 @@
 /**
  * @brief Dispatch APDU command received to the right handler
  *
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
  * @param flags: io flags
  * @param size_t: offset of the apdu response
  */
-size_t apdu_dispatcher(volatile uint32_t* flags);
+size_t apdu_dispatcher(const command_t* cmd, volatile uint32_t* flags);
 
 /**
  * @brief Tags as successful apdu response

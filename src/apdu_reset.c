@@ -50,13 +50,14 @@ static bool ok(void) {
     return true;
 }
 
-size_t handle_apdu_reset(__attribute__((unused)) uint8_t instruction, volatile uint32_t* flags) {
-    uint8_t* dataBuffer = G_io_apdu_buffer + OFFSET_CDATA;
-    uint32_t dataLength = G_io_apdu_buffer[OFFSET_LC];
-    if (dataLength != sizeof(level_t)) {
+size_t handle_apdu_reset(const command_t* cmd, volatile uint32_t* flags) {
+    check_null(cmd);
+
+    if (cmd->lc != sizeof(level_t)) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
-    level_t const lvl = READ_UNALIGNED_BIG_ENDIAN(level_t, dataBuffer);
+
+    level_t const lvl = READ_UNALIGNED_BIG_ENDIAN(level_t, cmd->data);
     if (!is_valid_level(lvl)) {
         THROW(EXC_PARSE_ERROR);
     }

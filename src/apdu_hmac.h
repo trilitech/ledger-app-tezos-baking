@@ -28,8 +28,7 @@
  *
  *        Fills apdu response with the hmac
  *
- * @param instruction: apdu instruction
- * @param flags: io flags
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_hmac(uint8_t instruction, volatile uint32_t* flags);
+size_t handle_apdu_hmac(const command_t *cmd);

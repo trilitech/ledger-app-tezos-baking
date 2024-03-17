@@ -26,8 +26,8 @@
 /**
  * @brief Handles AUTHORIZE_BAKING, GET_PUBLIC_KEY and PROMPT_PUBLIC_KEY instructions
  *
- * @param instruction: apdu instruction
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_get_public_key(uint8_t instruction, volatile uint32_t* flags);
+size_t handle_apdu_get_public_key(const command_t* cmd, volatile uint32_t* flags);

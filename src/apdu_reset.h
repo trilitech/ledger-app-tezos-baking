@@ -21,6 +21,8 @@
 */
 #pragma once
 
+#include "apdu.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -29,8 +31,8 @@
  *
  *        Asks user to reset
  *
- * @param instruction: apdu instruction
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_reset(uint8_t instruction, volatile uint32_t* flags);
+size_t handle_apdu_reset(const command_t* cmd, volatile uint32_t* flags);

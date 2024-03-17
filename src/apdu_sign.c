@@ -267,31 +267,30 @@ static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const b
  *
  * @param enable_hashing: if data read is hashed before signed
  * @param enable_parsing: if data read is parsed before signed
- * @param instruction: apdu instruction
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
 static size_t handle_apdu(bool const enable_hashing,
                           bool const enable_parsing,
-                          uint8_t const instruction,
+                          const command_t *cmd,
                           volatile uint32_t *flags) {
+    check_null(cmd);
+
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         THROW(EXC_SECURITY);
     }
-    uint8_t *const buff = &G_io_apdu_buffer[OFFSET_CDATA];
-    uint8_t const p1 = G_io_apdu_buffer[OFFSET_P1];
-    uint8_t const buff_size = G_io_apdu_buffer[OFFSET_LC];
-    if (buff_size > MAX_APDU_SIZE) {
+
+    if (cmd->lc > MAX_APDU_SIZE) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
 
-    bool last = (p1 & P1_LAST_MARKER) != 0u;
-    switch (p1 & ~P1_LAST_MARKER) {
+    bool last = (cmd->p1 & P1_LAST_MARKER) != 0u;
+    switch (cmd->p1 & ~P1_LAST_MARKER) {
         case P1_FIRST:
             clear_data();
-            read_bip32_path(&global.path_with_curve.bip32_path, buff, buff_size);
-            global.path_with_curve.derivation_type =
-                parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
+            read_bip32_path(&global.path_with_curve.bip32_path, cmd->data, cmd->lc);
+            global.path_with_curve.derivation_type = parse_derivation_type(cmd->p2);
             return finalize_successful_send(0);
         case P1_NEXT:
             if (global.path_with_curve.bip32_path.length == 0u) {
@@ -314,17 +313,17 @@ static size_t handle_apdu(bool const enable_hashing,
             PARSE_ERROR();  // Only parse a single packet when baking
         }
 
-        G.magic_byte = get_magic_byte_or_throw(buff, buff_size);
+        G.magic_byte = get_magic_byte_or_throw(cmd->data, cmd->lc);
         if (G.magic_byte == MAGIC_BYTE_UNSAFE_OP) {
             // Parse the operation. It will be verified in `baking_sign_complete`.
             G.maybe_ops.is_valid = parse_operations(&G.maybe_ops.v,
-                                                    buff,
-                                                    buff_size,
+                                                    cmd->data,
+                                                    cmd->lc,
                                                     global.path_with_curve.derivation_type,
                                                     &global.path_with_curve.bip32_path);
         } else {
             // This should be a baking operation so parse it.
-            if (!parse_baking_data(&G.parsed_baking_data, buff, buff_size)) {
+            if (!parse_baking_data(&G.parsed_baking_data, cmd->data, cmd->lc)) {
                 PARSE_ERROR();
             }
         }
@@ -338,12 +337,12 @@ static size_t handle_apdu(bool const enable_hashing,
                                  &G.hash_state);
     }
 
-    if ((G.message_data_length + buff_size) > sizeof(G.message_data)) {
+    if ((G.message_data_length + cmd->lc) > sizeof(G.message_data)) {
         PARSE_ERROR();
     }
 
-    memmove(G.message_data + G.message_data_length, buff, buff_size);
-    G.message_data_length += buff_size;
+    memmove(G.message_data + G.message_data_length, cmd->data, cmd->lc);
+    G.message_data_length += cmd->lc;
 
     if (last) {
         if (enable_hashing) {
@@ -362,22 +361,26 @@ static size_t handle_apdu(bool const enable_hashing,
 
         G.maybe_ops.is_valid = parse_operations_final(&G.parse_state, &G.maybe_ops.v);
 
-        return baking_sign_complete(instruction == INS_SIGN_WITH_HASH, flags);
+        return baking_sign_complete(cmd->ins == INS_SIGN_WITH_HASH, flags);
     } else {
         return finalize_successful_send(0);
     }
 }
 
-size_t handle_apdu_sign(uint8_t instruction, volatile uint32_t *flags) {
-    bool const enable_hashing = instruction != INS_SIGN_UNSAFE;
+size_t handle_apdu_sign(const command_t *cmd, volatile uint32_t *flags) {
+    check_null(cmd);
+
+    bool const enable_hashing = cmd->ins != INS_SIGN_UNSAFE;
     bool const enable_parsing = enable_hashing;
-    return handle_apdu(enable_hashing, enable_parsing, instruction, flags);
+    return handle_apdu(enable_hashing, enable_parsing, cmd, flags);
 }
 
-size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t *flags) {
+size_t handle_apdu_sign_with_hash(const command_t *cmd, volatile uint32_t *flags) {
+    check_null(cmd);
+
     bool const enable_hashing = true;
     bool const enable_parsing = true;
-    return handle_apdu(enable_hashing, enable_parsing, instruction, flags);
+    return handle_apdu(enable_hashing, enable_parsing, cmd, flags);
 }
 
 /**

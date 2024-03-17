@@ -79,21 +79,21 @@ static bool ok(void) {
     return true;
 }
 
-size_t handle_apdu_setup(__attribute__((unused)) uint8_t instruction, volatile uint32_t *flags) {
-    if (G_io_apdu_buffer[OFFSET_P1] != 0) {
+size_t handle_apdu_setup(const command_t *cmd, volatile uint32_t *flags) {
+    check_null(cmd);
+
+    if (cmd->p1 != 0u) {
         THROW(EXC_WRONG_PARAM);
     }
 
-    uint32_t const buff_size = G_io_apdu_buffer[OFFSET_LC];
-    if (buff_size < sizeof(struct setup_wire)) {
+    if (cmd->lc < sizeof(struct setup_wire)) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
 
-    global.path_with_curve.derivation_type = parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
+    global.path_with_curve.derivation_type = parse_derivation_type(cmd->p2);
 
     {
-        struct setup_wire const *const buff_as_setup =
-            (struct setup_wire const *) &G_io_apdu_buffer[OFFSET_CDATA];
+        struct setup_wire const *const buff_as_setup = (struct setup_wire const *) cmd->data;
 
         size_t consumed = 0;
         G.main_chain_id.v =
@@ -108,9 +108,9 @@ size_t handle_apdu_setup(__attribute__((unused)) uint8_t instruction, volatile u
                                                   (uint8_t const *) &buff_as_setup->hwm.test);
         consumed += read_bip32_path(&global.path_with_curve.bip32_path,
                                     (uint8_t const *) &buff_as_setup->bip32_path,
-                                    buff_size - consumed);
+                                    cmd->lc - consumed);
 
-        if (consumed != buff_size) {
+        if (consumed != cmd->lc) {
             THROW(EXC_WRONG_LENGTH);
         }
     }
@@ -120,12 +120,13 @@ size_t handle_apdu_setup(__attribute__((unused)) uint8_t instruction, volatile u
     return 0;
 }
 
-size_t handle_apdu_deauthorize(__attribute__((unused)) uint8_t instruction,
-                               __attribute__((unused)) volatile uint32_t *flags) {
-    if (G_io_apdu_buffer[OFFSET_P1] != 0) {
+size_t handle_apdu_deauthorize(const command_t *cmd) {
+    check_null(cmd);
+
+    if (cmd->p1 != 0u) {
         THROW(EXC_WRONG_PARAM);
     }
-    if (G_io_apdu_buffer[OFFSET_LC] != 0) {
+    if (cmd->lc != 0u) {
         THROW(EXC_PARSE_ERROR);
     }
     UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });

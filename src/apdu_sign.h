@@ -26,17 +26,17 @@
 /**
  * @brief Handles SIGN instruction
  *
- * @param instruction: apdu instruction
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_sign(uint8_t instruction, volatile uint32_t* flags);
+size_t handle_apdu_sign(const command_t* cmd, volatile uint32_t* flags);
 
 /**
  * @brief Handles SIGN_WITH_HASH instruction
  *
- * @param instruction: apdu instruction
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
-size_t handle_apdu_sign_with_hash(uint8_t instruction, volatile uint32_t* flags);
+size_t handle_apdu_sign_with_hash(const command_t* cmd, volatile uint32_t* flags);

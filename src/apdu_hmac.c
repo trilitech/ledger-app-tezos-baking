@@ -97,28 +97,27 @@ static inline size_t hmac(uint8_t *const out,
                           out_size);
 }
 
-size_t handle_apdu_hmac(__attribute__((unused)) uint8_t instruction,
-                        __attribute__((unused)) volatile uint32_t *flags) {
-    if (G_io_apdu_buffer[OFFSET_P1] != 0) {
+size_t handle_apdu_hmac(const command_t *cmd) {
+    check_null(cmd);
+
+    if (cmd->p1 != 0) {
         THROW(EXC_WRONG_PARAM);
     }
 
-    uint8_t const *const buff = &G_io_apdu_buffer[OFFSET_CDATA];
-    uint8_t const buff_size = G_io_apdu_buffer[OFFSET_LC];
-    if (buff_size > MAX_APDU_SIZE) {
+    if (cmd->lc > MAX_APDU_SIZE) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
 
     memset(&G, 0, sizeof(G));
 
-    derivation_type_t derivation_type = parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
+    derivation_type_t derivation_type = parse_derivation_type(cmd->p2);
 
     bip32_path_t bip32_path = {0};
     size_t consumed = 0;
-    consumed += read_bip32_path(&bip32_path, buff, buff_size);
+    consumed += read_bip32_path(&bip32_path, cmd->data, cmd->lc);
 
-    uint8_t const *const data_to_hmac = &buff[consumed];
-    size_t const data_to_hmac_size = buff_size - consumed;
+    uint8_t const *const data_to_hmac = cmd->data + consumed;
+    size_t const data_to_hmac_size = cmd->lc - consumed;
 
     size_t const hmac_size = hmac(G.hmac,
                                   sizeof(G.hmac),
