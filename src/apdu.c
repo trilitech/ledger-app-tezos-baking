@@ -120,10 +120,8 @@ size_t apdu_dispatcher(const command_t* cmd, volatile uint32_t* flags) {
             result = handle_apdu_all_hwm();
             break;
         case INS_SIGN:
-            result = handle_apdu_sign(cmd, flags);
-            break;
         case INS_SIGN_WITH_HASH:
-            result = handle_apdu_sign_with_hash(cmd, flags);
+            result = handle_apdu_sign(cmd, flags);
             break;
         case INS_HMAC:
             result = handle_apdu_hmac(cmd);

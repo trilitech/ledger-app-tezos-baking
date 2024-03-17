@@ -41,7 +41,7 @@
 
 #define B2B_BLOCKBYTES 128u  /// blake2b hash size
 
-static size_t perform_signature(bool const on_hash, bool const send_hash);
+static size_t perform_signature(bool const send_hash);
 
 /**
  * @brief Initializes the blake2b state if it is not
@@ -138,7 +138,7 @@ static inline void clear_data(void) {
  * @return true
  */
 static bool sign_without_hash_ok(void) {
-    delayed_send(perform_signature(true, false));
+    delayed_send(perform_signature(false));
     return true;
 }
 
@@ -149,7 +149,7 @@ static bool sign_without_hash_ok(void) {
  * @return true
  */
 static bool sign_with_hash_ok(void) {
-    delayed_send(perform_signature(true, true));
+    delayed_send(perform_signature(true));
     return true;
 }
 
@@ -180,7 +180,7 @@ static size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flag
         case MAGIC_BYTE_PREATTESTATION:
         case MAGIC_BYTE_ATTESTATION:
             guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve);
-            result = perform_signature(true, send_hash);
+            result = perform_signature(send_hash);
 #ifdef HAVE_BAGL
             update_baking_idle_screens();
 #endif
@@ -214,7 +214,7 @@ static size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flag
                     if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
                         // ops->signing is generated from G.bip32_path and G.curve
                         COMPARE(&G.maybe_ops.v.operation.source, &G.maybe_ops.v.signing) == 0) {
-                        result = perform_signature(true, send_hash);
+                        result = perform_signature(send_hash);
                     } else {
                         THROW(EXC_SECURITY);
                     }
@@ -262,19 +262,7 @@ static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const b
     PARSE_ERROR();
 }
 
-/**
- * @brief Handles sign instructions
- *
- * @param enable_hashing: if data read is hashed before signed
- * @param enable_parsing: if data read is parsed before signed
- * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-static size_t handle_apdu(bool const enable_hashing,
-                          bool const enable_parsing,
-                          const command_t *cmd,
-                          volatile uint32_t *flags) {
+size_t handle_apdu_sign(const command_t *cmd, volatile uint32_t *flags) {
     check_null(cmd);
 
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
@@ -308,34 +296,30 @@ static size_t handle_apdu(bool const enable_hashing,
             THROW(EXC_WRONG_PARAM);
     }
 
-    if (enable_parsing) {
-        if (G.packet_index != 1u) {
-            PARSE_ERROR();  // Only parse a single packet when baking
-        }
+    if (G.packet_index != 1u) {
+        PARSE_ERROR();  // Only parse a single packet when baking
+    }
 
-        G.magic_byte = get_magic_byte_or_throw(cmd->data, cmd->lc);
-        if (G.magic_byte == MAGIC_BYTE_UNSAFE_OP) {
-            // Parse the operation. It will be verified in `baking_sign_complete`.
-            G.maybe_ops.is_valid = parse_operations(&G.maybe_ops.v,
-                                                    cmd->data,
-                                                    cmd->lc,
-                                                    global.path_with_curve.derivation_type,
-                                                    &global.path_with_curve.bip32_path);
-        } else {
-            // This should be a baking operation so parse it.
-            if (!parse_baking_data(&G.parsed_baking_data, cmd->data, cmd->lc)) {
-                PARSE_ERROR();
-            }
+    G.magic_byte = get_magic_byte_or_throw(cmd->data, cmd->lc);
+    if (G.magic_byte == MAGIC_BYTE_UNSAFE_OP) {
+        // Parse the operation. It will be verified in `baking_sign_complete`.
+        G.maybe_ops.is_valid = parse_operations(&G.maybe_ops.v,
+                                                cmd->data,
+                                                cmd->lc,
+                                                global.path_with_curve.derivation_type,
+                                                &global.path_with_curve.bip32_path);
+    } else {
+        // This should be a baking operation so parse it.
+        if (!parse_baking_data(&G.parsed_baking_data, cmd->data, cmd->lc)) {
+            PARSE_ERROR();
         }
     }
 
-    if (enable_hashing) {
-        // Hash contents of *previous* message (which may be empty).
-        blake2b_incremental_hash(G.message_data,
-                                 sizeof(G.message_data),
-                                 &G.message_data_length,
-                                 &G.hash_state);
-    }
+    // Hash contents of *previous* message (which may be empty).
+    blake2b_incremental_hash(G.message_data,
+                             sizeof(G.message_data),
+                             &G.message_data_length,
+                             &G.hash_state);
 
     if ((G.message_data_length + cmd->lc) > sizeof(G.message_data)) {
         PARSE_ERROR();
@@ -345,19 +329,17 @@ static size_t handle_apdu(bool const enable_hashing,
     G.message_data_length += cmd->lc;
 
     if (last) {
-        if (enable_hashing) {
-            // Hash contents of *this* message and then get the final hash value.
-            blake2b_incremental_hash(G.message_data,
-                                     sizeof(G.message_data),
-                                     &G.message_data_length,
-                                     &G.hash_state);
-            blake2b_finish_hash(G.final_hash,
-                                sizeof(G.final_hash),
-                                G.message_data,
-                                sizeof(G.message_data),
-                                &G.message_data_length,
-                                &G.hash_state);
-        }
+        // Hash contents of *this* message and then get the final hash value.
+        blake2b_incremental_hash(G.message_data,
+                                 sizeof(G.message_data),
+                                 &G.message_data_length,
+                                 &G.hash_state);
+        blake2b_finish_hash(G.final_hash,
+                            sizeof(G.final_hash),
+                            G.message_data,
+                            sizeof(G.message_data),
+                            &G.message_data_length,
+                            &G.hash_state);
 
         G.maybe_ops.is_valid = parse_operations_final(&G.parse_state, &G.maybe_ops.v);
 
@@ -367,22 +349,6 @@ static size_t handle_apdu(bool const enable_hashing,
     }
 }
 
-size_t handle_apdu_sign(const command_t *cmd, volatile uint32_t *flags) {
-    check_null(cmd);
-
-    bool const enable_hashing = cmd->ins != INS_SIGN_UNSAFE;
-    bool const enable_parsing = enable_hashing;
-    return handle_apdu(enable_hashing, enable_parsing, cmd, flags);
-}
-
-size_t handle_apdu_sign_with_hash(const command_t *cmd, volatile uint32_t *flags) {
-    check_null(cmd);
-
-    bool const enable_hashing = true;
-    bool const enable_parsing = true;
-    return handle_apdu(enable_hashing, enable_parsing, cmd, flags);
-}
-
 /**
  * @brief Perfoms the signature of the read message
  *
@@ -390,26 +356,20 @@ size_t handle_apdu_sign_with_hash(const command_t *cmd, volatile uint32_t *flags
  *
  *        Precedes the signature with the message hash if requested
  *
- * @param on_hash: if true, the signature is perfomed on the hash of
- *                 the data, otherwise the signature is performed on
- *                 the data its-self
  * @param send_hash: if the message hash is requested
  * @return size_t: offset of the apdu response
  */
-static size_t perform_signature(bool const on_hash, bool const send_hash) {
+static size_t perform_signature(bool const send_hash) {
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         THROW(EXC_SECURITY);
     }
 
     write_high_water_mark(&G.parsed_baking_data);
     size_t tx = 0;
-    if (send_hash && on_hash) {
+    if (send_hash) {
         memcpy(&G_io_apdu_buffer[tx], G.final_hash, sizeof(G.final_hash));
         tx += sizeof(G.final_hash);
     }
-
-    uint8_t const *const data = on_hash ? G.final_hash : G.message_data;
-    size_t const data_length = on_hash ? sizeof(G.final_hash) : G.message_data_length;
 
     key_pair_t key_pair = {0};
     size_t signature_size = 0;
@@ -427,8 +387,8 @@ static size_t perform_signature(bool const on_hash, bool const send_hash) {
                                   MAX_SIGNATURE_SIZE,
                                   global.path_with_curve.derivation_type,
                                   &key_pair,
-                                  data,
-                                  data_length);
+                                  G.final_hash,
+                                  sizeof(G.final_hash));
         }
         CATCH_OTHER(e) {
             error = e;

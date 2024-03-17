@@ -24,19 +24,10 @@
 #include "apdu.h"
 
 /**
- * @brief Handles SIGN instruction
+ * @brief Handles SIGN and SIGN_WITH_HASH instructions
  *
  * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
  * @param flags: io flags
  * @return size_t: offset of the apdu response
  */
 size_t handle_apdu_sign(const command_t* cmd, volatile uint32_t* flags);
-
-/**
- * @brief Handles SIGN_WITH_HASH instruction
- *
- * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-size_t handle_apdu_sign_with_hash(const command_t* cmd, volatile uint32_t* flags);
