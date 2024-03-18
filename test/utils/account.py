@@ -139,13 +139,15 @@ class Account:
     def __init__(self,
                  path: Union[BipPath, str, bytes],
                  sig_scheme: SigScheme,
-                 key: str):
+                 key: str,
+                 nanos_screens: int):
         self.path: BipPath = \
             BipPath.from_string(path) if isinstance(path, str) else \
             BipPath.from_bytes(path) if isinstance(path, bytes) else \
             path
         self.sig_scheme: SigScheme = sig_scheme
         self.key: pytezos.Key = pytezos.pytezos.using(key=key).key
+        self.nanos_screens: int = nanos_screens
 
     @property
     def public_key_hash(self) -> str:

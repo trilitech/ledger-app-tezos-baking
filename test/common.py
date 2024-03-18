@@ -25,31 +25,36 @@ DEFAULT_SEED = " ".join(['zebra'] * 24)
 TZ1_ACCOUNT = Account(
     "m/44'/1729'/0'/0'",
     SigScheme.ED25519,
-    "edsk2tUyhVvGj9B1S956ZzmaU4bC9J7t8xVBH52fkAoZL25MHEwacd"
+    "edsk2tUyhVvGj9B1S956ZzmaU4bC9J7t8xVBH52fkAoZL25MHEwacd",
+    2
 )
 
 TZ2_ACCOUNT = Account(
     "m/44'/1729'/0'/0'",
     SigScheme.SECP256K1,
-    "spsk2Pfx9chqXVbz2tW7ze4gGU4RfaiK3nSva77bp69zHhFho2zTze"
+    "spsk2Pfx9chqXVbz2tW7ze4gGU4RfaiK3nSva77bp69zHhFho2zTze",
+    3
 )
 
 TZ3_ACCOUNT = Account(
     "m/44'/1729'/0'/0'",
     SigScheme.SECP256R1,
-    "p2sk2zPCmKo6zTSjPbDHnLiHtPAqVRFrExN3oTvKGbu3C99Jyeyura"
+    "p2sk2zPCmKo6zTSjPbDHnLiHtPAqVRFrExN3oTvKGbu3C99Jyeyura",
+    3
 )
 
 BIP32_TZ1_ACCOUNT = Account(
     "m/44'/1729'/0'/0'",
     SigScheme.BIP32_ED25519,
-    "edsk2oM2vowLX6m5wtTnkBNK3PCPL2rTow1U4MQmxZiQtJQc65KP5i"
+    "edsk2oM2vowLX6m5wtTnkBNK3PCPL2rTow1U4MQmxZiQtJQc65KP5i",
+    2
 )
 
 LONG_TZ1_ACCOUNT = Account(
     "m/9'/12'/13'/8'/78'",
     SigScheme.ED25519,
-    "edsk3eZBgFAf1VtdibfxoCcihxXje9S3th7jdEgVA2kHG82EKYNKNm"
+    "edsk3eZBgFAf1VtdibfxoCcihxXje9S3th7jdEgVA2kHG82EKYNKNm",
+    3
 )
 
 DEFAULT_ACCOUNT = TZ1_ACCOUNT
