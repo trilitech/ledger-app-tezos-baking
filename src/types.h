@@ -100,7 +100,7 @@ typedef struct {
     cx_ecfp_private_key_t private_key;  ///< private key
 } key_pair_t;
 
-#define MAX_BIP32_LEN 10
+#define MAX_BIP32_LEN 10u
 
 /**
  * @brief This structure represents a bip32 path

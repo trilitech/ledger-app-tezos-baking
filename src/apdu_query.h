@@ -28,27 +28,27 @@
 /**
  * @brief Get the authorized key BIP32 path
  *
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t handle_query_auth_key(void);
+int handle_query_auth_key(void);
 
 /**
  * @brief Get the authorized key BIP32 path and its curve
  *
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t handle_query_auth_key_with_curve(void);
+int handle_query_auth_key_with_curve(void);
 
 /**
  * @brief Get the main HWM
  *
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t handle_query_main_hwm(void);
+int handle_query_main_hwm(void);
 
 /**
  * @brief Get the main chain id, the main HWM and the test HWM
  *
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t handle_query_all_hwm(void);
+int handle_query_all_hwm(void);

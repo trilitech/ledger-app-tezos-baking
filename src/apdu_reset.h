@@ -32,7 +32,6 @@
  *        Asks user to reset
  *
  * @param cdata: data containing the reset level
- * @param flags: io flags
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t handle_reset(buffer_t* cdata, volatile uint32_t* flags);
+int handle_reset(buffer_t* cdata);

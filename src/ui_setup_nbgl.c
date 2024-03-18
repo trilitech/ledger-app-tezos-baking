@@ -92,7 +92,7 @@ static void confirm_setup_page(void) {
                                   confirmation_callback);
 }
 
-void prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+int prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     setup_context.ok_cb = ok_cb;
     setup_context.cxl_cb = cxl_cb;
 
@@ -134,6 +134,7 @@ void prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
                             "Cancel",
                             confirm_setup_page,
                             cancel_callback);
+    return 0;
 }
 
 #endif  // HAVE_NBGL

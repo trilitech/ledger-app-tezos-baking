@@ -30,6 +30,6 @@
  *
  * @param cdata: data containing the message and the BIP32 path of the key
  * @param derivation_type: derivation_type of the key
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t handle_hmac(buffer_t *cdata, derivation_type_t derivation_type);
+int handle_hmac(buffer_t *cdata, derivation_type_t derivation_type);

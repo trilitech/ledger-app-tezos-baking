@@ -75,11 +75,11 @@ static bool ok(void) {
     generate_public_key(&pubkey,
                         global.path_with_curve.derivation_type,
                         &global.path_with_curve.bip32_path);
-    delayed_send(provide_pubkey(G_io_apdu_buffer, &pubkey));
+    provide_pubkey(&pubkey);
     return true;
 }
 
-size_t handle_setup(buffer_t *cdata, derivation_type_t derivation_type, volatile uint32_t *flags) {
+int handle_setup(buffer_t *cdata, derivation_type_t derivation_type) {
     check_null(cdata);
 
     if (cdata->size < sizeof(struct setup_wire)) {
@@ -111,16 +111,14 @@ size_t handle_setup(buffer_t *cdata, derivation_type_t derivation_type, volatile
         }
     }
 
-    prompt_setup(ok, delay_reject);
-    *flags = IO_ASYNCH_REPLY;
-    return 0;
+    return prompt_setup(ok, reject);
 }
 
-size_t handle_deauthorize(void) {
+int handle_deauthorize(void) {
     UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });
 #ifdef HAVE_BAGL
     update_baking_idle_screens();
 #endif  // HAVE_BAGL
 
-    return finalize_successful_send(0);
+    return io_send_sw(SW_OK);
 }

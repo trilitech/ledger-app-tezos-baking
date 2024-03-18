@@ -97,7 +97,7 @@ static inline size_t hmac(uint8_t *const out,
                           out_size);
 }
 
-size_t handle_hmac(buffer_t *cdata, derivation_type_t derivation_type) {
+int handle_hmac(buffer_t *cdata, derivation_type_t derivation_type) {
     check_null(cdata);
 
     memset(&G, 0, sizeof(G));
@@ -117,8 +117,9 @@ size_t handle_hmac(buffer_t *cdata, derivation_type_t derivation_type) {
                                   bip32_path,
                                   derivation_type);
 
-    size_t tx = 0;
-    memcpy(G_io_apdu_buffer, G.hmac, hmac_size);
-    tx += hmac_size;
-    return finalize_successful_send(tx);
+    uint8_t resp[CX_SHA256_SIZE] = {0};
+
+    memcpy(resp, G.hmac, hmac_size);
+
+    return io_send_response_pointer(resp, hmac_size, SW_OK);
 }

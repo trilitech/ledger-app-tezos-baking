@@ -29,80 +29,87 @@
 #include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
+#include "write.h"
 
 #include <string.h>
 
-/**
- * @brief Inserts big endian word in the apdu response
- *
- * @param tx: current offset of the apdu response
- * @param word: big endian word
- * @return size_t: updated offset of the apdu response
- */
-static size_t send_word_big_endian(size_t tx, uint32_t word) {
-    char word_bytes[sizeof(word)];
+int handle_query_all_hwm(void) {
+    uint8_t resp[5u * sizeof(uint32_t)] = {0};
+    size_t offset = 0;
 
-    memcpy(word_bytes, (char*) &word, sizeof(word));
+    write_u32_be(resp, offset, N_data.hwm.main.highest_level);
+    offset += sizeof(uint32_t);
 
-    // endian.h functions do not compile
-    uint32_t i = 0;
-    for (; i < sizeof(word); i++) {
-        G_io_apdu_buffer[i + tx] = word_bytes[sizeof(word) - i - 1u];
-    }
-
-    return tx + i;
-}
-
-size_t handle_query_all_hwm(void) {
-    size_t tx = 0;
-    tx = send_word_big_endian(tx, N_data.hwm.main.highest_level);
     bool has_a_chain_migrated =
         N_data.hwm.main.migrated_to_tenderbake || N_data.hwm.test.migrated_to_tenderbake;
+
     if (has_a_chain_migrated) {
-        tx = send_word_big_endian(tx, N_data.hwm.main.highest_round);
+        write_u32_be(resp, offset, N_data.hwm.main.highest_round);
+        offset += sizeof(uint32_t);
     }
-    tx = send_word_big_endian(tx, N_data.hwm.test.highest_level);
+
+    write_u32_be(resp, offset, N_data.hwm.test.highest_level);
+    offset += sizeof(uint32_t);
+
     if (has_a_chain_migrated) {
-        tx = send_word_big_endian(tx, N_data.hwm.test.highest_round);
+        write_u32_be(resp, offset, N_data.hwm.test.highest_round);
+        offset += sizeof(uint32_t);
     }
-    tx = send_word_big_endian(tx, N_data.main_chain_id.v);
-    return finalize_successful_send(tx);
+
+    write_u32_be(resp, offset, N_data.main_chain_id.v);
+    offset += sizeof(uint32_t);
+
+    return io_send_response_pointer(resp, offset, SW_OK);
 }
 
-size_t handle_query_main_hwm(void) {
-    size_t tx = 0;
-    tx = send_word_big_endian(tx, N_data.hwm.main.highest_level);
+int handle_query_main_hwm(void) {
+    uint8_t resp[2u * sizeof(uint32_t)] = {0};
+    size_t offset = 0;
+
+    write_u32_be(resp, offset, N_data.hwm.main.highest_level);
+    offset += sizeof(uint32_t);
+
     if (N_data.hwm.main.migrated_to_tenderbake) {
-        tx = send_word_big_endian(tx, N_data.hwm.main.highest_round);
+        write_u32_be(resp, offset, N_data.hwm.main.highest_round);
+        offset += sizeof(uint32_t);
     }
-    return finalize_successful_send(tx);
+
+    return io_send_response_pointer(resp, offset, SW_OK);
 }
 
-size_t handle_query_auth_key(void) {
+int handle_query_auth_key(void) {
+    uint8_t resp[1u + (MAX_BIP32_LEN * sizeof(uint32_t))] = {0};
+    size_t offset = 0;
+
     uint8_t const length = N_data.baking_key.bip32_path.length;
 
-    size_t tx = 0;
-    G_io_apdu_buffer[tx] = length;
-    tx++;
+    resp[offset] = length;
+    offset++;
 
     for (uint8_t i = 0; i < length; ++i) {
-        tx = send_word_big_endian(tx, N_data.baking_key.bip32_path.components[i]);
+        write_u32_be(resp, offset, N_data.baking_key.bip32_path.components[i]);
+        offset += sizeof(uint32_t);
     }
 
-    return finalize_successful_send(tx);
+    return io_send_response_pointer(resp, offset, SW_OK);
 }
 
-size_t handle_query_auth_key_with_curve(void) {
+int handle_query_auth_key_with_curve(void) {
+    uint8_t resp[2u + (MAX_BIP32_LEN * sizeof(uint32_t))] = {0};
+    size_t offset = 0;
+
     uint8_t const length = N_data.baking_key.bip32_path.length;
 
-    size_t tx = 0;
-    G_io_apdu_buffer[tx] = unparse_derivation_type(N_data.baking_key.derivation_type);
-    tx++;
-    G_io_apdu_buffer[tx] = length;
-    tx++;
+    resp[offset] = unparse_derivation_type(N_data.baking_key.derivation_type);
+    offset++;
+
+    resp[offset] = length;
+    offset++;
+
     for (uint8_t i = 0; i < length; ++i) {
-        tx = send_word_big_endian(tx, N_data.baking_key.bip32_path.components[i]);
+        write_u32_be(resp, offset, N_data.baking_key.bip32_path.components[i]);
+        offset += sizeof(uint32_t);
     }
 
-    return finalize_successful_send(tx);
+    return io_send_response_pointer(resp, offset, SW_OK);
 }

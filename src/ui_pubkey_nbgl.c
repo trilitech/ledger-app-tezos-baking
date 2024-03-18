@@ -88,7 +88,7 @@ static void verify_address_page(void) {
     nbgl_useCaseAddressConfirmation(address_context.buffer, confirmation_callback);
 }
 
-void prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
+int prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
     address_context.ok_cb = ok_cb;
     address_context.cxl_cb = cxl_cb;
 
@@ -103,5 +103,6 @@ void prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
         text = "Verify Tezos\naddress";
     }
     nbgl_useCaseReviewStart(&C_tezos, text, NULL, "Cancel", verify_address_page, cancel_callback);
+    return 0;
 }
 #endif  // HAVE_NBGL

@@ -41,7 +41,7 @@
 
 #define B2B_BLOCKBYTES 128u  /// blake2b hash size
 
-static size_t perform_signature(bool const send_hash);
+static int perform_signature(bool const send_hash);
 
 /**
  * @brief Initializes the blake2b state if it is not
@@ -138,7 +138,7 @@ static inline void clear_data(void) {
  * @return true
  */
 static bool sign_without_hash_ok(void) {
-    delayed_send(perform_signature(false));
+    perform_signature(false);
     return true;
 }
 
@@ -149,7 +149,7 @@ static bool sign_without_hash_ok(void) {
  * @return true
  */
 static bool sign_with_hash_ok(void) {
-    delayed_send(perform_signature(true));
+    perform_signature(true);
     return true;
 }
 
@@ -162,7 +162,7 @@ static bool sign_with_hash_ok(void) {
  */
 static bool sign_reject(void) {
     clear_data();
-    delay_reject();
+    reject();
     return true;
 }
 
@@ -170,11 +170,10 @@ static bool sign_reject(void) {
  * @brief Carries out final checks before signing
  *
  * @param send_hash: if the message hash is requested
- * @param flags: request flags
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-static size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flags) {
-    size_t result = 0;
+static int baking_sign_complete(bool const send_hash) {
+    int result = 0;
     switch (G.magic_byte) {
         case MAGIC_BYTE_BLOCK:
         case MAGIC_BYTE_PREATTESTATION:
@@ -201,9 +200,7 @@ static size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flag
                             0) {
                         ui_callback_t const ok_c =
                             send_hash ? sign_with_hash_ok : sign_without_hash_ok;
-                        prompt_delegation(ok_c, sign_reject);
-                        *flags = IO_ASYNCH_REPLY;
-                        result = 0;
+                        result = prompt_delegation(ok_c, sign_reject);
                     } else {
                         THROW(EXC_SECURITY);
                     }
@@ -254,16 +251,17 @@ static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const b
     PARSE_ERROR();
 }
 
-size_t select_signing_key(buffer_t *cdata, derivation_type_t derivation_type) {
+int select_signing_key(buffer_t *cdata, derivation_type_t derivation_type) {
     check_null(cdata);
 
     clear_data();
     read_bip32_path(&global.path_with_curve.bip32_path, cdata->ptr, cdata->size);
     global.path_with_curve.derivation_type = derivation_type;
-    return finalize_successful_send(0);
+
+    return io_send_sw(SW_OK);
 }
 
-size_t handle_sign(buffer_t *cdata, bool last, bool with_hash, volatile uint32_t *flags) {
+int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
     check_null(cdata);
 
     if (global.path_with_curve.bip32_path.length == 0u) {
@@ -323,9 +321,9 @@ size_t handle_sign(buffer_t *cdata, bool last, bool with_hash, volatile uint32_t
 
         G.maybe_ops.is_valid = parse_operations_final(&G.parse_state, &G.maybe_ops.v);
 
-        return baking_sign_complete(with_hash, flags);
+        return baking_sign_complete(with_hash);
     } else {
-        return finalize_successful_send(0);
+        return io_send_sw(SW_OK);
     }
 }
 
@@ -337,22 +335,24 @@ size_t handle_sign(buffer_t *cdata, bool last, bool with_hash, volatile uint32_t
  *        Precedes the signature with the message hash if requested
  *
  * @param send_hash: if the message hash is requested
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-static size_t perform_signature(bool const send_hash) {
+static int perform_signature(bool const send_hash) {
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         THROW(EXC_SECURITY);
     }
 
     write_high_water_mark(&G.parsed_baking_data);
-    size_t tx = 0;
+
+    uint8_t resp[SIGN_HASH_SIZE + MAX_SIGNATURE_SIZE] = {0};
+    size_t offset = 0;
+
     if (send_hash) {
-        memcpy(&G_io_apdu_buffer[tx], G.final_hash, sizeof(G.final_hash));
-        tx += sizeof(G.final_hash);
+        memcpy(resp + offset, G.final_hash, sizeof(G.final_hash));
+        offset += sizeof(G.final_hash);
     }
 
     key_pair_t key_pair = {0};
-    size_t signature_size = 0;
 
     int error = generate_key_pair(&key_pair,
                                   global.path_with_curve.derivation_type,
@@ -363,12 +363,12 @@ static size_t perform_signature(bool const send_hash) {
 
     BEGIN_TRY {
         TRY {
-            signature_size = sign(&G_io_apdu_buffer[tx],
-                                  MAX_SIGNATURE_SIZE,
-                                  global.path_with_curve.derivation_type,
-                                  &key_pair,
-                                  G.final_hash,
-                                  sizeof(G.final_hash));
+            offset += sign(resp + offset,
+                           MAX_SIGNATURE_SIZE,
+                           global.path_with_curve.derivation_type,
+                           &key_pair,
+                           G.final_hash,
+                           sizeof(G.final_hash));
         }
         CATCH_OTHER(e) {
             error = e;
@@ -383,8 +383,7 @@ static size_t perform_signature(bool const send_hash) {
         THROW(error);
     }
 
-    tx += signature_size;
-
     clear_data();
-    return finalize_successful_send(tx);
+
+    return io_send_response_pointer(resp, offset, SW_OK);
 }

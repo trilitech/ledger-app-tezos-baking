@@ -24,41 +24,47 @@
 #include "memory.h"
 #include "ui.h"
 
-__attribute__((noreturn)) void app_main(void);
+void app_main(void);
 
-__attribute__((noreturn)) void app_main(void) {
+void app_main(void) {
+    // Length of APDU command received in G_io_apdu_buffer
+    int input_len = 0;
     // Structured APDU command
     command_t cmd;
 
     init_globals();
     ui_initial_screen();
 
-    volatile size_t rx = io_exchange(CHANNEL_APDU, 0);
-    volatile uint32_t flags = 0;
-    while (true) {
+    for (;;) {
         BEGIN_TRY {
             TRY {
-                PRINTF("New APDU received:\n%.*H\n", rx, G_io_apdu_buffer);
-                // Process APDU of size rx
-
-                if (!rx) {
-                    // no apdu received, well, reset the session, and reset the
-                    // bootloader configuration
-                    THROW(EXC_SECURITY);
+                // Receive command bytes in G_io_apdu_buffer
+                input_len = io_recv_command();
+                if (input_len < 0) {
+                    PRINTF("=> io_recv_command failure\n");
+                    return;
                 }
 
                 // Parse APDU command from G_io_apdu_buffer
-                if (!apdu_parser(&cmd, G_io_apdu_buffer, rx)) {
-                    PRINTF("=> /!\\ BAD LENGTH: %.*H\n", rx, G_io_apdu_buffer);
+                if (!apdu_parser(&cmd, G_io_apdu_buffer, input_len)) {
+                    PRINTF("=> /!\\ BAD LENGTH: %.*H\n", input_len, G_io_apdu_buffer);
                     THROW(EXC_WRONG_LENGTH);
                 }
 
-                size_t const tx = apdu_dispatcher(&cmd, &flags);
-                rx = io_exchange(CHANNEL_APDU | flags, tx);
-                flags = 0;
-            }
-            CATCH(ASYNC_EXCEPTION) {
-                rx = io_exchange(CHANNEL_APDU | IO_ASYNCH_REPLY, 0);
+                PRINTF("=> CLA=%02X | INS=%02X | P1=%02X | P2=%02X | Lc=%02X | CData=%.*H\n",
+                       cmd.cla,
+                       cmd.ins,
+                       cmd.p1,
+                       cmd.p2,
+                       cmd.lc,
+                       cmd.lc,
+                       cmd.data);
+
+                // Dispatch structured APDU command to handler
+                if (apdu_dispatcher(&cmd) < 0) {
+                    PRINTF("=> apdu_dispatcher failure\n");
+                    return;
+                }
             }
             CATCH(EXCEPTION_IO_RESET) {
                 THROW(EXCEPTION_IO_RESET);
@@ -77,13 +83,7 @@ __attribute__((noreturn)) void app_main(void) {
                         sw = 0x6800 | (e & 0x7FF);
                         break;
                 }
-                PRINTF("Line number: %d", sw & 0x0FFF);
-                size_t tx = 0;
-                G_io_apdu_buffer[tx] = sw >> 8;
-                tx++;
-                G_io_apdu_buffer[tx] = sw;
-                tx++;
-                rx = io_exchange(CHANNEL_APDU, tx);
+                io_send_sw(sw);
             }
             FINALLY {
             }

@@ -35,16 +35,15 @@
  * @param cdata: data containing the chain_id, the two HWM and the
  *               BIP32 path of the key
  * @param derivation_type: derivation_type of the key
- * @param flags: io flags
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t handle_setup(buffer_t *cdata, derivation_type_t derivation_type, volatile uint32_t *flags);
+int handle_setup(buffer_t *cdata, derivation_type_t derivation_type);
 
 /**
  * @brief Handles deauthorize
  *
  *        Deauthorizes the authorized key
  *
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t handle_deauthorize(void);
+int handle_deauthorize(void);

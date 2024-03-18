@@ -46,11 +46,11 @@ static bool ok(void) {
     });
 
     // Send back the response, do not restart the event loop
-    delayed_send(finalize_successful_send(0));
+    io_send_sw(SW_OK);
     return true;
 }
 
-size_t handle_reset(buffer_t* cdata, volatile uint32_t* flags) {
+int handle_reset(buffer_t* cdata) {
     check_null(cdata);
 
     if (cdata->size != sizeof(level_t)) {
@@ -63,7 +63,5 @@ size_t handle_reset(buffer_t* cdata, volatile uint32_t* flags) {
     }
 
     G.reset_level = lvl;
-    prompt_reset(ok, delay_reject);
-    *flags = IO_ASYNCH_REPLY;
-    return 0;
+    return prompt_reset(ok, reject);
 }

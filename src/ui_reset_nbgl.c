@@ -93,7 +93,7 @@ static void confirm_reset_page(void) {
                                   confirmation_callback);
 }
 
-void prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+int prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     reset_context.ok_cb = ok_cb;
     reset_context.cxl_cb = cxl_cb;
 
@@ -110,6 +110,7 @@ void prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
                             "Cancel",
                             confirm_reset_page,
                             cancel_callback);
+    return 0;
 }
 
 #endif  // HAVE_NBGL

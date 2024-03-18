@@ -26,6 +26,7 @@
 #include "keys.h"
 #include "parser.h"
 #include "types.h"
+#include "io.h"
 #include "ui.h"
 
 #include "os.h"
@@ -58,47 +59,17 @@
  * @brief Dispatch APDU command received to the right handler
  *
  * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
- * @param flags: io flags
- * @param size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t apdu_dispatcher(const command_t* cmd, volatile uint32_t* flags);
+int apdu_dispatcher(const command_t* cmd);
 
 /**
- * @brief Tags as successful apdu response
- *
- * @param offset: current offset of the apdu response
- * @return size_t: updated offset of the apdu response
- */
-static inline size_t finalize_successful_send(size_t offset) {
-    size_t tx = offset;
-    G_io_apdu_buffer[tx] = 0x90;
-    tx++;
-    G_io_apdu_buffer[tx] = 0x00;
-    tx++;
-    return tx;
-}
-
-/**
- * @brief Sends the apdu response asynchronously
- *
- * @param tx: current offset of the apdu response
- */
-static inline void delayed_send(size_t tx) {
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-}
-
-/**
- * @brief Sends asynchronously a reject exception
+ * @brief Sends a reject exception
  *
  * @return true
  */
-static inline bool delay_reject(void) {
-    size_t tx = 0;
-    G_io_apdu_buffer[tx] = EXC_REJECT >> 8;
-    tx++;
-    G_io_apdu_buffer[tx] = EXC_REJECT & 0xFFu;
-    tx++;
-    delayed_send(tx);
+static inline bool reject(void) {
+    io_send_sw(EXC_REJECT);
     return true;
 }
 
@@ -107,8 +78,7 @@ static inline bool delay_reject(void) {
  *
  *        Expects validated pin
  *
- * @param io_buffer: apdu response buffer
  * @param pubkey: public key
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t provide_pubkey(uint8_t* const io_buffer, cx_ecfp_public_key_t const* const pubkey);
+int provide_pubkey(cx_ecfp_public_key_t const* const pubkey);

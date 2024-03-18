@@ -32,6 +32,7 @@
  *        https://www.eftlab.co.uk/index.php/site-map/knowledge-base/118-apdu-response-list
  *
  */
+#define SW_OK                         0x9000u
 #define EXC_WRONG_PARAM               0x6B00u
 #define EXC_WRONG_LENGTH              0x6C00u
 #define EXC_INVALID_INS               0x6D00u

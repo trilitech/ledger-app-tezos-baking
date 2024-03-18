@@ -30,11 +30,9 @@
  * @param derivation_type: derivation_type of the key
  * @param authorize: whether to authorize the address or not
  * @param prompt: whether to display address on screen or not
- * @param flags: io flags
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t handle_get_public_key(buffer_t *cdata,
-                             derivation_type_t derivation_type,
-                             bool authorize,
-                             bool prompt,
-                             volatile uint32_t *flags);
+int handle_get_public_key(buffer_t *cdata,
+                          derivation_type_t derivation_type,
+                          bool authorize,
+                          bool prompt);

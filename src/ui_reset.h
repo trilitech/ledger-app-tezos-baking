@@ -32,5 +32,6 @@
  *
  * @param ok_cb: accept callback
  * @param cxl_cb: reject callback
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-void prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);
+int prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb);

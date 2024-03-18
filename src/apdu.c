@@ -33,43 +33,43 @@
 #include <stdint.h>
 #include <string.h>
 
-size_t provide_pubkey(uint8_t* const io_buffer, cx_ecfp_public_key_t const* const pubkey) {
-    check_null(io_buffer);
+int provide_pubkey(cx_ecfp_public_key_t const* const pubkey) {
     check_null(pubkey);
-    size_t tx = 0;
+
+    // 100 = MAX(SIGNATURE_LEN)
+    uint8_t resp[1u + 100u] = {0};
+    size_t offset = 0;
+
     // Application could be PIN-locked, and pubkey->W_len would then be 0,
     // so throwing an error rather than returning an empty key
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         THROW(EXC_SECURITY);
     }
-    io_buffer[tx] = pubkey->W_len;
-    tx++;
-    memmove(io_buffer + tx, pubkey->W, pubkey->W_len);
-    tx += pubkey->W_len;
-    return finalize_successful_send(tx);
+
+    resp[offset] = pubkey->W_len;
+    offset++;
+    memmove(resp + offset, pubkey->W, pubkey->W_len);
+    offset += pubkey->W_len;
+
+    return io_send_response_pointer(resp, offset, SW_OK);
 }
 
 /**
  * @brief Gets the version
  *
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-static size_t handle_version(void) {
-    memcpy(G_io_apdu_buffer, &version, sizeof(version_t));
-    size_t tx = sizeof(version_t);
-    return finalize_successful_send(tx);
+static int handle_version(void) {
+    return io_send_response_pointer((const uint8_t*) &version, sizeof(version_t), SW_OK);
 }
 
 /**
  * @brief Gets the git commit
  *
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-static size_t handle_git(void) {
-    static const char commit[] = COMMIT;
-    memcpy(G_io_apdu_buffer, commit, sizeof(commit));
-    size_t tx = sizeof(commit);
-    return finalize_successful_send(tx);
+static int handle_git(void) {
+    return io_send_response_pointer((const uint8_t*) &COMMIT, sizeof(COMMIT), SW_OK);
 }
 
 #define CLA 0x80  /// The only APDU class that will be used
@@ -79,7 +79,7 @@ static size_t handle_git(void) {
 #define P1_NEXT        0x01u  /// Other packet
 #define P1_LAST_MARKER 0x80u  /// Last packet
 
-size_t apdu_dispatcher(const command_t* cmd, volatile uint32_t* flags) {
+int apdu_dispatcher(const command_t* cmd) {
     check_null(cmd);
 
     if (cmd->lc > MAX_APDU_SIZE) {
@@ -160,7 +160,7 @@ size_t apdu_dispatcher(const command_t* cmd, volatile uint32_t* flags) {
             bool authorize = cmd->ins == INS_AUTHORIZE_BAKING;
             bool prompt = (cmd->ins == INS_AUTHORIZE_BAKING) || (cmd->ins == INS_PROMPT_PUBLIC_KEY);
 
-            result = handle_get_public_key(&buf, derivation_type, authorize, prompt, flags);
+            result = handle_get_public_key(&buf, derivation_type, authorize, prompt);
 
             break;
         case INS_DEAUTHORIZE:
@@ -178,7 +178,7 @@ size_t apdu_dispatcher(const command_t* cmd, volatile uint32_t* flags) {
             READ_P2_DERIVATION_TYPE;
             READ_DATA;
 
-            result = handle_setup(&buf, derivation_type, flags);
+            result = handle_setup(&buf, derivation_type);
 
             break;
         case INS_RESET:
@@ -187,7 +187,7 @@ size_t apdu_dispatcher(const command_t* cmd, volatile uint32_t* flags) {
             ASSERT_NO_P2;
             READ_DATA;
 
-            result = handle_reset(&buf, flags);
+            result = handle_reset(&buf);
 
             break;
         case INS_QUERY_AUTH_KEY:
@@ -248,7 +248,7 @@ size_t apdu_dispatcher(const command_t* cmd, volatile uint32_t* flags) {
                     bool with_hash = cmd->ins == INS_SIGN_WITH_HASH;
                     bool last = (cmd->p1 & P1_LAST_MARKER) != 0;
 
-                    result = handle_sign(&buf, last, with_hash, flags);
+                    result = handle_sign(&buf, last, with_hash);
 
                     break;
                 default:

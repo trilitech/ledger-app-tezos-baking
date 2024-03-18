@@ -43,7 +43,7 @@ static bool pubkey_ok(void) {
     generate_public_key(&public_key,
                         global.path_with_curve.derivation_type,
                         &global.path_with_curve.bip32_path);
-    delayed_send(provide_pubkey(G_io_apdu_buffer, &public_key));
+    provide_pubkey(&public_key);
     return true;
 }
 
@@ -56,15 +56,13 @@ static bool pubkey_ok(void) {
  */
 static bool baking_ok(void) {
     authorize_baking(global.path_with_curve.derivation_type, &global.path_with_curve.bip32_path);
-    pubkey_ok();
-    return true;
+    return pubkey_ok();
 }
 
-size_t handle_get_public_key(buffer_t *cdata,
-                             derivation_type_t derivation_type,
-                             bool authorize,
-                             bool prompt,
-                             volatile uint32_t *flags) {
+int handle_get_public_key(buffer_t *cdata,
+                          derivation_type_t derivation_type,
+                          bool authorize,
+                          bool prompt) {
     check_null(cdata);
 
     global.path_with_curve.derivation_type = derivation_type;
@@ -84,7 +82,7 @@ size_t handle_get_public_key(buffer_t *cdata,
                         &global.path_with_curve.bip32_path);
 
     if (!prompt) {
-        return provide_pubkey(G_io_apdu_buffer, &public_key);
+        return provide_pubkey(&public_key);
     } else {
         // INS_PROMPT_PUBLIC_KEY || INS_AUTHORIZE_BAKING
         ui_callback_t cb;
@@ -97,8 +95,6 @@ size_t handle_get_public_key(buffer_t *cdata,
             cb = pubkey_ok;
             bake = false;
         }
-        prompt_pubkey(bake, cb, delay_reject);
-        *flags = IO_ASYNCH_REPLY;
-        return 0;
+        return prompt_pubkey(bake, cb, reject);
     }
 }
