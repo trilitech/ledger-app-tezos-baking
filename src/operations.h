@@ -133,16 +133,14 @@ struct parse_state {
  *
  *        Some checks are carried out during the parsing using a key using a key
  *
+ * @param buf: input operation
  * @param out: parsing output
- * @param data: input
- * @param length: input length
  * @param curve: curve of the key
  * @param bip32_path: bip32 path of the key
  * @return bool: returns true on success
  */
-bool parse_operations(struct parsed_operation_group *const out,
-                      uint8_t const *const data,
-                      size_t length,
+bool parse_operations(buffer_t *buf,
+                      struct parsed_operation_group *const out,
                       derivation_type_t curve,
                       bip32_path_t const *const bip32_path);
 

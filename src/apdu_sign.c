@@ -292,9 +292,8 @@ int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
             break;
         case MAGIC_BYTE_UNSAFE_OP:
             // Parse the operation. It will be verified in `baking_sign_complete`.
-            G.maybe_ops.is_valid = parse_operations(&G.maybe_ops.v,
-                                                    cdata->ptr,
-                                                    cdata->size,
+            G.maybe_ops.is_valid = parse_operations(cdata,
+                                                    &G.maybe_ops.v,
                                                     global.path_with_curve.derivation_type,
                                                     &global.path_with_curve.bip32_path);
             break;

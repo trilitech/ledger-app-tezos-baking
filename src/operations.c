@@ -432,26 +432,22 @@ static inline bool parse_byte(uint8_t byte,
  *
  *        Throws on parsing failure
  *
+ * @param buf: input operation
  * @param out: output
- * @param data: input
- * @param length: input length
  * @param derivation_type: curve of the key
  * @param bip32_path: bip32 path of the key
  */
-static void parse_operations_throws_parse_error(struct parsed_operation_group *const out,
-                                                uint8_t const *const data,
-                                                size_t length,
+static void parse_operations_throws_parse_error(buffer_t *buf,
+                                                struct parsed_operation_group *const out,
                                                 derivation_type_t derivation_type,
                                                 bip32_path_t const *const bip32_path) {
-    size_t ix = 0;
+    uint8_t byte;
 
     parse_operations_init(out, derivation_type, bip32_path, &G.parse_state);
 
-    while (ix < length) {
-        uint8_t byte = data[ix];
+    while (buffer_read_u8(buf, &byte) == true) {
         parse_byte(byte, &G.parse_state, out);
         PRINTF("Byte: %x - Next op_step state: %d\n", byte, G.parse_state.op_step);
-        ix++;
     }
 
     if (!parse_operations_final(&G.parse_state, out)) {
@@ -459,14 +455,13 @@ static void parse_operations_throws_parse_error(struct parsed_operation_group *c
     }
 }
 
-bool parse_operations(struct parsed_operation_group *const out,
-                      uint8_t const *const data,
-                      size_t length,
+bool parse_operations(buffer_t *buf,
+                      struct parsed_operation_group *const out,
                       derivation_type_t derivation_type,
                       bip32_path_t const *const bip32_path) {
     BEGIN_TRY {
         TRY {
-            parse_operations_throws_parse_error(out, data, length, derivation_type, bip32_path);
+            parse_operations_throws_parse_error(buf, out, derivation_type, bip32_path);
         }
         CATCH(EXC_PARSE_ERROR) {
             return false;
