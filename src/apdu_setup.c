@@ -45,7 +45,6 @@ struct setup_wire {
         uint32_t main;  ///< main highest level
         uint32_t test;  ///< test highest level
     } hwm;
-    struct bip32_path_wire bip32_path;  ///< authorized key path
 } __attribute__((packed));
 
 /**
@@ -102,11 +101,14 @@ int handle_setup(buffer_t *cdata, derivation_type_t derivation_type) {
         G.hwm.test = CONSUME_UNALIGNED_BIG_ENDIAN(consumed,
                                                   uint32_t,
                                                   (uint8_t const *) &buff_as_setup->hwm.test);
-        consumed += read_bip32_path(&global.path_with_curve.bip32_path,
-                                    (uint8_t const *) &buff_as_setup->bip32_path,
-                                    cdata->size - consumed);
 
-        if (consumed != cdata->size) {
+        buffer_seek_set(cdata, consumed);
+
+        if (!read_bip32_path(cdata, &global.path_with_curve.bip32_path)) {
+            THROW(EXC_WRONG_VALUES);
+        }
+
+        if (cdata->size != cdata->offset) {
             THROW(EXC_WRONG_LENGTH);
         }
     }

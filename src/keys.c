@@ -30,29 +30,9 @@
 #include <stdbool.h>
 #include <string.h>
 
-size_t read_bip32_path(bip32_path_t *const out, uint8_t const *const in, size_t const in_size) {
-    struct bip32_path_wire const *const buf_as_bip32 = (struct bip32_path_wire const *) in;
-
-    if (in_size < sizeof(buf_as_bip32->length)) {
-        THROW(EXC_WRONG_LENGTH_FOR_INS);
-    }
-
-    size_t ix = 0;
-    out->length = CONSUME_UNALIGNED_BIG_ENDIAN(ix, uint8_t, &buf_as_bip32->length);
-
-    if ((in_size - ix) < (out->length * sizeof(*buf_as_bip32->components))) {
-        THROW(EXC_WRONG_LENGTH_FOR_INS);
-    }
-    if ((out->length == 0u) || (out->length > NUM_ELEMENTS(out->components))) {
-        THROW(EXC_WRONG_VALUES);
-    }
-
-    for (size_t j = 0; j < out->length; j++) {
-        out->components[j] =
-            CONSUME_UNALIGNED_BIG_ENDIAN(ix, uint32_t, &buf_as_bip32->components[j]);
-    }
-
-    return ix;
+bool read_bip32_path(buffer_t *buf, bip32_path_t *const out) {
+    return (buffer_read_u8(buf, &out->length) &&
+            buffer_read_bip32_path(buf, out->components, (size_t) out->length));
 }
 
 /**

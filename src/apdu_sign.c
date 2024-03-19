@@ -251,11 +251,23 @@ static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const b
     PARSE_ERROR();
 }
 
+/**
+ * Cdata:
+ *   + Bip32 path: signing key path
+ */
 int select_signing_key(buffer_t *cdata, derivation_type_t derivation_type) {
     check_null(cdata);
 
     clear_data();
-    read_bip32_path(&global.path_with_curve.bip32_path, cdata->ptr, cdata->size);
+
+    if (!read_bip32_path(cdata, &global.path_with_curve.bip32_path)) {
+        THROW(EXC_WRONG_VALUES);
+    }
+
+    if (cdata->size != cdata->offset) {
+        THROW(EXC_WRONG_LENGTH);
+    }
+
     global.path_with_curve.derivation_type = derivation_type;
 
     return io_send_sw(SW_OK);

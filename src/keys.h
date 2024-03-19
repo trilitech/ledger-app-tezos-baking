@@ -25,31 +25,24 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "buffer.h"
 #include "exception.h"
 #include "memory.h"
 #include "os_cx.h"
 #include "types.h"
 
 /**
- * @brief Raw representation of bip32 path
- *
- */
-struct bip32_path_wire {
-    uint8_t length;          ///< length of the path
-    uint32_t components[0];  ///< pointer to the component array
-} __attribute__((packed));
-
-/**
  * @brief Reads a bip32_path
  *
- *        Can throw exception
+ *        Data:
+ *          + (1 byte) uint8: length (!= 0)
+ *          + (length bytes) list: (4 bytes) uint32: component
  *
+ * @param buf: input buffer
  * @param out: bip32_path output
- * @param in: input data
- * @param in_size: input size
- * @return size_t: number of byte read
+ * @return bool: whether the parsing was successful or not
  */
-size_t read_bip32_path(bip32_path_t *const out, uint8_t const *const in, size_t const in_size);
+bool read_bip32_path(buffer_t *buf, bip32_path_t *const out);
 
 /**
  * @brief Generates a private/public key pair from a bip32 path and a curve

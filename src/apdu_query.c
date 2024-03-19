@@ -24,6 +24,7 @@
 
 #include "apdu.h"
 #include "baking_auth.h"
+#include "bip32.h"
 #include "globals.h"
 #include "os_cx.h"
 #include "protocol.h"
@@ -78,7 +79,7 @@ int handle_query_main_hwm(void) {
 }
 
 int handle_query_auth_key(void) {
-    uint8_t resp[1u + (MAX_BIP32_LEN * sizeof(uint32_t))] = {0};
+    uint8_t resp[1u + (MAX_BIP32_PATH * sizeof(uint32_t))] = {0};
     size_t offset = 0;
 
     uint8_t const length = N_data.baking_key.bip32_path.length;
@@ -95,7 +96,7 @@ int handle_query_auth_key(void) {
 }
 
 int handle_query_auth_key_with_curve(void) {
-    uint8_t resp[2u + (MAX_BIP32_LEN * sizeof(uint32_t))] = {0};
+    uint8_t resp[2u + (MAX_BIP32_PATH * sizeof(uint32_t))] = {0};
     size_t offset = 0;
 
     uint8_t const length = N_data.baking_key.bip32_path.length;

@@ -97,23 +97,27 @@ static inline size_t hmac(uint8_t *const out,
                           out_size);
 }
 
+/**
+ * Cdata:
+ *   + Bip32 path: signing key path
+ *   + (max-size) uint8 *: message
+ */
 int handle_hmac(buffer_t *cdata, derivation_type_t derivation_type) {
     check_null(cdata);
 
     memset(&G, 0, sizeof(G));
 
     bip32_path_t bip32_path = {0};
-    size_t consumed = 0;
-    consumed += read_bip32_path(&bip32_path, cdata->ptr, cdata->size);
 
-    uint8_t const *const data_to_hmac = cdata->ptr + consumed;
-    size_t const data_to_hmac_size = cdata->size - consumed;
+    if (!read_bip32_path(cdata, &bip32_path)) {
+        THROW(EXC_WRONG_VALUES);
+    }
 
     size_t const hmac_size = hmac(G.hmac,
                                   sizeof(G.hmac),
                                   &G,
-                                  data_to_hmac,
-                                  data_to_hmac_size,
+                                  cdata->ptr + cdata->offset,
+                                  cdata->size - cdata->offset,
                                   bip32_path,
                                   derivation_type);
 
