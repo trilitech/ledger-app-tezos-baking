@@ -138,124 +138,113 @@ void guard_baking_authorized(parsed_baking_data_t const *const baking_info,
         THROW(EXC_WRONG_VALUES);
     }
 }
-
-/**
- * @brief Raw representation of block
- *
- *        All information of the block are not parsed here.
- *
- *        Except the fitness placed just after fitness size, the rest
- *        of the block content is not important for our checks
- *
- *        Fitness =
- *         - tag_size(4)               + tag(1)               +
- *         - level_size(4)             + level(4)             +
- *         - locked_round_size(4)      + locked_round(0|4)    +
- *         - predecessor_round_size(4) + predecessor_round(4) +
- *         - current_round_size(4)     + current_round(4)
- *
- */
-struct block_wire {
-    uint8_t magic_byte;          ///< magic bytes, should be 0x11
-    uint32_t chain_id;           ///< chain id of the block
-    uint32_t level;              ///< height of the block, from the genesis block
-    uint8_t proto;               ///< protocol number
-    uint8_t predecessor[32];     ///< hash of the preceding block
-    uint64_t timestamp;          ///< timestamp at which the block have been created
-    uint8_t validation_pass;     ///< number of validation passes
-    uint8_t operation_hash[32];  ///< hash of the operations
-    uint32_t fitness_size;       ///< size of the fitness
-    // ... beyond this we don't care
-} __attribute__((packed));
-
 #define MINIMUM_FITNESS_SIZE 33u  // When 'locked_round' == none
 #define MAXIMUM_FITNESS_SIZE 37u  // When 'locked_round' != none
 
 #define TENDERBAKE_PROTO_FITNESS_VERSION 2u
 
 /**
- * @brief Get the protocol version from fitness
+ * Data:
+ *   + (1 byte)   uint8:   magic byte, should be 0x11
+ *   + (4 bytes)  uint32:  chain id of the block
+ *   + (4 bytes)  uint32:  level of the block
+ *   + (1 byte)   uint8:   protocol number
+ *   + (32 bytes) uint8 *: hash of the preceding block
+ *   + (8 bytes)  uint64:  timestamp at which the block have been created
+ *   + (1 bytes)  uint8:   number of validation passes
+ *   + (32 bytes) uint8 *: hash of the operations
+ *   + Fitness:
+ *     + (4 bytes)     uint32: size of the fitness
+ *     + list:
+ *       + (4 bytes) uint32: component-size
+ *       + (component-size bytes): component
+ *   + (max-size) ignored
  *
- * @param fitness: fitness
- * @return uint8_t: protocol version result
+ * Tenderbake fitness components:
+ *   + (1 byte)    uint8:       tag (= 2)
+ *   + (4 bytes)   uint32:      level
+ *   + (0|4 bytes) None|uint32: locked_round
+ *   + (4 bytes)   uint32:      predecessor_round
+ *   + (4 bytes)   uint32:      current_round
  */
-static uint8_t get_proto_version(uint8_t const *const fitness) {
-    // Each field is preceded by its size (uint32_t).
-    // That's why we need to look at `sizeof(uint32_t)` bytes after
-    // the start of `fitness` to get to its first field.
-    // See:
-    // https://gitlab.com/tezos/tezos/-/blob/master/src/proto_alpha/lib_protocol/fitness_repr.ml#L193-201
-    // https://gitlab.com/tezos/tezos/-/blob/master/src/lib_base/fitness.ml#L76
-    return READ_UNALIGNED_BIG_ENDIAN(uint8_t, fitness + sizeof(uint32_t));
-}
+bool parse_block(buffer_t *buf, parsed_baking_data_t *const out) {
+    uint8_t tag;
+    uint32_t size;
 
-bool parse_block(parsed_baking_data_t *const out, uint8_t const *const data, size_t const length) {
-    if (length < sizeof(struct block_wire) + MINIMUM_FITNESS_SIZE) {
-        return false;
-    }
-    struct block_wire const *const block = (struct block_wire const *const) data;
-    uint8_t const *const fitness = data + sizeof(struct block_wire);
-    uint8_t proto_version = get_proto_version(fitness);
-    if (proto_version != TENDERBAKE_PROTO_FITNESS_VERSION) {
-        return false;
-    }
-    uint32_t fitness_size = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &block->fitness_size);
-    if ((fitness_size < MINIMUM_FITNESS_SIZE) || ((fitness + fitness_size) > (data + length)) ||
-        (fitness_size > MAXIMUM_FITNESS_SIZE)) {
+    if (!buffer_seek_cur(buf, 1) ||                     // ignore magic byte
+        !buffer_read_u32(buf, &out->chain_id.v, BE) ||  // chain id
+        !buffer_read_u32(buf, &out->level, BE) ||       // level
+        !buffer_seek_cur(buf, 1) ||                     // ignore protocol number
+        !buffer_seek_cur(buf, 32) ||                    // ignore predecessor hash
+        !buffer_seek_cur(buf, 8) ||                     // ignore timestamp
+        !buffer_seek_cur(buf, 1) ||                     // ignore validation_pass
+        !buffer_seek_cur(buf, 32)                       // ignore hash
+    ) {
         return false;
     }
 
-    out->chain_id.v = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &block->chain_id);
-    out->level = READ_UNALIGNED_BIG_ENDIAN(level_t, &block->level);
+    // Fitness
+    if (!buffer_read_u32(buf, &size, BE) ||                                    // fitness size
+        ((size != MINIMUM_FITNESS_SIZE) && (size != MAXIMUM_FITNESS_SIZE)) ||  // fitness size check
+        !buffer_read_u32(buf, &size, BE) || (size != 1u) ||                    // tag size
+        !buffer_read_u8(buf, &tag) || (tag != TENDERBAKE_PROTO_FITNESS_VERSION) ||  // tag
+        !buffer_read_u32(buf, &size, BE) || !buffer_seek_cur(buf, size) ||          // ignore level
+        !buffer_read_u32(buf, &size, BE) || !buffer_seek_cur(buf, size) ||  // ignore locked_round
+        !buffer_read_u32(buf, &size, BE) || !buffer_seek_cur(buf, size) ||  // ignore pred_round
+        !buffer_read_u32(buf, &size, BE) || (size != 4u) ||                 // current_round size
+        !buffer_read_u32(buf, &out->round, BE)                              // current_round
+    ) {
+        return false;
+    }
     out->type = BAKING_TYPE_BLOCK;
     out->is_tenderbake = true;
-    out->round = READ_UNALIGNED_BIG_ENDIAN(uint32_t, (fitness + fitness_size - 4u));
 
     return true;
 }
 
-/**
- * @brief Raw representation of a consensus operation
- *
- *        - Pre-attestation  , tag: 20
- *        - Attestation      , tag: 21
- *        - Attestation + DAL, tag: 23
- *
- */
-struct consensus_op_wire {
-    uint8_t magic_byte;              ///< magic bytes, should be 0x12, or 0x13
-    uint32_t chain_id;               ///< chain id of the block
-    uint8_t branch[32];              ///< block branch
-    uint8_t tag;                     ///< operation tag
-    uint16_t slot;                   ///< first slot of the baker
-    uint32_t level;                  ///< level of the related block
-    uint32_t round;                  ///< round of the related block
-    uint8_t block_payload_hash[32];  ///< hash of the related block
-} __attribute__((packed));
+#define TAG_PREATTESTATION  20
+#define TAG_ATTESTATION     21
+#define TAG_ATTESTATION_DAL 23
 
-bool parse_consensus_operation(parsed_baking_data_t *const out,
-                               uint8_t const *const data,
-                               size_t const length) {
-    if (length < sizeof(struct consensus_op_wire)) {
+/**
+ * Data:
+ *   + (1 byte)   uint8:   magic byte, should be 0x12 or 0x13
+ *   + (4 bytes)  uint32:  chain id of the block
+ *   + (32 bytes) uint8 *: block branch
+ *   + (1 byte)   uint8:   operation tag
+ *   + (2 bytes)  uint16:  first slot of the baker
+ *   + (4 bytes)  uint32:  level of the related block
+ *   + (4 bytes)  uint32:  round of the related block
+ *   + (32 bytes) uint8 *: hash of the related block
+ */
+bool parse_consensus_operation(buffer_t *buf, parsed_baking_data_t *const out) {
+    uint8_t tag;
+
+    if (!buffer_seek_cur(buf, 1) ||                      // ignore magic byte
+        !buffer_read_u32(buf, &out->chain_id.v, BE) ||   // chain id
+        !buffer_seek_cur(buf, 32u * sizeof(uint8_t)) ||  // ignore branch
+        !buffer_read_u8(buf, &tag) ||                    // tag
+        !buffer_seek_cur(buf, sizeof(uint16_t)) ||       // ignore slot
+        !buffer_read_u32(buf, &out->level, BE) ||        // level
+        !buffer_read_u32(buf, &out->round, BE) ||        // round
+        !buffer_seek_cur(buf, 32u * sizeof(uint8_t))     // ignore hash
+    ) {
         return false;
     }
-    struct consensus_op_wire const *const op = (struct consensus_op_wire const *const) data;
 
-    out->chain_id.v = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &op->chain_id);
-    out->is_tenderbake = true;
-    out->level = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &op->level);
-    out->round = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &op->round);
-
-    switch (op->tag) {
-        case 20:  // Preattestation
+    switch (tag) {
+        case TAG_PREATTESTATION:
             out->type = BAKING_TYPE_PREATTESTATION;
             break;
-        case 21:  // Attestation
-        case 23:  // Attestation + DAL
+        case TAG_ATTESTATION:
+        case TAG_ATTESTATION_DAL:
             out->type = BAKING_TYPE_ATTESTATION;
             break;
         default:
             return false;
     }
+
+    out->is_tenderbake = true;
+
     return true;
 }

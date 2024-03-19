@@ -281,12 +281,12 @@ int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
     switch (G.magic_byte) {
         case MAGIC_BYTE_PREATTESTATION:
         case MAGIC_BYTE_ATTESTATION:
-            if (!parse_consensus_operation(&G.parsed_baking_data, cdata->ptr, cdata->size)) {
+            if (!parse_consensus_operation(cdata, &G.parsed_baking_data)) {
                 PARSE_ERROR();
             }
             break;
         case MAGIC_BYTE_BLOCK:
-            if (!parse_block(&G.parsed_baking_data, cdata->ptr, cdata->size)) {
+            if (!parse_block(cdata, &G.parsed_baking_data)) {
                 PARSE_ERROR();
             }
             break;
