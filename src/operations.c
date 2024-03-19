@@ -289,11 +289,8 @@ static inline bool parse_byte(uint8_t byte,
             PARSE_ERROR();  // We already hit a hard end of message; fail.
 
         case 0: {
-            // Verify magic byte, ignore block hash
-            const struct operation_group_header *ogh = NEXT_TYPE(struct operation_group_header);
-            if (ogh->magic_byte != MAGIC_BYTE_UNSAFE_OP) {
-                PARSE_ERROR();
-            }
+            // Ignore block hash
+            NEXT_TYPE(struct operation_group_header);
         }
 
             OP_NAMED_STEP(1)

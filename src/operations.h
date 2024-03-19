@@ -45,8 +45,7 @@ typedef struct {
  *
  */
 struct operation_group_header {
-    uint8_t magic_byte;  ///< magic bytes, should be 0x03
-    uint8_t hash[32];    ///< hash of the operation
+    uint8_t hash[32];  ///< hash of the operation
 } __attribute__((packed));
 
 /**

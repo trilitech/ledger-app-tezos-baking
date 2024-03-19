@@ -145,7 +145,6 @@ void guard_baking_authorized(parsed_baking_data_t const *const baking_info,
 
 /**
  * Data:
- *   + (1 byte)   uint8:   magic byte, should be 0x11
  *   + (4 bytes)  uint32:  chain id of the block
  *   + (4 bytes)  uint32:  level of the block
  *   + (1 byte)   uint8:   protocol number
@@ -171,8 +170,7 @@ bool parse_block(buffer_t *buf, parsed_baking_data_t *const out) {
     uint8_t tag;
     uint32_t size;
 
-    if (!buffer_seek_cur(buf, 1) ||                     // ignore magic byte
-        !buffer_read_u32(buf, &out->chain_id.v, BE) ||  // chain id
+    if (!buffer_read_u32(buf, &out->chain_id.v, BE) ||  // chain id
         !buffer_read_u32(buf, &out->level, BE) ||       // level
         !buffer_seek_cur(buf, 1) ||                     // ignore protocol number
         !buffer_seek_cur(buf, 32) ||                    // ignore predecessor hash
@@ -208,7 +206,6 @@ bool parse_block(buffer_t *buf, parsed_baking_data_t *const out) {
 
 /**
  * Data:
- *   + (1 byte)   uint8:   magic byte, should be 0x12 or 0x13
  *   + (4 bytes)  uint32:  chain id of the block
  *   + (32 bytes) uint8 *: block branch
  *   + (1 byte)   uint8:   operation tag
@@ -220,8 +217,7 @@ bool parse_block(buffer_t *buf, parsed_baking_data_t *const out) {
 bool parse_consensus_operation(buffer_t *buf, parsed_baking_data_t *const out) {
     uint8_t tag;
 
-    if (!buffer_seek_cur(buf, 1) ||                      // ignore magic byte
-        !buffer_read_u32(buf, &out->chain_id.v, BE) ||   // chain id
+    if (!buffer_read_u32(buf, &out->chain_id.v, BE) ||   // chain id
         !buffer_seek_cur(buf, 32u * sizeof(uint8_t)) ||  // ignore branch
         !buffer_read_u8(buf, &tag) ||                    // tag
         !buffer_seek_cur(buf, sizeof(uint16_t)) ||       // ignore slot

@@ -274,10 +274,6 @@ int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
         PARSE_ERROR();
     }
 
-    // To be able to read again the magic_byte in parsers
-    // TODO: read the magic byte only once
-    buffer_seek_set(cdata, 0);
-
     switch (G.magic_byte) {
         case MAGIC_BYTE_PREATTESTATION:
         case MAGIC_BYTE_ATTESTATION:
