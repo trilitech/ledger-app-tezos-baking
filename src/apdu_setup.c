@@ -35,19 +35,6 @@
 #define G global.apdu.u.setup
 
 /**
- * @brief This structure represents the SETUP instruction payload
- *
- */
-struct setup_wire {
-    uint32_t main_chain_id;  ///< main chain id
-    /// high watermarks
-    struct {
-        uint32_t main;  ///< main highest level
-        uint32_t test;  ///< test highest level
-    } hwm;
-} __attribute__((packed));
-
-/**
  * @brief Applies the setup
  *
  *        Rounds are also reset to 0
@@ -78,39 +65,28 @@ static bool ok(void) {
     return true;
 }
 
+/**
+ * Cdata:
+ *   + (4 bytes) uint32: chain id
+ *   + (4 bytes) uint32: main hwm level
+ *   + (4 bytes) uint32: test hwm level
+ *   + Bip32 path: key path
+ */
 int handle_setup(buffer_t *cdata, derivation_type_t derivation_type) {
     check_null(cdata);
 
-    if (cdata->size < sizeof(struct setup_wire)) {
-        THROW(EXC_WRONG_LENGTH_FOR_INS);
-    }
-
     global.path_with_curve.derivation_type = derivation_type;
 
-    {
-        struct setup_wire const *const buff_as_setup = (struct setup_wire const *) cdata->ptr;
+    if (!buffer_read_u32(cdata, &G.main_chain_id.v, BE) ||           // chain id
+        !buffer_read_u32(cdata, &G.hwm.main, BE) ||                  // main hwm level
+        !buffer_read_u32(cdata, &G.hwm.test, BE) ||                  // test hwm level
+        !read_bip32_path(cdata, &global.path_with_curve.bip32_path)  // key path
+    ) {
+        THROW(EXC_WRONG_VALUES);
+    }
 
-        size_t consumed = 0;
-        G.main_chain_id.v =
-            CONSUME_UNALIGNED_BIG_ENDIAN(consumed,
-                                         uint32_t,
-                                         (uint8_t const *) &buff_as_setup->main_chain_id);
-        G.hwm.main = CONSUME_UNALIGNED_BIG_ENDIAN(consumed,
-                                                  uint32_t,
-                                                  (uint8_t const *) &buff_as_setup->hwm.main);
-        G.hwm.test = CONSUME_UNALIGNED_BIG_ENDIAN(consumed,
-                                                  uint32_t,
-                                                  (uint8_t const *) &buff_as_setup->hwm.test);
-
-        buffer_seek_set(cdata, consumed);
-
-        if (!read_bip32_path(cdata, &global.path_with_curve.bip32_path)) {
-            THROW(EXC_WRONG_VALUES);
-        }
-
-        if (cdata->size != cdata->offset) {
-            THROW(EXC_WRONG_LENGTH);
-        }
+    if (cdata->size != cdata->offset) {
+        THROW(EXC_WRONG_LENGTH);
     }
 
     return prompt_setup(ok, reject);
