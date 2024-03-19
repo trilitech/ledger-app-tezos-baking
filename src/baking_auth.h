@@ -24,7 +24,6 @@
 
 #include "apdu.h"
 #include "operations.h"
-#include "protocol.h"
 #include "types.h"
 
 #include <stdbool.h>

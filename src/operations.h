@@ -27,7 +27,6 @@
 #include <stdint.h>
 
 #include "keys.h"
-#include "protocol.h"
 
 #include "cx.h"
 #include "types.h"

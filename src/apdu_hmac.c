@@ -21,7 +21,6 @@
 
 #include "globals.h"
 #include "keys.h"
-#include "protocol.h"
 
 #define G global.apdu.u.hmac
 

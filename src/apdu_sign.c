@@ -26,7 +26,6 @@
 #include "globals.h"
 #include "keys.h"
 #include "memory.h"
-#include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
 #include "ui_delegation.h"
@@ -166,6 +165,13 @@ static bool sign_reject(void) {
     return true;
 }
 
+/// Magic byte values
+/// See: https://tezos.gitlab.io/user/key-management.html#signer-requests
+#define MAGIC_BYTE_UNSAFE_OP      0x03u  /// magic byte of an operation
+#define MAGIC_BYTE_BLOCK          0x11u  /// magic byte of a block
+#define MAGIC_BYTE_PREATTESTATION 0x12u  /// magic byte of a pre-attestation
+#define MAGIC_BYTE_ATTESTATION    0x13u  /// magic byte of an attestation
+
 /**
  * @brief Carries out final checks before signing
  *
@@ -293,7 +299,6 @@ int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
                                                     global.path_with_curve.derivation_type,
                                                     &global.path_with_curve.bip32_path);
             break;
-        case MAGIC_BYTE_INVALID:
         default:
             PARSE_ERROR();
     }

@@ -28,7 +28,6 @@
 #include "globals.h"
 #include "keys.h"
 #include "memory.h"
-#include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
 #include "cx.h"

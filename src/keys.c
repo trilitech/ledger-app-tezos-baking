@@ -24,7 +24,6 @@
 #include "apdu.h"
 #include "globals.h"
 #include "memory.h"
-#include "protocol.h"
 #include "types.h"
 
 #include <stdbool.h>

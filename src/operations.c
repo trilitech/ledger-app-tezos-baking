@@ -55,7 +55,7 @@ __attribute__((noreturn)) static void parse_error(void) {
 static inline signature_type_t parse_raw_tezos_header_signature_type(
     raw_tezos_header_signature_type_t const *const raw_signature_type) {
     check_null(raw_signature_type);
-    switch (READ_UNALIGNED_BIG_ENDIAN(uint8_t, &raw_signature_type->v)) {
+    switch (raw_signature_type->v) {
         case 0:
             return SIGNATURE_TYPE_ED25519;
         case 1:
