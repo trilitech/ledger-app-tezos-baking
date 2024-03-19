@@ -364,6 +364,8 @@ static inline bool parse_byte(uint8_t byte,
             {
                 size_t klen = out->public_key.W_len;
 
+                // klen must match one of the field sizes in the public_key union
+
                 CALL_SUBPARSER(parse_next_type, byte, &(state->subparser_state.nexttype), klen);
 
                 if (memcmp(out->public_key.W, &(state->subparser_state.nexttype.body.raw), klen) !=

@@ -57,6 +57,16 @@ struct implicit_contract {
 } __attribute__((packed));
 
 /**
+ * @brief Wire representation of implicit contract
+ *
+ */
+union public_key {
+    uint8_t edpk[32];  ///< raw public key for a edpk key
+    uint8_t sppk[33];  ///< raw public key for a sppk key
+    uint8_t p2pk[33];  ///< raw public key for a p2pk key
+} __attribute__((packed));
+
+/**
  * @brief Wire representation of delegation
  *
  */
@@ -97,6 +107,9 @@ struct nexttype_subparser_state {
         struct implicit_contract ic;  ///< wire implicit contract
 
         struct delegation_contents dc;  ///< wire delegation content
+
+        // Required to read Reveal public key
+        union public_key pk;  ///< wire public key
 
         uint8_t raw[1];  ///< raw array to fill the body
     } body;
