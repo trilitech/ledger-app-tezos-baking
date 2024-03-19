@@ -50,18 +50,20 @@ static bool ok(void) {
     return true;
 }
 
+/**
+ * Cdata:
+ *   + (4 bytes) uint32: reset level
+ */
 int handle_reset(buffer_t* cdata) {
     check_null(cdata);
 
-    if (cdata->size != sizeof(level_t)) {
-        THROW(EXC_WRONG_LENGTH_FOR_INS);
+    if (!buffer_read_u32(cdata, &G.reset_level, BE) || !is_valid_level(G.reset_level)) {
+        THROW(EXC_WRONG_VALUES);
     }
 
-    level_t const lvl = READ_UNALIGNED_BIG_ENDIAN(level_t, cdata->ptr);
-    if (!is_valid_level(lvl)) {
-        THROW(EXC_PARSE_ERROR);
+    if (cdata->size != cdata->offset) {
+        THROW(EXC_WRONG_LENGTH);
     }
 
-    G.reset_level = lvl;
     return prompt_reset(ok, reject);
 }
