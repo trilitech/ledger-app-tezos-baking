@@ -189,17 +189,7 @@ static uint8_t get_proto_version(uint8_t const *const fitness) {
     return READ_UNALIGNED_BIG_ENDIAN(uint8_t, fitness + sizeof(uint32_t));
 }
 
-/**
- * @brief Parse a block
- *
- * @param out: baking data output
- * @param data: input
- * @param length: input length
- * @return bool: returns false if it is invalid
- */
-static bool parse_block(parsed_baking_data_t *const out,
-                        uint8_t const *const data,
-                        size_t const length) {
+bool parse_block(parsed_baking_data_t *const out, uint8_t const *const data, size_t const length) {
     if (length < sizeof(struct block_wire) + MINIMUM_FITNESS_SIZE) {
         return false;
     }
@@ -243,17 +233,9 @@ struct consensus_op_wire {
     uint8_t block_payload_hash[32];  ///< hash of the related block
 } __attribute__((packed));
 
-/**
- * @brief Parse a consensus operation
- *
- * @param out: baking data output
- * @param data: input
- * @param length: input length
- * @return bool: returns false if it is invalid
- */
-static bool parse_consensus_operation(parsed_baking_data_t *const out,
-                                      uint8_t const *const data,
-                                      size_t const length) {
+bool parse_consensus_operation(parsed_baking_data_t *const out,
+                               uint8_t const *const data,
+                               size_t const length) {
     if (length < sizeof(struct consensus_op_wire)) {
         return false;
     }
@@ -276,19 +258,4 @@ static bool parse_consensus_operation(parsed_baking_data_t *const out,
             return false;
     }
     return true;
-}
-
-bool parse_baking_data(parsed_baking_data_t *const out,
-                       uint8_t const *const data,
-                       size_t const length) {
-    switch (get_magic_byte(data, length)) {
-        case MAGIC_BYTE_PREATTESTATION:
-        case MAGIC_BYTE_ATTESTATION:
-            return parse_consensus_operation(out, data, length);
-        case MAGIC_BYTE_BLOCK:
-            return parse_block(out, data, length);
-        case MAGIC_BYTE_INVALID:
-        default:
-            return false;
-    }
 }
