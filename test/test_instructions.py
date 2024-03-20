@@ -180,6 +180,36 @@ def test_git(client: TezosClient) -> None:
         f"Expected {expected_commit} but got {commit}"
 
 
+def test_ledger_screensaver(client: TezosClient, tezos_navigator: TezosNavigator, backend_name) -> None:
+    # Make sure that ledger device being tested has screensaver time set to 1 minute and PIN lock is disabled.
+    account = DEFAULT_ACCOUNT
+    if backend_name == "speculos":
+       assert True
+       return
+
+    import time
+    lvl = 0
+    main_chain_id = DEFAULT_CHAIN_ID
+    main_hwm = Hwm(lvl)
+    test_hwm = Hwm(0)
+
+    tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm,
+        test_hwm
+    )
+    for i in range(120):
+        lvl += 1
+        attestation = build_attestation(
+            op_level=lvl,
+            op_round=0,
+            chain_id=main_chain_id
+        )
+        client.sign_message(account, attestation)
+        time.sleep(1)
+
+
 @pytest.mark.parametrize("account", ZEBRA_ACCOUNTS)
 def test_benchmark_attestation_time(account: Account, client: TezosClient, tezos_navigator: TezosNavigator, backend_name) -> None:
     # check if backend is speculos, then return .
