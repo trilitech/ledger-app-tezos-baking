@@ -143,7 +143,6 @@ typedef struct {
         bool is_blank_screen;
     } dynamic_display;
 
-    apdu_handler handlers[INS_MAX + 1u];      ///< all handlers
     bip32_path_with_curve_t path_with_curve;  ///< holds the bip32 path and curve of the current key
 
     /// apdu handling state

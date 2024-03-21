@@ -21,26 +21,18 @@
 
 #pragma once
 
+#include "buffer.h"
 #include "exception.h"
 #include "keys.h"
+#include "parser.h"
 #include "types.h"
+#include "io.h"
 #include "ui.h"
 
 #include "os.h"
 
 #include <stdbool.h>
 #include <stdint.h>
-
-/**
- * @brief Offset for the different items in an APDU
- *
- */
-#define OFFSET_CLA   0  /// APDU class
-#define OFFSET_INS   1  /// instruction code
-#define OFFSET_P1    2  /// packet index
-#define OFFSET_CURVE 3  /// key curve: derivation_type_t
-#define OFFSET_LC    4  /// length of payload
-#define OFFSET_CDATA 5  /// payload
 
 /**
  * @brief Codes of handled instructions
@@ -64,50 +56,20 @@
 #define INS_SIGN_WITH_HASH            0x0Fu
 
 /**
- * @brief Loops indefinitely while handling the incoming apdus
+ * @brief Dispatch APDU command received to the right handler
  *
- * @param handlers: list of apdu handler
- * @param handlers_size: updated offset of the apdu response
+ * @param cmd: structured APDU command (CLA, INS, P1, P2, Lc, Command data).
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-void main_loop(apdu_handler const* const handlers, size_t const handlers_size)
-    __attribute__((noreturn));
+int apdu_dispatcher(const command_t* cmd);
 
 /**
- * @brief Tags as successful apdu response
- *
- * @param offset: current offset of the apdu response
- * @return size_t: updated offset of the apdu response
- */
-static inline size_t finalize_successful_send(size_t offset) {
-    size_t tx = offset;
-    G_io_apdu_buffer[tx] = 0x90;
-    tx++;
-    G_io_apdu_buffer[tx] = 0x00;
-    tx++;
-    return tx;
-}
-
-/**
- * @brief Sends the apdu response asynchronously
- *
- * @param tx: current offset of the apdu response
- */
-static inline void delayed_send(size_t tx) {
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-}
-
-/**
- * @brief Sends asynchronously a reject exception
+ * @brief Sends a reject exception
  *
  * @return true
  */
-static inline bool delay_reject(void) {
-    size_t tx = 0;
-    G_io_apdu_buffer[tx] = EXC_REJECT >> 8;
-    tx++;
-    G_io_apdu_buffer[tx] = EXC_REJECT & 0xFFu;
-    tx++;
-    delayed_send(tx);
+static inline bool reject(void) {
+    io_send_sw(EXC_REJECT);
     return true;
 }
 
@@ -116,41 +78,7 @@ static inline bool delay_reject(void) {
  *
  *        Expects validated pin
  *
- * @param io_buffer: apdu response buffer
  * @param pubkey: public key
- * @return size_t: offset of the apdu response
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t provide_pubkey(uint8_t* const io_buffer, cx_ecfp_public_key_t const* const pubkey);
-
-/**
- * @brief Handles unknown instructions
- *
- *        Raises an invalid instruction exception
- *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-size_t handle_apdu_error(uint8_t instruction, volatile uint32_t* flags);
-
-/**
- * @brief Handles VERSION instruction
- *
- *        Fills apdu response with the app version
- *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-size_t handle_apdu_version(uint8_t instruction, volatile uint32_t* flags);
-
-/**
- * @brief Handles GIT instruction
- *
- *        Fills apdu response with the app commit
- *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-size_t handle_apdu_git(uint8_t instruction, volatile uint32_t* flags);
+int provide_pubkey(cx_ecfp_public_key_t const* const pubkey);

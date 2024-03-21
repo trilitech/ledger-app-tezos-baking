@@ -55,7 +55,7 @@ UX_STEP_NOCB(ux_fee_step, bnnn_paging, {"Fee", delegation_context.fee});
 
 UX_CONFIRM_FLOW(ux_delegation_flow, &ux_register_step, &ux_delegate_step, &ux_fee_step);
 
-void prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+int prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     if (!G.maybe_ops.is_valid) {
         THROW(EXC_MEMORY_ERROR);
     }
@@ -72,6 +72,7 @@ void prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
 
     ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
     ux_flow_init(0, ux_delegation_flow, NULL);
+    return 0;
 }
 
 #endif  // HAVE_BAGL

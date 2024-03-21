@@ -54,7 +54,7 @@ UX_STEP_NOCB(ux_public_key_hash_step,
 UX_CONFIRM_FLOW(ux_authorize_flow, &ux_authorize_step, &ux_public_key_hash_step);
 UX_CONFIRM_FLOW(ux_provide_flow, &ux_provide_step, &ux_public_key_hash_step);
 
-void prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
+int prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
     memset(&address_context, 0, sizeof(address_context));
 
     bip32_path_with_curve_to_pkh_string(address_context.public_key_hash,
@@ -67,6 +67,7 @@ void prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
     } else {
         ux_flow_init(0, ux_provide_flow, NULL);
     }
+    return 0;
 }
 
 #endif  // HAVE_BAGL

@@ -19,42 +19,75 @@
 
 */
 
-#include "apdu_hmac.h"
-#include "apdu_pubkey.h"
-#include "apdu_query.h"
-#include "apdu_reset.h"
-#include "apdu_setup.h"
-#include "apdu_sign.h"
 #include "apdu.h"
 #include "globals.h"
 #include "memory.h"
 #include "ui.h"
 
-__attribute__((noreturn)) void app_main(void);
+void app_main(void);
 
-__attribute__((noreturn)) void app_main(void) {
+void app_main(void) {
+    // Length of APDU command received in G_io_apdu_buffer
+    int input_len = 0;
+    // Structured APDU command
+    command_t cmd;
+
     init_globals();
     ui_initial_screen();
 
-    // TODO: Consider using static initialization of a const, instead of this
-    for (size_t i = 0; i < NUM_ELEMENTS(global.handlers); i++) {
-        global.handlers[i] = handle_apdu_error;
+    for (;;) {
+        BEGIN_TRY {
+            TRY {
+                // Receive command bytes in G_io_apdu_buffer
+                input_len = io_recv_command();
+                if (input_len < 0) {
+                    PRINTF("=> io_recv_command failure\n");
+                    return;
+                }
+
+                // Parse APDU command from G_io_apdu_buffer
+                if (!apdu_parser(&cmd, G_io_apdu_buffer, input_len)) {
+                    PRINTF("=> /!\\ BAD LENGTH: %.*H\n", input_len, G_io_apdu_buffer);
+                    THROW(EXC_WRONG_LENGTH);
+                }
+
+                PRINTF("=> CLA=%02X | INS=%02X | P1=%02X | P2=%02X | Lc=%02X | CData=%.*H\n",
+                       cmd.cla,
+                       cmd.ins,
+                       cmd.p1,
+                       cmd.p2,
+                       cmd.lc,
+                       cmd.lc,
+                       cmd.data);
+
+                // Dispatch structured APDU command to handler
+                if (apdu_dispatcher(&cmd) < 0) {
+                    PRINTF("=> apdu_dispatcher failure\n");
+                    return;
+                }
+            }
+            CATCH(EXCEPTION_IO_RESET) {
+                THROW(EXCEPTION_IO_RESET);
+            }
+            CATCH_OTHER(e) {
+                clear_apdu_globals();  // IMPORTANT: Application state must not persist through
+                                       // errors
+
+                uint16_t sw = e;
+                PRINTF("Error caught at top level, number: %x\n", sw);
+                switch (sw) {
+                    case 0x6000 ... 0x6FFF:
+                    case 0x9000 ... 0x9FFF:
+                        break;
+                    default:
+                        sw = 0x6800 | (e & 0x7FF);
+                        break;
+                }
+                io_send_sw(sw);
+            }
+            FINALLY {
+            }
+        }
+        END_TRY;
     }
-    global.handlers[APDU_INS(INS_VERSION)] = handle_apdu_version;
-    global.handlers[APDU_INS(INS_GET_PUBLIC_KEY)] = handle_apdu_get_public_key;
-    global.handlers[APDU_INS(INS_PROMPT_PUBLIC_KEY)] = handle_apdu_get_public_key;
-    global.handlers[APDU_INS(INS_SIGN)] = handle_apdu_sign;
-    global.handlers[APDU_INS(INS_GIT)] = handle_apdu_git;
-    global.handlers[APDU_INS(INS_SIGN_WITH_HASH)] = handle_apdu_sign_with_hash;
-    global.handlers[APDU_INS(INS_AUTHORIZE_BAKING)] = handle_apdu_get_public_key;
-    global.handlers[APDU_INS(INS_RESET)] = handle_apdu_reset;
-    global.handlers[APDU_INS(INS_QUERY_AUTH_KEY)] = handle_apdu_query_auth_key;
-    global.handlers[APDU_INS(INS_QUERY_MAIN_HWM)] = handle_apdu_main_hwm;
-    global.handlers[APDU_INS(INS_SETUP)] = handle_apdu_setup;
-    global.handlers[APDU_INS(INS_QUERY_ALL_HWM)] = handle_apdu_all_hwm;
-    global.handlers[APDU_INS(INS_DEAUTHORIZE)] = handle_apdu_deauthorize;
-    global.handlers[APDU_INS(INS_QUERY_AUTH_KEY_WITH_CURVE)] =
-        handle_apdu_query_auth_key_with_curve;
-    global.handlers[APDU_INS(INS_HMAC)] = handle_apdu_hmac;
-    main_loop(global.handlers, NUM_ELEMENTS(global.handlers));
 }

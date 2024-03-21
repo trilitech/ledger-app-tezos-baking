@@ -43,6 +43,7 @@
  *      code for the mapping.
  */
 typedef enum {
+    DERIVATION_TYPE_UNSET = 0,
     DERIVATION_TYPE_SECP256K1 = 1,
     DERIVATION_TYPE_SECP256R1 = 2,
     DERIVATION_TYPE_ED25519 = 3,
@@ -64,15 +65,6 @@ typedef enum {
     BAKING_TYPE_ATTESTATION,
     BAKING_TYPE_PREATTESTATION
 } baking_type_t;
-
-/**
- * @brief Generic APDU instruction handler
- *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
- */
-typedef size_t (*apdu_handler)(uint8_t instruction, volatile uint32_t *flags);
 
 typedef uint32_t level_t;
 typedef uint32_t round_t;
@@ -108,7 +100,7 @@ typedef struct {
     cx_ecfp_private_key_t private_key;  ///< private key
 } key_pair_t;
 
-#define MAX_BIP32_LEN 10
+#define MAX_BIP32_LEN 10u
 
 /**
  * @brief This structure represents a bip32 path
@@ -280,14 +272,6 @@ struct parsed_operation_group {
     struct parsed_contract signing;     ///< contract form of signer
     struct parsed_operation operation;  ///< operation parsed
 };
-
-#define INS_MAX 0x0Fu
-
-#define APDU_INS(x)                                                        \
-    ({                                                                     \
-        _Static_assert(x <= INS_MAX, "APDU instruction is out of bounds"); \
-        x;                                                                 \
-    })
 
 #define CUSTOM_MAX(a, b)                     \
     ({                                       \

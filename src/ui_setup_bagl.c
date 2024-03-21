@@ -62,7 +62,7 @@ UX_CONFIRM_FLOW(ux_setup_flow,
                 &ux_main_hwm_step,
                 &ux_test_hwm_step);
 
-void prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+int prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     memset(&setup_context, 0, sizeof(setup_context));
 
     bip32_path_with_curve_to_pkh_string(setup_context.address,
@@ -83,6 +83,7 @@ void prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
 
     ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
     ux_flow_init(0, ux_setup_flow, NULL);
+    return 0;
 }
 
 #endif  // HAVE_BAGL
