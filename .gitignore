@@ -8,3 +8,6 @@ env
 #ide
 *.code-workspace
 compile_commands.json
+# Documentation files
+doc/html
+doc/latex

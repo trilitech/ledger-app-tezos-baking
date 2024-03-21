@@ -30,7 +30,6 @@
 #include "to_string.h"
 #include "ui.h"
 #include "ui_delegation.h"
-#include "ui_empty.h"
 
 #include "cx.h"
 
@@ -183,7 +182,7 @@ static size_t baking_sign_complete(bool const send_hash, volatile uint32_t *flag
             guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve);
             result = perform_signature(true, send_hash);
 #ifdef HAVE_BAGL
-            ux_empty_screen();
+            update_baking_idle_screens();
 #endif
             break;
 

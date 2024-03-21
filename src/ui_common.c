@@ -20,78 +20,7 @@
 */
 
 #include "ui.h"
-#include "ux.h"
-
-#include "globals.h"
-#include "os.h"
-
-uint8_t io_event(unsigned char channel);
-
-/**
- * @brief Redefinition of lib_standard_app/io.io_event
- *
- *        In order to disable ticker event handling to prevent
- *        screen-saver from starting
- *
- * @param channel: requested channel
- * @return 1
- */
-uint8_t io_event(__attribute__((unused)) unsigned char channel) {
-    // nothing done with the event, throw an error on the transport layer if
-    // needed
-
-    // can't have more than one tag in the reply, not supported yet.
-    switch (G_io_seproxyhal_spi_buffer[0]) {
-#ifdef HAVE_NBGL
-        case SEPROXYHAL_TAG_FINGER_EVENT:
-            UX_FINGER_EVENT(G_io_seproxyhal_spi_buffer);
-            break;
-#endif  // HAVE_NBGL
-
-        case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
-#ifdef HAVE_BAGL
-            UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
-#endif  // HAVE_BAGL
-            break;
-
-        case SEPROXYHAL_TAG_STATUS_EVENT:
-            if ((G_io_apdu_media == IO_APDU_MEDIA_USB_HID) &&
-                !(U4BE(G_io_seproxyhal_spi_buffer, 3) &
-                  SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
-                THROW(EXCEPTION_IO_RESET);
-            }
-            UX_DEFAULT_EVENT();
-            break;
-
-        case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
-#ifdef HAVE_BAGL
-            UX_DISPLAYED_EVENT({});
-#endif  // HAVE_BAGL
-#ifdef HAVE_NBGL
-            UX_DEFAULT_EVENT();
-#endif  // HAVE_NBGL
-            break;
-
-        case SEPROXYHAL_TAG_TICKER_EVENT:
-#if defined(HAVE_BAGL)
-            // Disable ticker event handling to prevent screen saver from starting.
-#else
-            UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
-#endif  // HAVE_BAGL
-            break;
-        default:
-            UX_DEFAULT_EVENT();
-            break;
-    }
-
-    // close the event if not done previously (by a display or whatever)
-    if (!io_seproxyhal_spi_is_status_sent()) {
-        io_seproxyhal_general_status();
-    }
-
-    // command has been processed, DO NOT reset the current APDU transport
-    return 1;
-}
+#include "os_pin.h"
 
 /**
  * @brief Invalidates the pin to enforce its requirement.

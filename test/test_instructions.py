@@ -104,18 +104,6 @@ def test_review_home(account: Optional[Account],
         screen("exit")
         right()
         screen("home_screen")
-        both()
-        screen("black_screen")
-        both()
-        screen("home_screen")
-        both()
-        screen("black_screen")
-        left()
-        screen("home_screen")
-        both()
-        screen("black_screen")
-        right()
-        screen("home_screen")
         left()
         screen("exit")
         left()
@@ -135,10 +123,6 @@ def test_review_home(account: Optional[Account],
         screen("chain_id")
         left()
         screen("version")
-        left()
-        screen("home_screen")
-        both()
-        screen("black_screen")
         left()
         screen("home_screen")
         left()
@@ -194,6 +178,36 @@ def test_git(client: TezosClient) -> None:
 
     assert commit == expected_commit, \
         f"Expected {expected_commit} but got {commit}"
+
+
+def test_ledger_screensaver(client: TezosClient, tezos_navigator: TezosNavigator, backend_name) -> None:
+    # Make sure that ledger device being tested has screensaver time set to 1 minute and PIN lock is disabled.
+    account = DEFAULT_ACCOUNT
+    if backend_name == "speculos":
+       assert True
+       return
+
+    import time
+    lvl = 0
+    main_chain_id = DEFAULT_CHAIN_ID
+    main_hwm = Hwm(lvl)
+    test_hwm = Hwm(0)
+
+    tezos_navigator.setup_app_context(
+        account,
+        main_chain_id,
+        main_hwm,
+        test_hwm
+    )
+    for i in range(120):
+        lvl += 1
+        attestation = build_attestation(
+            op_level=lvl,
+            op_round=0,
+            chain_id=main_chain_id
+        )
+        client.sign_message(account, attestation)
+        time.sleep(1)
 
 
 @pytest.mark.parametrize("account", ZEBRA_ACCOUNTS)
@@ -495,9 +509,7 @@ def test_sign_preattestation(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path,
-        black_screen=True
-    )
+        snap_path=snap_path    )
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -541,9 +553,7 @@ def test_sign_attestation(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path,
-        black_screen=True
-    )
+        snap_path=snap_path)
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -587,9 +597,7 @@ def test_sign_attestation_dal(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path,
-        black_screen=True
-    )
+        snap_path=snap_path)
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -633,9 +641,7 @@ def test_sign_block(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
         test_hwm=Hwm(0, 0),
-        snap_path=snap_path,
-        black_screen=True
-    )
+        snap_path=snap_path)
 
 
 def test_sign_block_at_reset_level(client: TezosClient, tezos_navigator: TezosNavigator) -> None:
@@ -1144,9 +1150,7 @@ def test_sign_when_no_chain_setup(
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_1_0"),
-        black_screen=True
-    )
+        snap_path=Path("sign_1_0"))
 
     attestation = build_attestation(
         2, 0,
@@ -1160,9 +1164,7 @@ def test_sign_when_no_chain_setup(
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(2, 0),
         test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_2_0"),
-        black_screen=True
-    )
+        snap_path=Path("sign_2_0"))
 
     attestation = build_attestation(
         2, 0,
@@ -1208,9 +1210,7 @@ def test_sign_when_chain_is_setup(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_1_0"),
-        black_screen=True
-    )
+        snap_path=Path("sign_1_0"))
 
     attestation = build_attestation(
         2, 0,
@@ -1224,9 +1224,7 @@ def test_sign_when_chain_is_setup(
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(2, 0),
-        snap_path=Path("sign_2_0"),
-        black_screen=True
-    )
+        snap_path=Path("sign_2_0"))
 
     attestation = build_attestation(
         2, 0,
