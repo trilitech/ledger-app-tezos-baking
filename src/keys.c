@@ -112,11 +112,24 @@ end:
     return error;
 }
 
-cx_err_t public_key_hash(uint8_t *const hash_out,
-                         size_t const hash_out_size,
-                         cx_ecfp_public_key_t *compressed_out,
-                         derivation_type_t const derivation_type,
-                         cx_ecfp_public_key_t const *const public_key) {
+/**
+ * @brief Extract the public key hash from a public key and a curve
+ *
+ *        Is non-reentrant
+ *
+ * @param hash_out: public key hash output
+ * @param hash_out_size: output size
+ * @param compressed_out: compressed public key output
+ *                        pass NULL if this value is not desired
+ * @param derivation_type: curve
+ * @param param public_key: public key
+ * @return cx_err_t: error, CX_OK if none
+ */
+static cx_err_t public_key_hash(uint8_t *const hash_out,
+                                size_t const hash_out_size,
+                                cx_ecfp_public_key_t *compressed_out,
+                                derivation_type_t const derivation_type,
+                                cx_ecfp_public_key_t const *const public_key) {
     if ((hash_out == NULL) || (public_key == NULL)) {
         return CX_INVALID_PARAMETER;
     }
@@ -160,6 +173,29 @@ cx_err_t public_key_hash(uint8_t *const hash_out,
     if (compressed_out != NULL) {
         memmove(compressed_out, &compressed, sizeof(*compressed_out));
     }
+
+end:
+    return error;
+}
+
+cx_err_t generate_public_key_hash(uint8_t *const hash_out,
+                                  size_t const hash_out_size,
+                                  cx_ecfp_public_key_t *compressed_out,
+                                  bip32_path_with_curve_t const *const path_with_curve) {
+    if ((hash_out == NULL) || (path_with_curve == NULL)) {
+        return CX_INVALID_PARAMETER;
+    }
+
+    cx_ecfp_public_key_t pubkey = {0};
+    cx_err_t error = CX_OK;
+
+    CX_CHECK(generate_public_key(&pubkey, path_with_curve));
+
+    CX_CHECK(public_key_hash(hash_out,
+                             hash_out_size,
+                             compressed_out,
+                             path_with_curve->derivation_type,
+                             &pubkey));
 
 end:
     return error;

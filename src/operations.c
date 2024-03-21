@@ -80,13 +80,10 @@ static inline void compute_pkh(cx_ecfp_public_key_t *const compressed_pubkey_out
     check_null(path_with_curve);
     check_null(compressed_pubkey_out);
     check_null(contract_out);
-    cx_ecfp_public_key_t pubkey = {0};
-    CX_THROW(generate_public_key(&pubkey, path_with_curve));
-    CX_THROW(public_key_hash(contract_out->hash,
-                             sizeof(contract_out->hash),
-                             compressed_pubkey_out,
-                             path_with_curve->derivation_type,
-                             &pubkey));
+    CX_THROW(generate_public_key_hash(contract_out->hash,
+                                      sizeof(contract_out->hash),
+                                      compressed_pubkey_out,
+                                      path_with_curve));
     contract_out->signature_type =
         derivation_type_to_signature_type(path_with_curve->derivation_type);
     if (contract_out->signature_type == SIGNATURE_TYPE_UNSET) {

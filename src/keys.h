@@ -55,23 +55,19 @@ cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
                              bip32_path_with_curve_t const *const path_with_curve);
 
 /**
- * @brief Extract the public key hash from a public key and a curve
- *
- *        Is non-reentrant
+ * @brief Generates a public key hash from a bip32 path and a curve
  *
  * @param hash_out: public key hash output
  * @param hash_out_size: output size
  * @param compressed_out: compressed public key output
  *                        pass NULL if this value is not desired
- * @param derivation_type: curve
- * @param param public_key: public key
+ * @param path_with_curve: bip32 path and curve
  * @return cx_err_t: error, CX_OK if none
  */
-cx_err_t public_key_hash(uint8_t *const hash_out,
-                         size_t const hash_out_size,
-                         cx_ecfp_public_key_t *const compressed_out,
-                         derivation_type_t const derivation_type,
-                         cx_ecfp_public_key_t const *const restrict public_key);
+cx_err_t generate_public_key_hash(uint8_t *const hash_out,
+                                  size_t const hash_out_size,
+                                  cx_ecfp_public_key_t *const compressed_out,
+                                  bip32_path_with_curve_t const *const path_with_curve);
 
 /**
  * @brief Signs a message with a key
