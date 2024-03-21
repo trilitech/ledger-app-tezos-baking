@@ -33,19 +33,6 @@
 #define TICKER_WITH_SPACE " XTZ"
 
 /**
- * @brief Converts a key to a public key hash string using its public key
- *
- * @param out: result output
- * @param out_size: output size
- * @param derivation_type: curve of the key
- * @param public_key: public key of the key
- */
-void pubkey_to_pkh_string(char *const out,
-                          size_t const out_size,
-                          derivation_type_t const derivation_type,
-                          cx_ecfp_public_key_t const *const public_key);
-
-/**
  * @brief Converts a key to a public key hash string using its bip32 path and curve
  *
  * @param out: result output

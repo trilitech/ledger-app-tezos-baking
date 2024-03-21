@@ -69,14 +69,7 @@ void copy_key(char *out, size_t out_size, bip32_path_with_curve_t *baking_key) {
     if (baking_key->bip32_path.length == 0u) {
         copy_string(out, out_size, "No Key Authorized");
     } else {
-        cx_ecfp_public_key_t pubkey = {0};
-        generate_public_key(&pubkey,
-                            (derivation_type_t const) baking_key->derivation_type,
-                            (bip32_path_t const *const) &baking_key->bip32_path);
-        pubkey_to_pkh_string(out,
-                             out_size,
-                             (derivation_type_t const) baking_key->derivation_type,
-                             &pubkey);
+        bip32_path_with_curve_to_pkh_string(out, out_size, baking_key);
     }
 }
 

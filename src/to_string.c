@@ -37,18 +37,6 @@ static void pkh_to_string(char *const buff,
                           uint8_t const hash[HASH_SIZE]);
 static size_t microtez_to_string(char *dest, uint64_t number);
 
-void pubkey_to_pkh_string(char *const out,
-                          size_t const out_size,
-                          derivation_type_t const derivation_type,
-                          cx_ecfp_public_key_t const *const public_key) {
-    check_null(out);
-    check_null(public_key);
-
-    uint8_t hash[HASH_SIZE];
-    public_key_hash(hash, sizeof(hash), NULL, derivation_type, public_key);
-    pkh_to_string(out, out_size, derivation_type_to_signature_type(derivation_type), hash);
-}
-
 void bip32_path_with_curve_to_pkh_string(char *const out,
                                          size_t const out_size,
                                          bip32_path_with_curve_t const *const key) {
@@ -56,8 +44,10 @@ void bip32_path_with_curve_to_pkh_string(char *const out,
     check_null(key);
 
     cx_ecfp_public_key_t pubkey = {0};
+    uint8_t hash[HASH_SIZE];
     generate_public_key(&pubkey, key->derivation_type, &key->bip32_path);
-    pubkey_to_pkh_string(out, out_size, key->derivation_type, &pubkey);
+    public_key_hash(hash, sizeof(hash), NULL, key->derivation_type, &pubkey);
+    pkh_to_string(out, out_size, derivation_type_to_signature_type(key->derivation_type), hash);
 }
 
 /**
