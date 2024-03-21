@@ -30,8 +30,6 @@
 
 #define TEZOS_HASH_CHECKSUM_SIZE 4u
 
-#define TICKER_WITH_SPACE " XTZ"
-
 static void pkh_to_string(char *const buff,
                           size_t const buff_size,
                           signature_type_t const signature_type,

@@ -100,19 +100,6 @@ static chain_id_t const mainnet_chain_id = {.v = 0x7A06A770};
 typedef bool (*ui_callback_t)(void);
 
 /**
- * @brief String generator callback
- *
- *        Uses K&R style declaration to avoid being stuck on const
- *        void *, to avoid having to cast the function pointers
- *
- * @param buffer: output buffer
- * @param buffer_size: output size
- * @param data: data
- */
-typedef void (*string_generation_callback)(
-    /* char *buffer, size_t buffer_size, const void *data */);
-
-/**
  * @brief Pair of public and private key
  *
  */
@@ -231,10 +218,6 @@ typedef struct {
 #define PKH_STRING_SIZE 40u  // includes null byte // TODO: use sizeof for this.
 #define PROTOCOL_HASH_BASE58_STRING_SIZE \
     sizeof("ProtoBetaBetaBetaBetaBetaBetaBetaBetaBet11111a5ug96")
-
-#define MAX_SCREEN_STACK_SIZE 7u  // Maximum number of screens in a flow.
-#define PROMPT_WIDTH          16u
-#define VALUE_WIDTH           PROTOCOL_HASH_BASE58_STRING_SIZE
 
 // TODO: Rename to KEY_HASH_SIZE
 #define HASH_SIZE 20u

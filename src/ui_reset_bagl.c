@@ -36,12 +36,30 @@
 
 #define G global.apdu.u.baking
 
-__attribute__((noreturn)) void prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
-    init_screen_stack();
-    push_ui_callback("Reset HWM", number_to_string_indirect32, &G.reset_level);
+/**
+ * @brief This structure represents a context needed for reset screens navigation
+ *
+ */
+typedef struct {
+    char reset_level[MAX_INT_DIGITS + 1u];
+} ResetContext_t;
 
-    ux_confirm_screen(ok_cb, cxl_cb);
-    __builtin_unreachable();
+/// Current reset context
+static ResetContext_t reset_context;
+
+UX_STEP_NOCB(ux_reset_level_step, bnnn_paging, {"Reset HWM", reset_context.reset_level});
+
+UX_CONFIRM_FLOW(ux_reset_flow, &ux_reset_level_step);
+
+void prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+    memset(&reset_context, 0, sizeof(reset_context));
+
+    number_to_string_indirect32(reset_context.reset_level,
+                                sizeof(reset_context.reset_level),
+                                &G.reset_level);
+
+    ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
+    ux_flow_init(0, ux_reset_flow, NULL);
 }
 
 #endif  // HAVE_BAGL

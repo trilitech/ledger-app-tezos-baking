@@ -34,24 +34,39 @@
 
 #include <string.h>
 
-__attribute__((noreturn)) void prompt_pubkey(bool authorize,
-                                             ui_callback_t ok_cb,
-                                             ui_callback_t cxl_cb) {
-    init_screen_stack();
+/**
+ * @brief This structure represents a context needed for address screens navigation
+ *
+ */
+typedef struct {
+    char public_key_hash[PKH_STRING_SIZE];
+} AddressContext_t;
 
+/// Current address context
+static AddressContext_t address_context;
+
+UX_STEP_NOCB(ux_authorize_step, bnnn_paging, {"Authorize Baking", "With Public Key?"});
+UX_STEP_NOCB(ux_provide_step, bnnn_paging, {"Provide", "Public Key"});
+UX_STEP_NOCB(ux_public_key_hash_step,
+             bnnn_paging,
+             {"Public Key Hash", address_context.public_key_hash});
+
+UX_CONFIRM_FLOW(ux_authorize_flow, &ux_authorize_step, &ux_public_key_hash_step);
+UX_CONFIRM_FLOW(ux_provide_flow, &ux_provide_step, &ux_public_key_hash_step);
+
+void prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
+    memset(&address_context, 0, sizeof(address_context));
+
+    bip32_path_with_curve_to_pkh_string(address_context.public_key_hash,
+                                        sizeof(address_context.public_key_hash),
+                                        &global.path_with_curve);
+
+    ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
     if (authorize) {
-        push_ui_callback("Authorize Baking", copy_string, "With Public Key?");
-        push_ui_callback("Public Key Hash",
-                         bip32_path_with_curve_to_pkh_string,
-                         &global.path_with_curve);
+        ux_flow_init(0, ux_authorize_flow, NULL);
     } else {
-        push_ui_callback("Provide", copy_string, "Public Key");
-        push_ui_callback("Public Key Hash",
-                         bip32_path_with_curve_to_pkh_string,
-                         &global.path_with_curve);
+        ux_flow_init(0, ux_provide_flow, NULL);
     }
-
-    ux_confirm_screen(ok_cb, cxl_cb);
-    __builtin_unreachable();
 }
+
 #endif  // HAVE_BAGL

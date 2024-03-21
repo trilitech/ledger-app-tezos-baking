@@ -30,6 +30,8 @@
 #include "types.h"
 #include "ui.h"
 
+#define TICKER_WITH_SPACE " XTZ"
+
 /**
  * @brief Converts a key to a public key hash string using its public key
  *
