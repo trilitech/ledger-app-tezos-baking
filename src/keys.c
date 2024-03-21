@@ -74,10 +74,11 @@ static inline cx_curve_t signature_type_to_cx_curve(signature_type_t const signa
 }
 
 int generate_public_key(cx_ecfp_public_key_t *public_key,
-                        derivation_type_t const derivation_type,
-                        bip32_path_t const *const bip32_path) {
+                        bip32_path_with_curve_t const *const path_with_curve) {
     int error = 0;
 
+    bip32_path_t const *const bip32_path = &path_with_curve->bip32_path;
+    derivation_type_t derivation_type = path_with_curve->derivation_type;
     unsigned int derivation_mode = derivation_type_to_derivation_mode(derivation_type);
     signature_type_t signature_type = derivation_type_to_signature_type(derivation_type);
     cx_curve_t cx_curve = signature_type_to_cx_curve(signature_type);
@@ -156,14 +157,15 @@ void public_key_hash(uint8_t *const hash_out,
 
 size_t sign(uint8_t *const out,
             size_t const out_size,
-            derivation_type_t const derivation_type,
-            bip32_path_t const *const bip32_path,
+            bip32_path_with_curve_t const *const path_with_curve,
             uint8_t const *const in,
             size_t const in_size) {
     check_null(out);
-    check_null(bip32_path);
+    check_null(path_with_curve);
     check_null(in);
 
+    bip32_path_t const *const bip32_path = &path_with_curve->bip32_path;
+    derivation_type_t derivation_type = path_with_curve->derivation_type;
     unsigned int derivation_mode = derivation_type_to_derivation_mode(derivation_type);
     signature_type_t signature_type = derivation_type_to_signature_type(derivation_type);
     cx_curve_t cx_curve = signature_type_to_cx_curve(signature_type);

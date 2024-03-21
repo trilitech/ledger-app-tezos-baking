@@ -43,11 +43,12 @@ static inline size_t hmac(uint8_t *const out,
                           apdu_hmac_state_t *const state,
                           uint8_t const *const in,
                           size_t const in_size,
-                          bip32_path_t bip32_path,
-                          derivation_type_t derivation_type) {
+                          bip32_path_with_curve_t const *const path_with_curve) {
     check_null(out);
     check_null(state);
     check_null(in);
+    check_null(path_with_curve);
+
     if (out_size < CX_SHA256_SIZE) {
         THROW(EXC_WRONG_LENGTH);
     }
@@ -61,8 +62,7 @@ static inline size_t hmac(uint8_t *const out,
     // Deterministically sign the SHA256 value to get something directly tied to the secret key.
     size_t signed_hmac_key_size = sign(state->signed_hmac_key,
                                        sizeof(state->signed_hmac_key),
-                                       derivation_type,
-                                       &bip32_path,
+                                       path_with_curve,
                                        key_sha256,
                                        sizeof(key_sha256));
 
@@ -90,9 +90,10 @@ int handle_hmac(buffer_t *cdata, derivation_type_t derivation_type) {
 
     memset(&G, 0, sizeof(G));
 
-    bip32_path_t bip32_path = {0};
+    bip32_path_with_curve_t path_with_curve = {0};
+    path_with_curve.derivation_type = derivation_type;
 
-    if (!read_bip32_path(cdata, &bip32_path)) {
+    if (!read_bip32_path(cdata, &path_with_curve.bip32_path)) {
         THROW(EXC_WRONG_VALUES);
     }
 
@@ -101,8 +102,7 @@ int handle_hmac(buffer_t *cdata, derivation_type_t derivation_type) {
                                   &G,
                                   cdata->ptr + cdata->offset,
                                   cdata->size - cdata->offset,
-                                  bip32_path,
-                                  derivation_type);
+                                  &path_with_curve);
 
     uint8_t resp[CX_SHA256_SIZE] = {0};
 

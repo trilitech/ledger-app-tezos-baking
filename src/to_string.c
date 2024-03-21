@@ -45,7 +45,7 @@ void bip32_path_with_curve_to_pkh_string(char *const out,
 
     cx_ecfp_public_key_t pubkey = {0};
     uint8_t hash[HASH_SIZE];
-    generate_public_key(&pubkey, key->derivation_type, &key->bip32_path);
+    generate_public_key(&pubkey, key);
     public_key_hash(hash, sizeof(hash), NULL, key->derivation_type, &pubkey);
     pkh_to_string(out, out_size, derivation_type_to_signature_type(key->derivation_type), hash);
 }

@@ -48,13 +48,11 @@ bool read_bip32_path(buffer_t *buf, bip32_path_t *const out);
  * @brief Generates a public key from a bip32 path and a curve
  *
  * @param public_key: public key output
- * @param derivation_type: curve
- * @param bip32_path: bip32 path
+ * @param path_with_curve: bip32 path and curve
  * @return int: error, 0 if none
  */
 int generate_public_key(cx_ecfp_public_key_t *public_key,
-                        derivation_type_t const derivation_type,
-                        bip32_path_t const *const bip32_path);
+                        bip32_path_with_curve_t const *const path_with_curve);
 
 /**
  * @brief Extract the public key hash from a public key and a curve
@@ -75,20 +73,18 @@ void public_key_hash(uint8_t *const hash_out,
                      cx_ecfp_public_key_t const *const restrict public_key);
 
 /**
- * @brief Signs a message  with a key
+ * @brief Signs a message with a key
  *
  * @param out: signature output
  * @param out_size: output size
- * @param derivation_type: key derivation_type
- * @param bip32_path: key bip32 path
+ * @param path_with_curve: bip32 path and curve of the key
  * @param in: message input
  * @param in_size: input size
  * @return size_t: size of the signature
  */
 size_t sign(uint8_t *const out,
             size_t const out_size,
-            derivation_type_t const derivation_type,
-            bip32_path_t const *const bip32_path,
+            bip32_path_with_curve_t const *const path_with_curve,
             uint8_t const *const in,
             size_t const in_size);
 

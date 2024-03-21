@@ -294,10 +294,7 @@ int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
             break;
         case MAGIC_BYTE_UNSAFE_OP:
             // Parse the operation. It will be verified in `baking_sign_complete`.
-            G.maybe_ops.is_valid = parse_operations(cdata,
-                                                    &G.maybe_ops.v,
-                                                    global.path_with_curve.derivation_type,
-                                                    &global.path_with_curve.bip32_path);
+            G.maybe_ops.is_valid = parse_operations(cdata, &G.maybe_ops.v, &global.path_with_curve);
             break;
         default:
             PARSE_ERROR();
@@ -365,8 +362,7 @@ static int perform_signature(bool const send_hash) {
 
     offset += sign(resp + offset,
                    MAX_SIGNATURE_SIZE,
-                   global.path_with_curve.derivation_type,
-                   &global.path_with_curve.bip32_path,
+                   &global.path_with_curve,
                    G.final_hash,
                    sizeof(G.final_hash));
 

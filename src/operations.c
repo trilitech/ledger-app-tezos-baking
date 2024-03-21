@@ -72,24 +72,23 @@ static inline signature_type_t parse_raw_tezos_header_signature_type(
  *
  * @param compressed_pubkey_out: compressed_pubkey output
  * @param contract_out: contract output
- * @param derivation_type: curve of the key
- * @param bip32_path: bip32 path of the key
+ * @param path_with_curve: bip32 path and curve of the key
  */
 static inline void compute_pkh(cx_ecfp_public_key_t *const compressed_pubkey_out,
                                parsed_contract_t *const contract_out,
-                               derivation_type_t const derivation_type,
-                               bip32_path_t const *const bip32_path) {
-    check_null(bip32_path);
+                               bip32_path_with_curve_t const *const path_with_curve) {
+    check_null(path_with_curve);
     check_null(compressed_pubkey_out);
     check_null(contract_out);
     cx_ecfp_public_key_t pubkey = {0};
-    generate_public_key(&pubkey, derivation_type, bip32_path);
+    generate_public_key(&pubkey, path_with_curve);
     public_key_hash(contract_out->hash,
                     sizeof(contract_out->hash),
                     compressed_pubkey_out,
-                    derivation_type,
+                    path_with_curve->derivation_type,
                     &pubkey);
-    contract_out->signature_type = derivation_type_to_signature_type(derivation_type);
+    contract_out->signature_type =
+        derivation_type_to_signature_type(path_with_curve->derivation_type);
     if (contract_out->signature_type == SIGNATURE_TYPE_UNSET) {
         THROW(EXC_MEMORY_ERROR);
     }
@@ -202,21 +201,19 @@ static inline bool parse_next_type(uint8_t current_byte,
  * @brief Initialize the operation parser
  *
  * @param out: parsing output
- * @param derivation_type: curve of the key
- * @param bip32_path: bip32 path of the key
+ * @param path_with_curve: bip32 path and curve of the key
  * @param state: parsing state
  */
 static void parse_operations_init(struct parsed_operation_group *const out,
-                                  derivation_type_t derivation_type,
-                                  bip32_path_t const *const bip32_path,
+                                  bip32_path_with_curve_t const *const path_with_curve,
                                   struct parse_state *const state) {
     check_null(out);
-    check_null(bip32_path);
+    check_null(path_with_curve);
     memset(out, 0, sizeof(*out));
 
     out->operation.tag = OPERATION_TAG_NONE;
 
-    compute_pkh(&out->public_key, &out->signing, derivation_type, bip32_path);
+    compute_pkh(&out->public_key, &out->signing, path_with_curve);
 
     // Start out with source = signing, for reveals
     // TODO: This is slightly hackish
@@ -433,16 +430,15 @@ static inline bool parse_byte(uint8_t byte,
  *
  * @param buf: input operation
  * @param out: output
- * @param derivation_type: curve of the key
- * @param bip32_path: bip32 path of the key
+ * @param path_with_curve: bip32 path and curve of the key
  */
-static void parse_operations_throws_parse_error(buffer_t *buf,
-                                                struct parsed_operation_group *const out,
-                                                derivation_type_t derivation_type,
-                                                bip32_path_t const *const bip32_path) {
+static void parse_operations_throws_parse_error(
+    buffer_t *buf,
+    struct parsed_operation_group *const out,
+    bip32_path_with_curve_t const *const path_with_curve) {
     uint8_t byte;
 
-    parse_operations_init(out, derivation_type, bip32_path, &G.parse_state);
+    parse_operations_init(out, path_with_curve, &G.parse_state);
 
     while (buffer_read_u8(buf, &byte) == true) {
         parse_byte(byte, &G.parse_state, out);
@@ -456,11 +452,10 @@ static void parse_operations_throws_parse_error(buffer_t *buf,
 
 bool parse_operations(buffer_t *buf,
                       struct parsed_operation_group *const out,
-                      derivation_type_t derivation_type,
-                      bip32_path_t const *const bip32_path) {
+                      bip32_path_with_curve_t const *const path_with_curve) {
     BEGIN_TRY {
         TRY {
-            parse_operations_throws_parse_error(buf, out, derivation_type, bip32_path);
+            parse_operations_throws_parse_error(buf, out, path_with_curve);
         }
         CATCH(EXC_PARSE_ERROR) {
             return false;
