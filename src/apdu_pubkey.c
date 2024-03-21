@@ -39,7 +39,7 @@
  */
 static bool pubkey_ok(void) {
     cx_ecfp_public_key_t public_key = {0};
-    generate_public_key(&public_key, &global.path_with_curve);
+    CX_THROW(generate_public_key(&public_key, &global.path_with_curve));
     provide_pubkey(&public_key);
     return true;
 }
@@ -81,7 +81,7 @@ int handle_get_public_key(buffer_t *cdata,
     }
 
     cx_ecfp_public_key_t public_key = {0};
-    generate_public_key(&public_key, &global.path_with_curve);
+    CX_THROW(generate_public_key(&public_key, &global.path_with_curve));
 
     if (!prompt) {
         return provide_pubkey(&public_key);

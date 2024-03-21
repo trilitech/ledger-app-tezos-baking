@@ -360,11 +360,15 @@ static int perform_signature(bool const send_hash) {
         offset += sizeof(G.final_hash);
     }
 
-    offset += sign(resp + offset,
-                   MAX_SIGNATURE_SIZE,
-                   &global.path_with_curve,
-                   G.final_hash,
-                   sizeof(G.final_hash));
+    size_t signature_size = MAX_SIGNATURE_SIZE;
+
+    CX_THROW(sign(resp + offset,
+                  &signature_size,
+                  &global.path_with_curve,
+                  G.final_hash,
+                  sizeof(G.final_hash)));
+
+    offset += signature_size;
 
     clear_data();
 

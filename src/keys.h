@@ -49,10 +49,10 @@ bool read_bip32_path(buffer_t *buf, bip32_path_t *const out);
  *
  * @param public_key: public key output
  * @param path_with_curve: bip32 path and curve
- * @return int: error, 0 if none
+ * @return cx_err_t: error, CX_OK if none
  */
-int generate_public_key(cx_ecfp_public_key_t *public_key,
-                        bip32_path_with_curve_t const *const path_with_curve);
+cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
+                             bip32_path_with_curve_t const *const path_with_curve);
 
 /**
  * @brief Extract the public key hash from a public key and a curve
@@ -64,29 +64,32 @@ int generate_public_key(cx_ecfp_public_key_t *public_key,
  * @param compressed_out: compressed public key output
  *                        pass NULL if this value is not desired
  * @param derivation_type: curve
- * @param public_key: public key
+ * @param param public_key: public key
+ * @return cx_err_t: error, CX_OK if none
  */
-void public_key_hash(uint8_t *const hash_out,
-                     size_t const hash_out_size,
-                     cx_ecfp_public_key_t *const compressed_out,
-                     derivation_type_t const derivation_type,
-                     cx_ecfp_public_key_t const *const restrict public_key);
+cx_err_t public_key_hash(uint8_t *const hash_out,
+                         size_t const hash_out_size,
+                         cx_ecfp_public_key_t *const compressed_out,
+                         derivation_type_t const derivation_type,
+                         cx_ecfp_public_key_t const *const restrict public_key);
 
 /**
  * @brief Signs a message with a key
+ *
+ *        output_size will be updated to the signature size
  *
  * @param out: signature output
  * @param out_size: output size
  * @param path_with_curve: bip32 path and curve of the key
  * @param in: message input
  * @param in_size: input size
- * @return size_t: size of the signature
+ * @return cx_err_t: error, CX_OK if none
  */
-size_t sign(uint8_t *const out,
-            size_t const out_size,
-            bip32_path_with_curve_t const *const path_with_curve,
-            uint8_t const *const in,
-            size_t const in_size);
+cx_err_t sign(uint8_t *const out,
+              size_t *out_size,
+              bip32_path_with_curve_t const *const path_with_curve,
+              uint8_t const *const in,
+              size_t const in_size);
 
 /**
  * @brief Reads a curve code from wire-format and parse into `deviration_type`
@@ -115,7 +118,7 @@ static inline derivation_type_t parse_derivation_type(uint8_t const curve_code) 
  * @param derivation_type: curve
  * @return uint8_t: curve code result
  */
-static inline uint8_t unparse_derivation_type(derivation_type_t const derivation_type) {
+static inline int unparse_derivation_type(derivation_type_t const derivation_type) {
     switch (derivation_type) {
         case DERIVATION_TYPE_ED25519:
             return 0;
@@ -126,7 +129,7 @@ static inline uint8_t unparse_derivation_type(derivation_type_t const derivation
         case DERIVATION_TYPE_BIP32_ED25519:
             return 3;
         default:
-            THROW(EXC_REFERENCED_DATA_NOT_FOUND);
+            return -1;
     }
 }
 
