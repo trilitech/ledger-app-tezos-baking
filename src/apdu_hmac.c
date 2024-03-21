@@ -59,28 +59,12 @@ static inline size_t hmac(uint8_t *const out,
                                          0x5a, 0x90, 0x47, 0x5e, 0xc0, 0xdb, 0xdb, 0x9f};
 
     // Deterministically sign the SHA256 value to get something directly tied to the secret key.
-    key_pair_t key_pair = {0};
-
-    size_t signed_hmac_key_size = 0;
-
-    BEGIN_TRY {
-        TRY {
-            generate_key_pair(&key_pair, derivation_type, &bip32_path);
-            signed_hmac_key_size = sign(state->signed_hmac_key,
-                                        sizeof(state->signed_hmac_key),
-                                        derivation_type,
-                                        &key_pair,
-                                        key_sha256,
-                                        sizeof(key_sha256));
-        }
-        CATCH_OTHER(e) {
-            THROW(e);
-        }
-        FINALLY {
-            memset(&key_pair, 0, sizeof(key_pair));
-        }
-    }
-    END_TRY;
+    size_t signed_hmac_key_size = sign(state->signed_hmac_key,
+                                       sizeof(state->signed_hmac_key),
+                                       derivation_type,
+                                       &bip32_path,
+                                       key_sha256,
+                                       sizeof(key_sha256));
 
     // Hash the signed value with SHA512 to get a 64-byte key for HMAC.
     cx_hash_sha512(state->signed_hmac_key,

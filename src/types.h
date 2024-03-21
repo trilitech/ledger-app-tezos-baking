@@ -93,15 +93,6 @@ static chain_id_t const mainnet_chain_id = {.v = 0x7A06A770};
 typedef bool (*ui_callback_t)(void);
 
 /**
- * @brief Pair of public and private key
- *
- */
-typedef struct {
-    cx_ecfp_public_key_t public_key;    ///< public key
-    cx_ecfp_private_key_t private_key;  ///< private key
-} key_pair_t;
-
-/**
  * @brief This structure represents a bip32 path
  *
  */

@@ -45,16 +45,16 @@
 bool read_bip32_path(buffer_t *buf, bip32_path_t *const out);
 
 /**
- * @brief Generates a private/public key pair from a bip32 path and a curve
+ * @brief Generates a public key from a bip32 path and a curve
  *
- * @param key_pair: private/public key pair output
+ * @param public_key: public key output
  * @param derivation_type: curve
  * @param bip32_path: bip32 path
  * @return int: error, 0 if none
  */
-int generate_key_pair(key_pair_t *key_pair,
-                      derivation_type_t const derivation_type,
-                      bip32_path_t const *const bip32_path);
+int generate_public_key(cx_ecfp_public_key_t *public_key,
+                        derivation_type_t const derivation_type,
+                        bip32_path_t const *const bip32_path);
 
 /**
  * @brief Extract the public key hash from a public key and a curve
@@ -80,7 +80,7 @@ void public_key_hash(uint8_t *const hash_out,
  * @param out: signature output
  * @param out_size: output size
  * @param derivation_type: key derivation_type
- * @param key: key
+ * @param bip32_path: key bip32 path
  * @param in: message input
  * @param in_size: input size
  * @return size_t: size of the signature
@@ -88,7 +88,7 @@ void public_key_hash(uint8_t *const hash_out,
 size_t sign(uint8_t *const out,
             size_t const out_size,
             derivation_type_t const derivation_type,
-            key_pair_t const *const key,
+            bip32_path_t const *const bip32_path,
             uint8_t const *const in,
             size_t const in_size);
 
@@ -148,41 +148,9 @@ static inline signature_type_t derivation_type_to_signature_type(
         case DERIVATION_TYPE_SECP256R1:
             return SIGNATURE_TYPE_SECP256R1;
         case DERIVATION_TYPE_ED25519:
-            return SIGNATURE_TYPE_ED25519;
         case DERIVATION_TYPE_BIP32_ED25519:
             return SIGNATURE_TYPE_ED25519;
         default:
             return SIGNATURE_TYPE_UNSET;
     }
 }
-
-/**
- * @brief Converts `signature_type` to `cx_curve`
- *
- * @param signature_type: signature_type
- * @return cx_curve_t: curve result
- */
-static inline cx_curve_t signature_type_to_cx_curve(signature_type_t const signature_type) {
-    switch (signature_type) {
-        case SIGNATURE_TYPE_SECP256K1:
-            return CX_CURVE_SECP256K1;
-        case SIGNATURE_TYPE_SECP256R1:
-            return CX_CURVE_SECP256R1;
-        case SIGNATURE_TYPE_ED25519:
-            return CX_CURVE_Ed25519;
-        default:
-            return CX_CURVE_NONE;
-    }
-}
-
-/**
- * @brief Generates a public key from a bip32 path and a curve
- *
- * @param public_key: public key output
- * @param derivation_type: curve
- * @param bip32_path: bip32 path
- * @return int: error, 0 if none
- */
-int generate_public_key(cx_ecfp_public_key_t *public_key,
-                        derivation_type_t const derivation_type,
-                        bip32_path_t const *const bip32_path);

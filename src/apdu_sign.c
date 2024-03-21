@@ -363,36 +363,12 @@ static int perform_signature(bool const send_hash) {
         offset += sizeof(G.final_hash);
     }
 
-    key_pair_t key_pair = {0};
-
-    int error = generate_key_pair(&key_pair,
-                                  global.path_with_curve.derivation_type,
-                                  &global.path_with_curve.bip32_path);
-    if (error != 0) {
-        THROW(EXC_WRONG_VALUES);
-    }
-
-    BEGIN_TRY {
-        TRY {
-            offset += sign(resp + offset,
-                           MAX_SIGNATURE_SIZE,
-                           global.path_with_curve.derivation_type,
-                           &key_pair,
-                           G.final_hash,
-                           sizeof(G.final_hash));
-        }
-        CATCH_OTHER(e) {
-            error = e;
-        }
-        FINALLY {
-            memset(&key_pair, 0, sizeof(key_pair));
-        }
-    }
-    END_TRY;
-
-    if (error != 0) {
-        THROW(error);
-    }
+    offset += sign(resp + offset,
+                   MAX_SIGNATURE_SIZE,
+                   global.path_with_curve.derivation_type,
+                   &global.path_with_curve.bip32_path,
+                   G.final_hash,
+                   sizeof(G.final_hash));
 
     clear_data();
 
