@@ -78,7 +78,7 @@ static inline bool reject(void) {
  *
  *        Expects validated pin
  *
- * @param pubkey: public key
+ * @param path_with_curve: bip32 path and curve of the key
  * @return int: zero or positive integer if success, negative integer otherwise.
  */
-int provide_pubkey(cx_ecfp_public_key_t const* const pubkey);
+int provide_pubkey(bip32_path_with_curve_t const* const path_with_curve);

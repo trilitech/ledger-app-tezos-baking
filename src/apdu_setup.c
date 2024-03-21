@@ -57,9 +57,8 @@ static bool ok(void) {
         ram->hwm.test.migrated_to_tenderbake = false;
     });
 
-    cx_ecfp_public_key_t pubkey = {0};
-    CX_THROW(generate_public_key(&pubkey, &global.path_with_curve));
-    provide_pubkey(&pubkey);
+    provide_pubkey(&global.path_with_curve);
+
     return true;
 }
 

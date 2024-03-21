@@ -38,9 +38,7 @@
  * @return true
  */
 static bool pubkey_ok(void) {
-    cx_ecfp_public_key_t public_key = {0};
-    CX_THROW(generate_public_key(&public_key, &global.path_with_curve));
-    provide_pubkey(&public_key);
+    provide_pubkey(&global.path_with_curve);
     return true;
 }
 
@@ -80,11 +78,8 @@ int handle_get_public_key(buffer_t *cdata,
         THROW(EXC_WRONG_LENGTH);
     }
 
-    cx_ecfp_public_key_t public_key = {0};
-    CX_THROW(generate_public_key(&public_key, &global.path_with_curve));
-
     if (!prompt) {
-        return provide_pubkey(&public_key);
+        return provide_pubkey(&global.path_with_curve);
     } else {
         // INS_PROMPT_PUBLIC_KEY || INS_AUTHORIZE_BAKING
         ui_callback_t cb;

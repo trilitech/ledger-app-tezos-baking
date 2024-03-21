@@ -33,8 +33,8 @@
 #include <stdint.h>
 #include <string.h>
 
-int provide_pubkey(cx_ecfp_public_key_t const* const pubkey) {
-    check_null(pubkey);
+int provide_pubkey(bip32_path_with_curve_t const* const path_with_curve) {
+    check_null(path_with_curve);
 
     // 100 = MAX(SIGNATURE_LEN)
     uint8_t resp[1u + 100u] = {0};
@@ -46,10 +46,13 @@ int provide_pubkey(cx_ecfp_public_key_t const* const pubkey) {
         THROW(EXC_SECURITY);
     }
 
-    resp[offset] = pubkey->W_len;
+    cx_ecfp_public_key_t pubkey = {0};
+    CX_THROW(generate_public_key(&pubkey, path_with_curve));
+
+    resp[offset] = pubkey.W_len;
     offset++;
-    memmove(resp + offset, pubkey->W, pubkey->W_len);
-    offset += pubkey->W_len;
+    memmove(resp + offset, pubkey.W, pubkey.W_len);
+    offset += pubkey.W_len;
 
     return io_send_response_pointer(resp, offset, SW_OK);
 }
