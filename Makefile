@@ -59,10 +59,10 @@ endif
 
 # ICONS
 
-ICON_NANOS  = icons/nano-s-tezos.gif
-ICON_NANOX  = icons/nano-x-tezos.gif
+ICON_NANOS  = icons/nanos_app_tezos.gif
+ICON_NANOX  = icons/nanox_app_tezos.gif
 ICON_NANOSP = $(ICON_NANOX)
-ICON_STAX   = icons/stax_tezos.gif
+ICON_STAX   = icons/stax_app_tezos.gif
 
 ################
 # Default rule #
