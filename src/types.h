@@ -23,6 +23,7 @@
 #pragma once
 
 #include "exception.h"
+#include "bip32.h"
 #include "os.h"
 #include "os_io_seproxyhal.h"
 
@@ -100,15 +101,13 @@ typedef struct {
     cx_ecfp_private_key_t private_key;  ///< private key
 } key_pair_t;
 
-#define MAX_BIP32_LEN 10u
-
 /**
  * @brief This structure represents a bip32 path
  *
  */
 typedef struct {
-    uint8_t length;                      ///< length of the path
-    uint32_t components[MAX_BIP32_LEN];  ///< array of components
+    uint8_t length;                       ///< length of the path
+    uint32_t components[MAX_BIP32_PATH];  ///< array of components
 } bip32_path_t;
 
 /**

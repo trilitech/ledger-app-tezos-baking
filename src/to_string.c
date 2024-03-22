@@ -25,6 +25,7 @@
 
 #include "apdu.h"
 #include "keys.h"
+#include "read.h"
 
 #include <string.h>
 
@@ -151,7 +152,7 @@ static void chain_id_to_string(char *const buff,
     }
 
     // Must hash big-endian data so treating little endian as big endian just flips
-    uint32_t chain_id_value = READ_UNALIGNED_BIG_ENDIAN(uint32_t, &chain_id.v);
+    uint32_t chain_id_value = read_u32_be((const uint8_t *) &chain_id.v, 0);
 
     // Data to encode
     struct __attribute__((packed)) {

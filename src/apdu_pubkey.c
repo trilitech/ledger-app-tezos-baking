@@ -25,7 +25,6 @@
 #include "cx.h"
 #include "globals.h"
 #include "keys.h"
-#include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
 #include "ui_pubkey.h"
@@ -59,6 +58,10 @@ static bool baking_ok(void) {
     return pubkey_ok();
 }
 
+/**
+ * Cdata:
+ *   + Bip32 path: public key path
+ */
 int handle_get_public_key(buffer_t *cdata,
                           derivation_type_t derivation_type,
                           bool authorize,
@@ -70,10 +73,13 @@ int handle_get_public_key(buffer_t *cdata,
     if ((cdata->size == 0u) && authorize) {
         copy_bip32_path_with_curve(&global.path_with_curve, &N_data.baking_key);
     } else {
-        read_bip32_path(&global.path_with_curve.bip32_path, cdata->ptr, cdata->size);
-        if (global.path_with_curve.bip32_path.length == 0u) {
-            THROW(EXC_WRONG_LENGTH_FOR_INS);
+        if (!read_bip32_path(cdata, &global.path_with_curve.bip32_path)) {
+            THROW(EXC_WRONG_VALUES);
         }
+    }
+
+    if (cdata->size != cdata->offset) {
+        THROW(EXC_WRONG_LENGTH);
     }
 
     cx_ecfp_public_key_t public_key = {0};

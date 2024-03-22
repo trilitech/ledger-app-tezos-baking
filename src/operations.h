@@ -27,7 +27,6 @@
 #include <stdint.h>
 
 #include "keys.h"
-#include "protocol.h"
 
 #include "cx.h"
 #include "types.h"
@@ -45,8 +44,7 @@ typedef struct {
  *
  */
 struct operation_group_header {
-    uint8_t magic_byte;  ///< magic bytes, should be 0x03
-    uint8_t hash[32];    ///< hash of the operation
+    uint8_t hash[32];  ///< hash of the operation
 } __attribute__((packed));
 
 /**
@@ -56,6 +54,16 @@ struct operation_group_header {
 struct implicit_contract {
     raw_tezos_header_signature_type_t signature_type;  ///< type of the contract signature
     uint8_t pkh[HASH_SIZE];                            ///< raw public key hash
+} __attribute__((packed));
+
+/**
+ * @brief Wire representation of implicit contract
+ *
+ */
+union public_key {
+    uint8_t edpk[32];  ///< raw public key for a edpk key
+    uint8_t sppk[33];  ///< raw public key for a sppk key
+    uint8_t p2pk[33];  ///< raw public key for a p2pk key
 } __attribute__((packed));
 
 /**
@@ -100,6 +108,9 @@ struct nexttype_subparser_state {
 
         struct delegation_contents dc;  ///< wire delegation content
 
+        // Required to read Reveal public key
+        union public_key pk;  ///< wire public key
+
         uint8_t raw[1];  ///< raw array to fill the body
     } body;
     uint32_t fill_idx;  ///< current fill index
@@ -133,16 +144,14 @@ struct parse_state {
  *
  *        Some checks are carried out during the parsing using a key using a key
  *
+ * @param buf: input operation
  * @param out: parsing output
- * @param data: input
- * @param length: input length
  * @param curve: curve of the key
  * @param bip32_path: bip32 path of the key
  * @return bool: returns true on success
  */
-bool parse_operations(struct parsed_operation_group *const out,
-                      uint8_t const *const data,
-                      size_t length,
+bool parse_operations(buffer_t *buf,
+                      struct parsed_operation_group *const out,
                       derivation_type_t curve,
                       bip32_path_t const *const bip32_path);
 

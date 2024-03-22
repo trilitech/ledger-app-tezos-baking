@@ -24,7 +24,6 @@
 
 #include "apdu.h"
 #include "operations.h"
-#include "protocol.h"
 #include "types.h"
 
 #include <stdbool.h>
@@ -64,13 +63,19 @@ bool is_valid_level(level_t level);
 void write_high_water_mark(parsed_baking_data_t const *const in);
 
 /**
- * @brief Parses a baking data
+ * @brief Parse a block
  *
+ * @param buf: input buffer containing the block
  * @param out: baking data output
- * @param data: input
- * @param length: input length
  * @return bool: returns false if it is invalid
  */
-bool parse_baking_data(parsed_baking_data_t *const out,
-                       uint8_t const *const data,
-                       size_t const length);
+bool parse_block(buffer_t *buf, parsed_baking_data_t *const out);
+
+/**
+ * @brief Parse a consensus operation
+ *
+ * @param buf: input buffer containing the consensus operation
+ * @param out: baking data output
+ * @return bool: returns false if it is invalid
+ */
+bool parse_consensus_operation(buffer_t *buf, parsed_baking_data_t *const out);

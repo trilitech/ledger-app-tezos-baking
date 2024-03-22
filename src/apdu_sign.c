@@ -26,7 +26,6 @@
 #include "globals.h"
 #include "keys.h"
 #include "memory.h"
-#include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
 #include "ui_delegation.h"
@@ -166,6 +165,13 @@ static bool sign_reject(void) {
     return true;
 }
 
+/// Magic byte values
+/// See: https://tezos.gitlab.io/user/key-management.html#signer-requests
+#define MAGIC_BYTE_UNSAFE_OP      0x03u  /// magic byte of an operation
+#define MAGIC_BYTE_BLOCK          0x11u  /// magic byte of a block
+#define MAGIC_BYTE_PREATTESTATION 0x12u  /// magic byte of a pre-attestation
+#define MAGIC_BYTE_ATTESTATION    0x13u  /// magic byte of an attestation
+
 /**
  * @brief Carries out final checks before signing
  *
@@ -228,39 +234,31 @@ static int baking_sign_complete(bool const send_hash) {
 }
 
 /**
- * @brief Get the magic byte of a buffer
- *
- *        Throws an error if the magic byte does not correspond to an expected byte
- *
- * @param buff: buffer
- * @param buff_size: buffer size
- * @return uint8_t: magic_byte
+ * Cdata:
+ *   + Bip32 path: signing key path
  */
-static uint8_t get_magic_byte_or_throw(uint8_t const *const buff, size_t const buff_size) {
-    uint8_t const magic_byte = get_magic_byte(buff, buff_size);
-    switch (magic_byte) {
-        case MAGIC_BYTE_BLOCK:
-        case MAGIC_BYTE_PREATTESTATION:
-        case MAGIC_BYTE_ATTESTATION:
-        case MAGIC_BYTE_UNSAFE_OP:  // Only for self-delegations and reveals
-            return magic_byte;
-
-        default:
-            break;
-    }
-    PARSE_ERROR();
-}
-
 int select_signing_key(buffer_t *cdata, derivation_type_t derivation_type) {
     check_null(cdata);
 
     clear_data();
-    read_bip32_path(&global.path_with_curve.bip32_path, cdata->ptr, cdata->size);
+
+    if (!read_bip32_path(cdata, &global.path_with_curve.bip32_path)) {
+        THROW(EXC_WRONG_VALUES);
+    }
+
+    if (cdata->size != cdata->offset) {
+        THROW(EXC_WRONG_LENGTH);
+    }
+
     global.path_with_curve.derivation_type = derivation_type;
 
     return io_send_sw(SW_OK);
 }
 
+/**
+ * Cdata:
+ *   + (max-size) uint8 *: message
+ */
 int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
     check_null(cdata);
 
@@ -278,19 +276,31 @@ int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
         PARSE_ERROR();  // Only parse a single packet when baking
     }
 
-    G.magic_byte = get_magic_byte_or_throw(cdata->ptr, cdata->size);
-    if (G.magic_byte == MAGIC_BYTE_UNSAFE_OP) {
-        // Parse the operation. It will be verified in `baking_sign_complete`.
-        G.maybe_ops.is_valid = parse_operations(&G.maybe_ops.v,
-                                                cdata->ptr,
-                                                cdata->size,
-                                                global.path_with_curve.derivation_type,
-                                                &global.path_with_curve.bip32_path);
-    } else {
-        // This should be a baking operation so parse it.
-        if (!parse_baking_data(&G.parsed_baking_data, cdata->ptr, cdata->size)) {
+    if (!buffer_read_u8(cdata, &G.magic_byte)) {
+        PARSE_ERROR();
+    }
+
+    switch (G.magic_byte) {
+        case MAGIC_BYTE_PREATTESTATION:
+        case MAGIC_BYTE_ATTESTATION:
+            if (!parse_consensus_operation(cdata, &G.parsed_baking_data)) {
+                PARSE_ERROR();
+            }
+            break;
+        case MAGIC_BYTE_BLOCK:
+            if (!parse_block(cdata, &G.parsed_baking_data)) {
+                PARSE_ERROR();
+            }
+            break;
+        case MAGIC_BYTE_UNSAFE_OP:
+            // Parse the operation. It will be verified in `baking_sign_complete`.
+            G.maybe_ops.is_valid = parse_operations(cdata,
+                                                    &G.maybe_ops.v,
+                                                    global.path_with_curve.derivation_type,
+                                                    &global.path_with_curve.bip32_path);
+            break;
+        default:
             PARSE_ERROR();
-        }
     }
 
     // Hash contents of *previous* message (which may be empty).
@@ -299,11 +309,12 @@ int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
                              &G.message_data_length,
                              &G.hash_state);
 
-    if ((G.message_data_length + cdata->size) > sizeof(G.message_data)) {
+    if (!buffer_seek_set(cdata, 0) ||
+        !buffer_move(cdata,
+                     G.message_data + G.message_data_length,
+                     sizeof(G.message_data) - G.message_data_length)) {
         PARSE_ERROR();
     }
-
-    memmove(G.message_data + G.message_data_length, cdata->ptr, cdata->size);
     G.message_data_length += cdata->size;
 
     if (last) {

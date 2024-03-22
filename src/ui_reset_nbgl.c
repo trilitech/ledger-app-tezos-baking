@@ -27,7 +27,6 @@
 #include "baking_auth.h"
 #include "globals.h"
 #include "os_cx.h"
-#include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
 
