@@ -56,29 +56,3 @@ high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
     return ((chain_id.v == ram->main_chain_id.v) || !ram->main_chain_id.v) ? &ram->hwm.main
                                                                            : &ram->hwm.test;
 }
-
-void copy_chain(char *out, size_t out_size, chain_id_t *chain_id) {
-    if (!chain_id->v) {
-        copy_string(out, out_size, "any");
-    } else {
-        chain_id_to_string_with_aliases(out, out_size, (chain_id_t const *const) chain_id);
-    }
-}
-
-void copy_key(char *out, size_t out_size, bip32_path_with_curve_t *baking_key) {
-    if (baking_key->bip32_path.length == 0u) {
-        copy_string(out, out_size, "No Key Authorized");
-    } else {
-        bip32_path_with_curve_to_pkh_string(out, out_size, baking_key);
-    }
-}
-
-void copy_hwm(char *out, __attribute__((unused)) size_t out_size, high_watermark_t *hwm) {
-    if (hwm->migrated_to_tenderbake) {
-        size_t len1 = number_to_string(out, hwm->highest_level);
-        out[len1] = ' ';
-        number_to_string(out + len1 + 1u, hwm->highest_round);
-    } else {
-        number_to_string(out, hwm->highest_level);
-    }
-}

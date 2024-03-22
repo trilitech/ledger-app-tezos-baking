@@ -85,11 +85,21 @@ UX_FLOW(ux_idle_flow,
 static void calculate_baking_idle_screens_data(void) {
     memset(&home_context, 0, sizeof(home_context));
 
-    copy_chain(home_context.chain_id, sizeof(home_context.chain_id), &N_data.main_chain_id);
+    chain_id_to_string_with_aliases(home_context.chain_id,
+                                    sizeof(home_context.chain_id),
+                                    &N_data.main_chain_id);
 
-    copy_key(home_context.authorized_key, sizeof(home_context.authorized_key), &N_data.baking_key);
+    if (N_data.baking_key.bip32_path.length == 0u) {
+        copy_string(home_context.authorized_key,
+                    sizeof(home_context.authorized_key),
+                    "No Key Authorized");
+    } else {
+        bip32_path_with_curve_to_pkh_string(home_context.authorized_key,
+                                            sizeof(home_context.authorized_key),
+                                            &N_data.baking_key);
+    }
 
-    copy_hwm(home_context.hwm, sizeof(home_context.hwm), &N_data.hwm.main);
+    hwm_to_string(home_context.hwm, sizeof(home_context.hwm), &N_data.hwm.main);
 }
 
 void ui_initial_screen(void) {

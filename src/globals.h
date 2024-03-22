@@ -38,35 +38,6 @@
 void clear_apdu_globals(void);
 
 /**
- * @brief Converts a chain id to string
- *
- * @param out: output buffer
- * @param out_size: output size
- * @param chain_id: chain_id
- */
-void copy_chain(char *out, size_t out_size, chain_id_t *chain_id);
-
-/**
- * @brief Converts a baking key to string
- *
- *        if the baking is empty, copies "No Key Authorized" in the output
- *
- * @param out: output buffer
- * @param out_size: output size
- * @param baking_key: bip32 path curve key
- */
-void copy_key(char *out, size_t out_size, bip32_path_with_curve_t *baking_key);
-
-/**
- * @brief Converts a high watermark to string
- *
- * @param out: output buffer
- * @param out_size: output size
- * @param hwm: high watermark
- */
-void copy_hwm(char *out, size_t out_size, high_watermark_t *hwm);
-
-/**
  * @brief Zeros out all application-specific globals and SDK-specific UI/exchange buffers
  *
  */

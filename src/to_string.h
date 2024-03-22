@@ -90,6 +90,15 @@ void microtez_to_string_indirect(char *const dest,
                                  uint64_t const *const number);
 
 /**
+ * @brief Converts a high watermark to string
+ *
+ * @param dest: output buffer
+ * @param dest_size: output size
+ * @param hwm: high watermark
+ */
+void hwm_to_string(char *dest, size_t dest_size, high_watermark_t const *const hwm);
+
+/**
  * @brief Copies a string in a buffer
  *
  *        `src` may be unrelocated pointer to rodata.

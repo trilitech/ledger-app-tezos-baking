@@ -293,6 +293,18 @@ static size_t microtez_to_string(char *const dest, uint64_t number) {
     return off;
 }
 
+void hwm_to_string(char *dest,
+                   __attribute__((unused)) size_t dest_size,
+                   high_watermark_t const *const hwm) {
+    if (hwm->migrated_to_tenderbake) {
+        size_t len1 = number_to_string(dest, hwm->highest_level);
+        dest[len1] = ' ';
+        number_to_string(dest + len1 + 1u, hwm->highest_round);
+    } else {
+        number_to_string(dest, hwm->highest_level);
+    }
+}
+
 void copy_string(char *const dest, size_t const buff_size, char const *const src) {
     check_null(dest);
     check_null(src);
