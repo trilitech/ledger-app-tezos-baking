@@ -38,56 +38,45 @@
  * @param out: result output
  * @param out_size: output size
  * @param key: bip32 path and curve of the key
+ * @return tz_exc: exception, SW_OK if none
  */
-void bip32_path_with_curve_to_pkh_string(char *const out,
-                                         size_t const out_size,
-                                         bip32_path_with_curve_t const *const key);
+tz_exc bip32_path_with_curve_to_pkh_string(char *const out,
+                                           size_t const out_size,
+                                           bip32_path_with_curve_t const *const key);
 
 /**
  * @brief Converts a chain id to string
  *
  *        Outputs its alias if it has one
  *
- * @param out: result output
- * @param out_size: output size
+ * @param dest: result output
+ * @param dest_size: output size
  * @param chain_id: chain id to convert
+ * @return int: size of the result, negative integer on failure
  */
-void chain_id_to_string_with_aliases(char *const out,
-                                     size_t const out_size,
-                                     chain_id_t const *const chain_id);
+int chain_id_to_string_with_aliases(char *const dest,
+                                    size_t const dest_size,
+                                    chain_id_t const *const chain_id);
 
 /**
  * @brief Converts an uint64 number to string
  *
- *        The size of `dest` must be at least `MAX_INT_DIGITS`
- *
  * @param dest: result output
+ * @param dest_size: size of the output
  * @param number: number to convert
- * @return size_t: size of the result
+ * @return int: size of the result, negative integer on failure
  */
-size_t number_to_string(char *const dest, uint64_t number);
-
-/**
- * @brief Converts an uint32 number to string
- *
- * @param dest: result output
- * @param buff_size: size of dest
- * @param number: number to convert
- */
-void number_to_string_indirect32(char *const dest,
-                                 size_t const buff_size,
-                                 uint32_t const *const number);
+int number_to_string(char *const dest, size_t dest_size, uint64_t number);
 
 /**
  * @brief Converts an uint64 number to microtez as string
  *
  * @param dest: result output
- * @param buff_size: size of dest
+ * @param dest_size: size of the output
  * @param number: number to convert
+ * @return int: size of the result, negative integer on failure
  */
-void microtez_to_string_indirect(char *const dest,
-                                 size_t const buff_size,
-                                 uint64_t const *const number);
+int microtez_to_string(char *const dest, size_t dest_size, uint64_t number);
 
 /**
  * @brief Converts a high watermark to string
@@ -95,8 +84,9 @@ void microtez_to_string_indirect(char *const dest,
  * @param dest: output buffer
  * @param dest_size: output size
  * @param hwm: high watermark
+ * @return int: size of the result, negative integer on failure
  */
-void hwm_to_string(char *dest, size_t dest_size, high_watermark_t const *const hwm);
+int hwm_to_string(char *dest, size_t dest_size, high_watermark_t const *const hwm);
 
 /**
  * @brief Copies a string in a buffer
@@ -104,7 +94,8 @@ void hwm_to_string(char *dest, size_t dest_size, high_watermark_t const *const h
  *        `src` may be unrelocated pointer to rodata.
  *
  * @param dest: output buffer
- * @param buff_size: size of the buffer
+ * @param dest_size: size of the buffer
  * @param src: input to copy
+ * @return int: size of the result, negative integer on failure
  */
-void copy_string(char *const dest, size_t const buff_size, char const *const src);
+int copy_string(char *const dest, size_t const dest_size, char const *const src);

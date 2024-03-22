@@ -96,7 +96,9 @@ int prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     reset_context.ok_cb = ok_cb;
     reset_context.cxl_cb = cxl_cb;
 
-    number_to_string_indirect32(reset_context.buffer, sizeof(reset_context.buffer), &G.reset_level);
+    if (number_to_string(reset_context.buffer, sizeof(reset_context.buffer), G.reset_level) < 0) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 
     reset_context.tagValuePair[0].item = "Reset level";
     reset_context.tagValuePair[0].value = reset_context.buffer;

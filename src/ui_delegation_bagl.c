@@ -61,13 +61,19 @@ int prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
 
     memset(&delegation_context, 0, sizeof(delegation_context));
 
-    bip32_path_with_curve_to_pkh_string(delegation_context.address,
-                                        sizeof(delegation_context.address),
-                                        &global.path_with_curve);
+    tz_exc exc = bip32_path_with_curve_to_pkh_string(delegation_context.address,
+                                                     sizeof(delegation_context.address),
+                                                     &global.path_with_curve);
 
-    microtez_to_string_indirect(delegation_context.fee,
-                                sizeof(delegation_context.fee),
-                                &G.maybe_ops.v.total_fee);
+    if (exc != SW_OK) {
+        THROW(exc);
+    }
+
+    if (microtez_to_string(delegation_context.fee,
+                           sizeof(delegation_context.fee),
+                           G.maybe_ops.v.total_fee) < 0) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 
     ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
     ux_flow_init(0, ux_delegation_flow, NULL);

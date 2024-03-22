@@ -65,21 +65,27 @@ UX_CONFIRM_FLOW(ux_setup_flow,
 int prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     memset(&setup_context, 0, sizeof(setup_context));
 
-    bip32_path_with_curve_to_pkh_string(setup_context.address,
-                                        sizeof(setup_context.address),
-                                        &global.path_with_curve);
+    tz_exc exc = bip32_path_with_curve_to_pkh_string(setup_context.address,
+                                                     sizeof(setup_context.address),
+                                                     &global.path_with_curve);
 
-    chain_id_to_string_with_aliases(setup_context.chain,
-                                    sizeof(setup_context.chain),
-                                    &G.main_chain_id);
+    if (exc != SW_OK) {
+        THROW(exc);
+    }
 
-    number_to_string_indirect32(setup_context.main_hwm,
-                                sizeof(setup_context.main_hwm),
-                                &G.hwm.main);
+    if (chain_id_to_string_with_aliases(setup_context.chain,
+                                        sizeof(setup_context.chain),
+                                        &G.main_chain_id) < 0) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 
-    number_to_string_indirect32(setup_context.test_hwm,
-                                sizeof(setup_context.test_hwm),
-                                &G.hwm.test);
+    if (number_to_string(setup_context.main_hwm, sizeof(setup_context.main_hwm), G.hwm.main) < 0) {
+        THROW(EXC_WRONG_LENGTH);
+    }
+
+    if (number_to_string(setup_context.test_hwm, sizeof(setup_context.test_hwm), G.hwm.test) < 0) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 
     ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
     ux_flow_init(0, ux_setup_flow, NULL);

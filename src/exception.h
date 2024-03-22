@@ -32,6 +32,9 @@
  *        https://www.eftlab.co.uk/index.php/site-map/knowledge-base/118-apdu-response-list
  *
  */
+
+typedef uint16_t tz_exc;
+
 #define SW_OK                         0x9000u
 #define EXC_WRONG_PARAM               0x6B00u
 #define EXC_WRONG_LENGTH              0x6C00u
@@ -44,6 +47,7 @@
 #define EXC_SECURITY                  0x6982u
 #define EXC_CLASS                     0x6E00u
 #define EXC_MEMORY_ERROR              0x9200u
+#define EXC_UNKNOWN_CX_ERR            0x9001u
 
 /**
  * @brief Checks if a pointer is NULL
@@ -57,3 +61,23 @@ static inline void check_null(void volatile const *const ptr) {
         THROW(EXC_MEMORY_ERROR);
     }
 }
+
+// Asserts a condition. Updates `exc` accordingly
+#define TZ_ASSERT(cond, _exc) \
+    do {                      \
+        if (!(cond)) {        \
+            exc = (_exc);     \
+            goto end;         \
+        }                     \
+    } while (0)
+
+#define TZ_ASSERT_NOT_NULL(_x) TZ_ASSERT((_x) != NULL, EXC_MEMORY_ERROR)
+
+// Converts `cx_err_t error` to `tz_exc exc`
+#define TZ_CONVERT_CX()                        \
+    do {                                       \
+        if (error != CX_OK) {                  \
+            PRINTF("CX error: 0x%08x", error); \
+            exc = EXC_UNKNOWN_CX_ERR;          \
+        }                                      \
+    } while (0)

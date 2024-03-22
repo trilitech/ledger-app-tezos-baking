@@ -91,9 +91,13 @@ int prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
     address_context.ok_cb = ok_cb;
     address_context.cxl_cb = cxl_cb;
 
-    bip32_path_with_curve_to_pkh_string(address_context.buffer,
-                                        sizeof(address_context.buffer),
-                                        &global.path_with_curve);
+    tz_exc exc = bip32_path_with_curve_to_pkh_string(address_context.buffer,
+                                                     sizeof(address_context.buffer),
+                                                     &global.path_with_curve);
+
+    if (exc != SW_OK) {
+        THROW(exc);
+    }
 
     const char* text;
     if (authorize) {

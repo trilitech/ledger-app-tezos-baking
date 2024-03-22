@@ -112,12 +112,19 @@ int prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     delegation_context.ok_cb = ok_cb;
     delegation_context.cxl_cb = cxl_cb;
 
-    bip32_path_with_curve_to_pkh_string(delegation_context.buffer[0],
-                                        sizeof(delegation_context.buffer[0]),
-                                        &global.path_with_curve);
-    microtez_to_string_indirect(delegation_context.buffer[1],
-                                sizeof(delegation_context.buffer[1]),
-                                &G.maybe_ops.v.total_fee);
+    tz_exc exc = bip32_path_with_curve_to_pkh_string(delegation_context.buffer[0],
+                                                     sizeof(delegation_context.buffer[0]),
+                                                     &global.path_with_curve);
+
+    if (exc != SW_OK) {
+        THROW(exc);
+    }
+
+    if (microtez_to_string(delegation_context.buffer[1],
+                           sizeof(delegation_context.buffer[1]),
+                           G.maybe_ops.v.total_fee) < 0) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 
     delegation_context.tagValuePair[0].item = "Address";
     delegation_context.tagValuePair[0].value = delegation_context.buffer[0];

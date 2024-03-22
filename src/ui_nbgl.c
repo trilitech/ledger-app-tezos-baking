@@ -64,15 +64,25 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
     bakeInfoContents[1] = buffer[1];
     bakeInfoContents[2] = buffer[2];
 
-    chain_id_to_string_with_aliases(buffer[0], sizeof(buffer[0]), &N_data.main_chain_id);
-
-    if (N_data.baking_key.bip32_path.length == 0u) {
-        copy_string(buffer[1], sizeof(buffer[1]), "No Key Authorized");
-    } else {
-        bip32_path_with_curve_to_pkh_string(buffer[1], sizeof(buffer[1]), &N_data.baking_key);
+    if (chain_id_to_string_with_aliases(buffer[0], sizeof(buffer[0]), &N_data.main_chain_id) < 0) {
+        THROW(EXC_WRONG_LENGTH);
     }
 
-    hwm_to_string(buffer[2], sizeof(buffer[2]), &N_data.hwm.main);
+    if (N_data.baking_key.bip32_path.length == 0u) {
+        if (!copy_string(buffer[1], sizeof(buffer[1]), "No Key Authorized")) {
+            THROW(EXC_WRONG_LENGTH);
+        }
+    } else {
+        tz_exc exc =
+            bip32_path_with_curve_to_pkh_string(buffer[1], sizeof(buffer[1]), &N_data.baking_key);
+        if (exc != SW_OK) {
+            THROW(exc);
+        }
+    }
+
+    if (hwm_to_string(buffer[2], sizeof(buffer[2]), &N_data.hwm.main) < 0) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 
     if (page == 0u) {
         content->type = INFOS_LIST;

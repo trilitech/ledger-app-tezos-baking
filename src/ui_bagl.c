@@ -85,21 +85,30 @@ UX_FLOW(ux_idle_flow,
 static void calculate_baking_idle_screens_data(void) {
     memset(&home_context, 0, sizeof(home_context));
 
-    chain_id_to_string_with_aliases(home_context.chain_id,
-                                    sizeof(home_context.chain_id),
-                                    &N_data.main_chain_id);
-
-    if (N_data.baking_key.bip32_path.length == 0u) {
-        copy_string(home_context.authorized_key,
-                    sizeof(home_context.authorized_key),
-                    "No Key Authorized");
-    } else {
-        bip32_path_with_curve_to_pkh_string(home_context.authorized_key,
-                                            sizeof(home_context.authorized_key),
-                                            &N_data.baking_key);
+    if (chain_id_to_string_with_aliases(home_context.chain_id,
+                                        sizeof(home_context.chain_id),
+                                        &N_data.main_chain_id) < 0) {
+        THROW(EXC_WRONG_LENGTH);
     }
 
-    hwm_to_string(home_context.hwm, sizeof(home_context.hwm), &N_data.hwm.main);
+    if (N_data.baking_key.bip32_path.length == 0u) {
+        if (!copy_string(home_context.authorized_key,
+                         sizeof(home_context.authorized_key),
+                         "No Key Authorized")) {
+            THROW(EXC_WRONG_LENGTH);
+        }
+    } else {
+        tz_exc exc = bip32_path_with_curve_to_pkh_string(home_context.authorized_key,
+                                                         sizeof(home_context.authorized_key),
+                                                         &N_data.baking_key);
+        if (exc != SW_OK) {
+            THROW(exc);
+        }
+    }
+
+    if (hwm_to_string(home_context.hwm, sizeof(home_context.hwm), &N_data.hwm.main) < 0) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 }
 
 void ui_initial_screen(void) {

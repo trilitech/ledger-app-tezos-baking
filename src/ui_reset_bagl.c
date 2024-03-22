@@ -53,9 +53,11 @@ UX_CONFIRM_FLOW(ux_reset_flow, &ux_reset_level_step);
 int prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     memset(&reset_context, 0, sizeof(reset_context));
 
-    number_to_string_indirect32(reset_context.reset_level,
-                                sizeof(reset_context.reset_level),
-                                &G.reset_level);
+    if (number_to_string(reset_context.reset_level,
+                         sizeof(reset_context.reset_level),
+                         G.reset_level) < 0) {
+        THROW(EXC_WRONG_LENGTH);
+    }
 
     ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
     ux_flow_init(0, ux_reset_flow, NULL);
