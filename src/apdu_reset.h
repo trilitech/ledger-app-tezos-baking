@@ -21,16 +21,17 @@
 */
 #pragma once
 
+#include "apdu.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
 /**
- * @brief Handles RESET instruction
+ * @brief Handles HWM level
  *
  *        Asks user to reset
  *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
+ * @param cdata: data containing the reset level
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t handle_apdu_reset(uint8_t instruction, volatile uint32_t* flags);
+int handle_reset(buffer_t* cdata);

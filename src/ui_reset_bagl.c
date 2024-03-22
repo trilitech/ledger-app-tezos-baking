@@ -51,7 +51,7 @@ UX_STEP_NOCB(ux_reset_level_step, bnnn_paging, {"Reset HWM", reset_context.reset
 
 UX_CONFIRM_FLOW(ux_reset_flow, &ux_reset_level_step);
 
-void prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+int prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     memset(&reset_context, 0, sizeof(reset_context));
 
     number_to_string_indirect32(reset_context.reset_level,
@@ -60,6 +60,7 @@ void prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
 
     ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
     ux_flow_init(0, ux_reset_flow, NULL);
+    return 0;
 }
 
 #endif  // HAVE_BAGL

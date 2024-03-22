@@ -46,23 +46,22 @@ static bool ok(void) {
     });
 
     // Send back the response, do not restart the event loop
-    delayed_send(finalize_successful_send(0));
+    io_send_sw(SW_OK);
     return true;
 }
 
-size_t handle_apdu_reset(__attribute__((unused)) uint8_t instruction, volatile uint32_t* flags) {
-    uint8_t* dataBuffer = G_io_apdu_buffer + OFFSET_CDATA;
-    uint32_t dataLength = G_io_apdu_buffer[OFFSET_LC];
-    if (dataLength != sizeof(level_t)) {
+int handle_reset(buffer_t* cdata) {
+    check_null(cdata);
+
+    if (cdata->size != sizeof(level_t)) {
         THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
-    level_t const lvl = READ_UNALIGNED_BIG_ENDIAN(level_t, dataBuffer);
+
+    level_t const lvl = READ_UNALIGNED_BIG_ENDIAN(level_t, cdata->ptr);
     if (!is_valid_level(lvl)) {
         THROW(EXC_PARSE_ERROR);
     }
 
     G.reset_level = lvl;
-    prompt_reset(ok, delay_reject);
-    *flags = IO_ASYNCH_REPLY;
-    return 0;
+    return prompt_reset(ok, reject);
 }

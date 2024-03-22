@@ -18,6 +18,13 @@
 */
 
 #include "apdu.h"
+
+#include "apdu_hmac.h"
+#include "apdu_pubkey.h"
+#include "apdu_query.h"
+#include "apdu_reset.h"
+#include "apdu_setup.h"
+#include "apdu_sign.h"
 #include "globals.h"
 #include "to_string.h"
 #include "version.h"
@@ -26,110 +33,240 @@
 #include <stdint.h>
 #include <string.h>
 
-size_t provide_pubkey(uint8_t* const io_buffer, cx_ecfp_public_key_t const* const pubkey) {
-    check_null(io_buffer);
+int provide_pubkey(cx_ecfp_public_key_t const* const pubkey) {
     check_null(pubkey);
-    size_t tx = 0;
+
+    // 100 = MAX(SIGNATURE_LEN)
+    uint8_t resp[1u + 100u] = {0};
+    size_t offset = 0;
+
     // Application could be PIN-locked, and pubkey->W_len would then be 0,
     // so throwing an error rather than returning an empty key
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         THROW(EXC_SECURITY);
     }
-    io_buffer[tx] = pubkey->W_len;
-    tx++;
-    memmove(io_buffer + tx, pubkey->W, pubkey->W_len);
-    tx += pubkey->W_len;
-    return finalize_successful_send(tx);
+
+    resp[offset] = pubkey->W_len;
+    offset++;
+    memmove(resp + offset, pubkey->W, pubkey->W_len);
+    offset += pubkey->W_len;
+
+    return io_send_response_pointer(resp, offset, SW_OK);
 }
 
-size_t handle_apdu_error(uint8_t __attribute__((unused)) instruction,
-                         volatile uint32_t* __attribute__((unused)) flags) {
-    THROW(EXC_INVALID_INS);
+/**
+ * @brief Gets the version
+ *
+ * @return int: zero or positive integer if success, negative integer otherwise.
+ */
+static int handle_version(void) {
+    return io_send_response_pointer((const uint8_t*) &version, sizeof(version_t), SW_OK);
 }
 
-size_t handle_apdu_version(uint8_t __attribute__((unused)) instruction,
-                           volatile uint32_t* __attribute__((unused)) flags) {
-    memcpy(G_io_apdu_buffer, &version, sizeof(version_t));
-    size_t tx = sizeof(version_t);
-    return finalize_successful_send(tx);
-}
-
-size_t handle_apdu_git(uint8_t __attribute__((unused)) instruction,
-                       volatile uint32_t* __attribute__((unused)) flags) {
-    static const char commit[] = COMMIT;
-    memcpy(G_io_apdu_buffer, commit, sizeof(commit));
-    size_t tx = sizeof(commit);
-    return finalize_successful_send(tx);
+/**
+ * @brief Gets the git commit
+ *
+ * @return int: zero or positive integer if success, negative integer otherwise.
+ */
+static int handle_git(void) {
+    return io_send_response_pointer((const uint8_t*) &COMMIT, sizeof(COMMIT), SW_OK);
 }
 
 #define CLA 0x80  /// The only APDU class that will be used
 
-__attribute__((noreturn)) void main_loop(apdu_handler const* const handlers,
-                                         size_t const handlers_size) {
-    volatile size_t rx = io_exchange(CHANNEL_APDU, 0);
-    volatile uint32_t flags = 0;
-    while (true) {
-        BEGIN_TRY {
-            TRY {
-                PRINTF("New APDU received:\n%.*H\n", rx, G_io_apdu_buffer);
-                // Process APDU of size rx
+/// Packet indexes
+#define P1_FIRST       0x00u  /// First packet
+#define P1_NEXT        0x01u  /// Other packet
+#define P1_LAST_MARKER 0x80u  /// Last packet
 
-                if (!rx) {
-                    // no apdu received, well, reset the session, and reset the
-                    // bootloader configuration
-                    THROW(EXC_SECURITY);
-                }
+int apdu_dispatcher(const command_t* cmd) {
+    check_null(cmd);
 
-                if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
-                    THROW(EXC_CLASS);
-                }
-
-                // The amount of bytes we get in our APDU must match what the APDU declares
-                // its own content length is. All these values are unsigned, so this implies
-                // that if rx < OFFSET_CDATA it also throws.
-                if (rx != (G_io_apdu_buffer[OFFSET_LC] + OFFSET_CDATA)) {
-                    THROW(EXC_WRONG_LENGTH);
-                }
-
-                uint8_t const instruction = G_io_apdu_buffer[OFFSET_INS];
-                apdu_handler const cb =
-                    (instruction >= handlers_size) ? handle_apdu_error : handlers[instruction];
-
-                size_t const tx = cb(instruction, &flags);
-                rx = io_exchange(CHANNEL_APDU | flags, tx);
-                flags = 0;
-            }
-            CATCH(ASYNC_EXCEPTION) {
-                rx = io_exchange(CHANNEL_APDU | IO_ASYNCH_REPLY, 0);
-            }
-            CATCH(EXCEPTION_IO_RESET) {
-                THROW(EXCEPTION_IO_RESET);
-            }
-            CATCH_OTHER(e) {
-                clear_apdu_globals();  // IMPORTANT: Application state must not persist through
-                                       // errors
-
-                uint16_t sw = e;
-                PRINTF("Error caught at top level, number: %x\n", sw);
-                switch (sw) {
-                    case 0x6000 ... 0x6FFF:
-                    case 0x9000 ... 0x9FFF:
-                        break;
-                    default:
-                        sw = 0x6800 | (e & 0x7FF);
-                        break;
-                }
-                PRINTF("Line number: %d", sw & 0x0FFF);
-                size_t tx = 0;
-                G_io_apdu_buffer[tx] = sw >> 8;
-                tx++;
-                G_io_apdu_buffer[tx] = sw;
-                tx++;
-                rx = io_exchange(CHANNEL_APDU, tx);
-            }
-            FINALLY {
-            }
-        }
-        END_TRY;
+    if (cmd->lc > MAX_APDU_SIZE) {
+        THROW(EXC_WRONG_LENGTH_FOR_INS);
     }
+
+    if (cmd->cla != CLA) {
+        THROW(EXC_CLASS);
+    }
+
+    int result = 0;
+    buffer_t buf = {0};
+    derivation_type_t derivation_type = DERIVATION_TYPE_UNSET;
+
+#define ASSERT_NO_P1                \
+    do {                            \
+        if (cmd->p1 != 0u) {        \
+            THROW(EXC_WRONG_PARAM); \
+        }                           \
+    } while (0)
+
+#define ASSERT_NO_P2                \
+    do {                            \
+        if (cmd->p2 != 0u) {        \
+            THROW(EXC_WRONG_PARAM); \
+        }                           \
+    } while (0)
+
+#define READ_P2_DERIVATION_TYPE                           \
+    do {                                                  \
+        derivation_type = parse_derivation_type(cmd->p2); \
+        if (derivation_type == DERIVATION_TYPE_UNSET) {   \
+            THROW(EXC_WRONG_PARAM);                       \
+        }                                                 \
+    } while (0)
+
+#define ASSERT_NO_DATA               \
+    do {                             \
+        if (cmd->data != NULL) {     \
+            THROW(EXC_WRONG_VALUES); \
+        }                            \
+    } while (0)
+
+#define READ_DATA            \
+    do {                     \
+        buf.ptr = cmd->data; \
+        buf.size = cmd->lc;  \
+        buf.offset = 0u;     \
+    } while (0)
+
+    switch (cmd->ins) {
+        case INS_VERSION:
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_version();
+
+            break;
+        case INS_GIT:
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_git();
+
+            break;
+        case INS_GET_PUBLIC_KEY:
+        case INS_PROMPT_PUBLIC_KEY:
+        case INS_AUTHORIZE_BAKING:
+
+            ASSERT_NO_P1;
+            READ_P2_DERIVATION_TYPE;
+            READ_DATA;
+
+            bool authorize = cmd->ins == INS_AUTHORIZE_BAKING;
+            bool prompt = (cmd->ins == INS_AUTHORIZE_BAKING) || (cmd->ins == INS_PROMPT_PUBLIC_KEY);
+
+            result = handle_get_public_key(&buf, derivation_type, authorize, prompt);
+
+            break;
+        case INS_DEAUTHORIZE:
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_deauthorize();
+
+            break;
+        case INS_SETUP:
+
+            ASSERT_NO_P1;
+            READ_P2_DERIVATION_TYPE;
+            READ_DATA;
+
+            result = handle_setup(&buf, derivation_type);
+
+            break;
+        case INS_RESET:
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            READ_DATA;
+
+            result = handle_reset(&buf);
+
+            break;
+        case INS_QUERY_AUTH_KEY:
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_query_auth_key();
+
+            break;
+        case INS_QUERY_AUTH_KEY_WITH_CURVE:
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_query_auth_key_with_curve();
+
+            break;
+        case INS_QUERY_MAIN_HWM:
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_query_main_hwm();
+
+            break;
+        case INS_QUERY_ALL_HWM:
+
+            ASSERT_NO_P1;
+            ASSERT_NO_P2;
+            ASSERT_NO_DATA;
+
+            result = handle_query_all_hwm();
+
+            break;
+        case INS_SIGN:
+        case INS_SIGN_WITH_HASH:
+            if (os_global_pin_is_validated() != BOLOS_UX_OK) {
+                THROW(EXC_SECURITY);
+            }
+
+            switch (cmd->p1 & ~P1_LAST_MARKER) {
+                case P1_FIRST:
+
+                    READ_P2_DERIVATION_TYPE;
+                    READ_DATA;
+
+                    result = select_signing_key(&buf, derivation_type);
+
+                    break;
+                case P1_NEXT:
+
+                    READ_DATA;
+
+                    bool with_hash = cmd->ins == INS_SIGN_WITH_HASH;
+                    bool last = (cmd->p1 & P1_LAST_MARKER) != 0;
+
+                    result = handle_sign(&buf, last, with_hash);
+
+                    break;
+                default:
+                    THROW(EXC_WRONG_PARAM);
+            }
+
+            break;
+        case INS_HMAC:
+
+            ASSERT_NO_P1;
+            READ_P2_DERIVATION_TYPE;
+            READ_DATA;
+
+            result = handle_hmac(&buf, derivation_type);
+
+            break;
+        default:
+            THROW(EXC_INVALID_INS);
+    }
+    return result;
 }

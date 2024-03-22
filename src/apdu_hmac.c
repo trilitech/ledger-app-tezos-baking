@@ -97,28 +97,17 @@ static inline size_t hmac(uint8_t *const out,
                           out_size);
 }
 
-size_t handle_apdu_hmac(__attribute__((unused)) uint8_t instruction,
-                        __attribute__((unused)) volatile uint32_t *flags) {
-    if (G_io_apdu_buffer[OFFSET_P1] != 0) {
-        THROW(EXC_WRONG_PARAM);
-    }
-
-    uint8_t const *const buff = &G_io_apdu_buffer[OFFSET_CDATA];
-    uint8_t const buff_size = G_io_apdu_buffer[OFFSET_LC];
-    if (buff_size > MAX_APDU_SIZE) {
-        THROW(EXC_WRONG_LENGTH_FOR_INS);
-    }
+int handle_hmac(buffer_t *cdata, derivation_type_t derivation_type) {
+    check_null(cdata);
 
     memset(&G, 0, sizeof(G));
 
-    derivation_type_t derivation_type = parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
-
     bip32_path_t bip32_path = {0};
     size_t consumed = 0;
-    consumed += read_bip32_path(&bip32_path, buff, buff_size);
+    consumed += read_bip32_path(&bip32_path, cdata->ptr, cdata->size);
 
-    uint8_t const *const data_to_hmac = &buff[consumed];
-    size_t const data_to_hmac_size = buff_size - consumed;
+    uint8_t const *const data_to_hmac = cdata->ptr + consumed;
+    size_t const data_to_hmac_size = cdata->size - consumed;
 
     size_t const hmac_size = hmac(G.hmac,
                                   sizeof(G.hmac),
@@ -128,8 +117,9 @@ size_t handle_apdu_hmac(__attribute__((unused)) uint8_t instruction,
                                   bip32_path,
                                   derivation_type);
 
-    size_t tx = 0;
-    memcpy(G_io_apdu_buffer, G.hmac, hmac_size);
-    tx += hmac_size;
-    return finalize_successful_send(tx);
+    uint8_t resp[CX_SHA256_SIZE] = {0};
+
+    memcpy(resp, G.hmac, hmac_size);
+
+    return io_send_response_pointer(resp, hmac_size, SW_OK);
 }

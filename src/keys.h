@@ -116,7 +116,7 @@ static inline derivation_type_t parse_derivation_type(uint8_t const curve_code) 
         case 3:
             return DERIVATION_TYPE_BIP32_ED25519;
         default:
-            THROW(EXC_WRONG_PARAM);
+            return DERIVATION_TYPE_UNSET;
     }
 }
 

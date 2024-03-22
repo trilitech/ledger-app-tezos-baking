@@ -201,18 +201,15 @@ class TezosClient:
     def _exchange(self,
                   ins: Ins,
                   index: Index = Index.FIRST,
-                  sig_scheme: Optional[SigScheme] = None,
+                  sig_scheme: SigScheme = SigScheme.DEFAULT,
                   payload: bytes = b'') -> bytes:
 
         assert len(payload) <= MAX_APDU_SIZE, "Apdu too large"
 
-        # Set to a non-existent value to ensure that p2 is unused
-        p2: int = sig_scheme if sig_scheme is not None else 0xff
-
         rapdu: RAPDU = self.backend.exchange(Cla.DEFAULT,
                                              ins,
                                              p1=index,
-                                             p2=p2,
+                                             p2=sig_scheme,
                                              data=payload)
 
         if rapdu.status != StatusCode.OK:

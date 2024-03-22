@@ -24,12 +24,12 @@
 #include "apdu.h"
 
 /**
- * @brief Handles HMAC instruction
+ * @brief Signs with the HMAC protocol a message
  *
- *        Fills apdu response with the hmac
+ *        The hmac-key is a fixed signed with a key
  *
- * @param instruction: apdu instruction
- * @param flags: io flags
- * @return size_t: offset of the apdu response
+ * @param cdata: data containing the message and the BIP32 path of the key
+ * @param derivation_type: derivation_type of the key
+ * @return int: zero or positive integer if success, negative integer otherwise.
  */
-size_t handle_apdu_hmac(uint8_t instruction, volatile uint32_t* flags);
+int handle_hmac(buffer_t *cdata, derivation_type_t derivation_type);

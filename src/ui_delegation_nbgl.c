@@ -105,7 +105,7 @@ static void confirm_delegation_page(void) {
                                   confirmation_callback);
 }
 
-void prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+int prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     if (!G.maybe_ops.is_valid) {
         THROW(EXC_MEMORY_ERROR);
     }
@@ -140,6 +140,7 @@ void prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
                             "Cancel",
                             confirm_delegation_page,
                             cancel_callback);
+    return 0;
 }
 
 #endif  // HAVE_NBGL
