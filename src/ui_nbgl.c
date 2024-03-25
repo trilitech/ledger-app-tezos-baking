@@ -58,31 +58,28 @@ static const char* const bakeInfoTypes[] = {
  * @return bool: if the page is not out of bounds
  */
 static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
-    UNUSED(page);
+    if (page > 1u) {
+        return false;
+    }
+
+    tz_exc exc = SW_OK;
 
     bakeInfoContents[0] = buffer[0];
     bakeInfoContents[1] = buffer[1];
     bakeInfoContents[2] = buffer[2];
 
-    if (chain_id_to_string_with_aliases(buffer[0], sizeof(buffer[0]), &N_data.main_chain_id) < 0) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(
+        chain_id_to_string_with_aliases(buffer[0], sizeof(buffer[0]), &N_data.main_chain_id) >= 0,
+        EXC_WRONG_LENGTH);
 
     if (N_data.baking_key.bip32_path.length == 0u) {
-        if (!copy_string(buffer[1], sizeof(buffer[1]), "No Key Authorized")) {
-            THROW(EXC_WRONG_LENGTH);
-        }
+        TZ_ASSERT(copy_string(buffer[1], sizeof(buffer[1]), "No Key Authorized"), EXC_WRONG_LENGTH);
     } else {
-        tz_exc exc =
-            bip32_path_with_curve_to_pkh_string(buffer[1], sizeof(buffer[1]), &N_data.baking_key);
-        if (exc != SW_OK) {
-            THROW(exc);
-        }
+        TZ_CHECK(
+            bip32_path_with_curve_to_pkh_string(buffer[1], sizeof(buffer[1]), &N_data.baking_key));
     }
 
-    if (hwm_to_string(buffer[2], sizeof(buffer[2]), &N_data.hwm.main) < 0) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(hwm_to_string(buffer[2], sizeof(buffer[2]), &N_data.hwm.main) >= 0, EXC_WRONG_LENGTH);
 
     if (page == 0u) {
         content->type = INFOS_LIST;
@@ -96,6 +93,10 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
         content->infosList.infoContents = infoContents;
     }
 
+    return true;
+
+end:
+    TZ_EXC_PRINT(exc);
     return true;
 }
 

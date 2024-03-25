@@ -23,6 +23,7 @@
 
 #include "buffer.h"
 #include "exception.h"
+#include "globals.h"
 #include "keys.h"
 #include "parser.h"
 #include "types.h"
@@ -71,6 +72,19 @@ int apdu_dispatcher(const command_t* cmd);
 static inline bool reject(void) {
     io_send_sw(EXC_REJECT);
     return true;
+}
+
+/**
+ * @brief Sends an apdu error
+ *
+ *        Clears apdu state because the application state must not
+ *        persist through errors
+ *
+ * @return int: zero or positive integer if success, negative integer otherwise.
+ */
+static inline int io_send_apdu_err(uint16_t sw) {
+    clear_apdu_globals();
+    return io_send_sw(sw);
 }
 
 /**

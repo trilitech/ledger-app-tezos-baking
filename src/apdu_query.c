@@ -103,7 +103,7 @@ int handle_query_auth_key_with_curve(void) {
     int derivation_type = unparse_derivation_type(N_data.baking_key.derivation_type);
 
     if (derivation_type < 0) {
-        return io_send_sw(EXC_REFERENCED_DATA_NOT_FOUND);
+        return io_send_apdu_err(EXC_REFERENCED_DATA_NOT_FOUND);
     }
 
     resp[offset] = unparse_derivation_type(N_data.baking_key.derivation_type);

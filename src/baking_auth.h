@@ -34,18 +34,20 @@
  *
  * @param derivation_type: curve of the key
  * @param bip32_path: bip32 path of the key
+ * @return tz_exc: exception, SW_OK if none
  */
-void authorize_baking(derivation_type_t const derivation_type,
-                      bip32_path_t const *const bip32_path);
+tz_exc authorize_baking(derivation_type_t const derivation_type,
+                        bip32_path_t const *const bip32_path);
 
 /**
  * @brief Guards baking info and key pass required checks
  *
  * @param baking_info: baking info to check
  * @param key: key to check
+ * @return tz_exc: exception, SW_OK if none
  */
-void guard_baking_authorized(parsed_baking_data_t const *const baking_info,
-                             bip32_path_with_curve_t const *const key);
+tz_exc guard_baking_authorized(parsed_baking_data_t const *const baking_info,
+                               bip32_path_with_curve_t const *const key);
 
 /**
  * @brief Checks if a level is valid
@@ -59,8 +61,9 @@ bool is_valid_level(level_t level);
  * @brief Stores baking info into the NVRAM
  *
  * @param in: baking info
+ * @return tz_exc: exception, SW_OK if none
  */
-void write_high_water_mark(parsed_baking_data_t const *const in);
+tz_exc write_high_water_mark(parsed_baking_data_t const *const in);
 
 /**
  * @brief Parse a block

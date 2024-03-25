@@ -23,9 +23,6 @@
 
 #include "os.h"
 
-// Throw this to indicate prompting
-#define ASYNC_EXCEPTION 0x2000
-
 /**
  * @brief Standard APDU error codes
  *
@@ -49,18 +46,8 @@ typedef uint16_t tz_exc;
 #define EXC_MEMORY_ERROR              0x9200u
 #define EXC_UNKNOWN_CX_ERR            0x9001u
 
-/**
- * @brief Checks if a pointer is NULL
- *
- *        Crashes can be harder to debug than exceptions and latency isn't a big concern
- *
- * @param ptr: pointer
- */
-static inline void check_null(void volatile const *const ptr) {
-    if (ptr == NULL) {
-        THROW(EXC_MEMORY_ERROR);
-    }
-}
+// Print a tz exception code
+#define TZ_EXC_PRINT(exc) PRINTF("TZ exception: 0x%04x", exc)
 
 // Checks the error code of a function
 #define TZ_CHECK(call)      \
@@ -69,6 +56,13 @@ static inline void check_null(void volatile const *const ptr) {
         if (exc != SW_OK) { \
             goto end;       \
         }                   \
+    } while (0)
+
+// Fail with an exception
+#define TZ_FAIL(_exc) \
+    do {              \
+        exc = (_exc); \
+        goto end;     \
     } while (0)
 
 // Asserts a condition. Updates `exc` accordingly

@@ -93,32 +93,27 @@ static void confirm_setup_page(void) {
 }
 
 int prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+    tz_exc exc = SW_OK;
+
     setup_context.ok_cb = ok_cb;
     setup_context.cxl_cb = cxl_cb;
 
-    tz_exc exc = bip32_path_with_curve_to_pkh_string(setup_context.buffer[0],
-                                                     sizeof(setup_context.buffer[0]),
-                                                     &global.path_with_curve);
+    TZ_CHECK(bip32_path_with_curve_to_pkh_string(setup_context.buffer[0],
+                                                 sizeof(setup_context.buffer[0]),
+                                                 &global.path_with_curve));
 
-    if (exc != SW_OK) {
-        THROW(exc);
-    }
+    TZ_ASSERT(chain_id_to_string_with_aliases(setup_context.buffer[1],
+                                              sizeof(setup_context.buffer[1]),
+                                              &G.main_chain_id) >= 0,
+              EXC_WRONG_LENGTH);
 
-    if (chain_id_to_string_with_aliases(setup_context.buffer[1],
-                                        sizeof(setup_context.buffer[1]),
-                                        &G.main_chain_id) < 0) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(
+        number_to_string(setup_context.buffer[2], sizeof(setup_context.buffer[2]), G.hwm.main) >= 0,
+        EXC_WRONG_LENGTH);
 
-    if (number_to_string(setup_context.buffer[2], sizeof(setup_context.buffer[2]), G.hwm.main) <
-        0) {
-        THROW(EXC_WRONG_LENGTH);
-    }
-
-    if (number_to_string(setup_context.buffer[3], sizeof(setup_context.buffer[3]), G.hwm.test) <
-        0) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(
+        number_to_string(setup_context.buffer[3], sizeof(setup_context.buffer[3]), G.hwm.test) >= 0,
+        EXC_WRONG_LENGTH);
 
     setup_context.tagValuePair[0].item = "Address";
     setup_context.tagValuePair[0].value = setup_context.buffer[0];
@@ -144,6 +139,9 @@ int prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
                             confirm_setup_page,
                             cancel_callback);
     return 0;
+
+end:
+    return io_send_apdu_err(exc);
 }
 
 #endif  // HAVE_NBGL

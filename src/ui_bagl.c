@@ -81,34 +81,37 @@ UX_FLOW(ux_idle_flow,
 /**
  * @brief Calculates baking values for the idle screens
  *
+ * @return bool: whether the values have been calculated successfully or not
  */
-static void calculate_baking_idle_screens_data(void) {
+static bool calculate_baking_idle_screens_data(void) {
+    tz_exc exc = SW_OK;
+
     memset(&home_context, 0, sizeof(home_context));
 
-    if (chain_id_to_string_with_aliases(home_context.chain_id,
-                                        sizeof(home_context.chain_id),
-                                        &N_data.main_chain_id) < 0) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(chain_id_to_string_with_aliases(home_context.chain_id,
+                                              sizeof(home_context.chain_id),
+                                              &N_data.main_chain_id) >= 0,
+              EXC_WRONG_LENGTH);
 
     if (N_data.baking_key.bip32_path.length == 0u) {
-        if (!copy_string(home_context.authorized_key,
-                         sizeof(home_context.authorized_key),
-                         "No Key Authorized")) {
-            THROW(EXC_WRONG_LENGTH);
-        }
+        TZ_ASSERT(copy_string(home_context.authorized_key,
+                              sizeof(home_context.authorized_key),
+                              "No Key Authorized"),
+                  EXC_WRONG_LENGTH);
     } else {
-        tz_exc exc = bip32_path_with_curve_to_pkh_string(home_context.authorized_key,
-                                                         sizeof(home_context.authorized_key),
-                                                         &N_data.baking_key);
-        if (exc != SW_OK) {
-            THROW(exc);
-        }
+        TZ_CHECK(bip32_path_with_curve_to_pkh_string(home_context.authorized_key,
+                                                     sizeof(home_context.authorized_key),
+                                                     &N_data.baking_key));
     }
 
-    if (hwm_to_string(home_context.hwm, sizeof(home_context.hwm), &N_data.hwm.main) < 0) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(hwm_to_string(home_context.hwm, sizeof(home_context.hwm), &N_data.hwm.main) >= 0,
+              EXC_WRONG_LENGTH);
+
+    return true;
+
+end:
+    TZ_EXC_PRINT(exc);
+    return false;
 }
 
 void ui_initial_screen(void) {
@@ -117,15 +120,16 @@ void ui_initial_screen(void) {
         ux_stack_push();
     }
 
-    calculate_baking_idle_screens_data();
-
-    ux_flow_init(0, ux_idle_flow, NULL);
+    if (calculate_baking_idle_screens_data()) {
+        ux_flow_init(0, ux_idle_flow, NULL);
+    }
 }
 
 void update_baking_idle_screens(void) {
-    calculate_baking_idle_screens_data();
-    /// refresh
-    ux_stack_display(0);
+    if (calculate_baking_idle_screens_data()) {
+        /// refresh
+        ux_stack_display(0);
+    }
 }
 
 void ux_prepare_confirm_callbacks(ui_callback_t ok_c, ui_callback_t cxl_c) {

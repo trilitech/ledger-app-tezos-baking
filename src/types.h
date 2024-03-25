@@ -106,12 +106,15 @@ typedef struct {
  *
  * @param out: bip32 path output
  * @param in: bip32 path copied
+ * @return bool: whether the copy was successful or not
  */
-static inline void copy_bip32_path(bip32_path_t *const out, bip32_path_t volatile const *const in) {
-    check_null(out);
-    check_null(in);
+static inline bool copy_bip32_path(bip32_path_t *const out, bip32_path_t volatile const *const in) {
+    if ((out == NULL) || (in == NULL)) {
+        return false;
+    }
     memcpy(out->components, in->components, in->length * sizeof(*in->components));
     out->length = in->length;
+    return true;
 }
 
 /**
@@ -145,13 +148,15 @@ typedef struct {
  *
  * @param out: output
  * @param in: bip32 path and curve copied
+ * @return bool: whether the copy was successful or not
  */
-static inline void copy_bip32_path_with_curve(bip32_path_with_curve_t *const out,
+static inline bool copy_bip32_path_with_curve(bip32_path_with_curve_t *const out,
                                               bip32_path_with_curve_t volatile const *const in) {
-    check_null(out);
-    check_null(in);
-    copy_bip32_path(&out->bip32_path, &in->bip32_path);
+    if ((out == NULL) || (in == NULL) || !copy_bip32_path(&out->bip32_path, &in->bip32_path)) {
+        return false;
+    }
     out->derivation_type = in->derivation_type;
+    return true;
 }
 
 /**

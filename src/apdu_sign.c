@@ -36,8 +36,6 @@
 
 #define G global.apdu.u.sign
 
-#define PARSE_ERROR() THROW(EXC_PARSE_ERROR)
-
 #define B2B_BLOCKBYTES 128u  /// blake2b hash size
 
 static int perform_signature(bool const send_hash);
@@ -46,14 +44,23 @@ static int perform_signature(bool const send_hash);
  * @brief Initializes the blake2b state if it is not
  *
  * @param state: blake2b state
+ * @return tz_exc: exception, SW_OK if none
  */
-static inline void conditional_init_hash_state(blake2b_hash_state_t *const state) {
-    check_null(state);
+static inline tz_exc conditional_init_hash_state(blake2b_hash_state_t *const state) {
+    tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
+
+    TZ_ASSERT_NOT_NULL(state);
+
     if (!state->initialized) {
         // cx_blake2b_init takes size in bits.
-        CX_THROW(cx_blake2b_init_no_throw(&state->state, SIGN_HASH_SIZE * 8u));
+        CX_CHECK(cx_blake2b_init_no_throw(&state->state, SIGN_HASH_SIZE * 8u));
         state->initialized = true;
     }
+
+end:
+    TZ_CONVERT_CX();
+    return exc;
 }
 
 /**
@@ -66,28 +73,36 @@ static inline void conditional_init_hash_state(blake2b_hash_state_t *const state
  * @param buff_size: buffer size
  * @param buff_length: buffer content length
  * @param state: blake2b state
+ * @return tz_exc: exception, SW_OK if none
  */
-static void blake2b_incremental_hash(uint8_t *const buff,
-                                     size_t const buff_size,
-                                     size_t *const buff_length,
-                                     blake2b_hash_state_t *const state) {
-    check_null(buff);
-    check_null(buff_length);
-    check_null(state);
+static tz_exc blake2b_incremental_hash(uint8_t *const buff,
+                                       size_t const buff_size,
+                                       size_t *const buff_length,
+                                       blake2b_hash_state_t *const state) {
+    tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
+
+    TZ_ASSERT_NOT_NULL(buff);
+    TZ_ASSERT_NOT_NULL(buff_length);
+    TZ_ASSERT_NOT_NULL(state);
+
+    TZ_CHECK(conditional_init_hash_state(state));
 
     uint8_t *current = buff;
     while (*buff_length > B2B_BLOCKBYTES) {
-        if ((current - buff) > (int) buff_size) {
-            THROW(EXC_MEMORY_ERROR);
-        }
-        conditional_init_hash_state(state);
-        CX_THROW(
+        TZ_ASSERT((current - buff) <= (int) buff_size, EXC_MEMORY_ERROR);
+
+        CX_CHECK(
             cx_hash_no_throw((cx_hash_t *) &state->state, 0, current, B2B_BLOCKBYTES, NULL, 0));
         *buff_length -= B2B_BLOCKBYTES;
         current += B2B_BLOCKBYTES;
     }
     // TODO use circular buffer at some point
     memmove(buff, current, *buff_length);
+
+end:
+    TZ_CONVERT_CX();
+    return exc;
 }
 
 /**
@@ -105,22 +120,29 @@ static void blake2b_incremental_hash(uint8_t *const buff,
  * @param buff_size: buffer size
  * @param buff_length: buffer content length
  * @param state: blake2b state
+ * @return tz_exc: exception, SW_OK if none
  */
-static void blake2b_finish_hash(uint8_t *const out,
-                                size_t const out_size,
-                                uint8_t *const buff,
-                                size_t const buff_size,
-                                size_t *const buff_length,
-                                blake2b_hash_state_t *const state) {
-    check_null(out);
-    check_null(buff);
-    check_null(buff_length);
-    check_null(state);
+static tz_exc blake2b_finish_hash(uint8_t *const out,
+                                  size_t const out_size,
+                                  uint8_t *const buff,
+                                  size_t const buff_size,
+                                  size_t *const buff_length,
+                                  blake2b_hash_state_t *const state) {
+    tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
 
-    conditional_init_hash_state(state);
-    blake2b_incremental_hash(buff, buff_size, buff_length, state);
-    CX_THROW(
+    TZ_ASSERT_NOT_NULL(out);
+    TZ_ASSERT_NOT_NULL(buff);
+    TZ_ASSERT_NOT_NULL(buff_length);
+    TZ_ASSERT_NOT_NULL(state);
+
+    TZ_CHECK(conditional_init_hash_state(state));
+    TZ_CHECK(blake2b_incremental_hash(buff, buff_size, buff_length, state));
+    CX_CHECK(
         cx_hash_no_throw((cx_hash_t *) &state->state, CX_LAST, buff, *buff_length, out, out_size));
+end:
+    TZ_CONVERT_CX();
+    return exc;
 }
 
 /**
@@ -179,12 +201,13 @@ static bool sign_reject(void) {
  * @return int: zero or positive integer if success, negative integer otherwise.
  */
 static int baking_sign_complete(bool const send_hash) {
+    tz_exc exc = SW_OK;
     int result = 0;
     switch (G.magic_byte) {
         case MAGIC_BYTE_BLOCK:
         case MAGIC_BYTE_PREATTESTATION:
         case MAGIC_BYTE_ATTESTATION:
-            guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve);
+            TZ_CHECK(guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve));
             result = perform_signature(send_hash);
 #ifdef HAVE_BAGL
             update_baking_idle_screens();
@@ -192,44 +215,43 @@ static int baking_sign_complete(bool const send_hash) {
             break;
 
         case MAGIC_BYTE_UNSAFE_OP: {
-            if (!G.maybe_ops.is_valid) {
-                PARSE_ERROR();
-            }
+            TZ_ASSERT(G.maybe_ops.is_valid, EXC_PARSE_ERROR);
 
             switch (G.maybe_ops.v.operation.tag) {
                 case OPERATION_TAG_DELEGATION:
                     // Must be self-delegation signed by the *authorized* baking key
-                    if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
-                        // ops->signing is generated from G.bip32_path and G.curve
-                        COMPARE(G.maybe_ops.v.operation.source, G.maybe_ops.v.signing) == 0 &&
-                        COMPARE(G.maybe_ops.v.operation.destination, G.maybe_ops.v.signing) == 0) {
-                        ui_callback_t const ok_c =
-                            send_hash ? sign_with_hash_ok : sign_without_hash_ok;
-                        result = prompt_delegation(ok_c, sign_reject);
-                    } else {
-                        THROW(EXC_SECURITY);
-                    }
+                    TZ_ASSERT(
+                        bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
+                            // ops->signing is generated from G.bip32_path and G.curve
+                            (COMPARE(G.maybe_ops.v.operation.source, G.maybe_ops.v.signing) == 0) &&
+                            (COMPARE(G.maybe_ops.v.operation.destination, G.maybe_ops.v.signing) ==
+                             0),
+                        EXC_SECURITY);
+                    ui_callback_t const ok_c = send_hash ? sign_with_hash_ok : sign_without_hash_ok;
+                    result = prompt_delegation(ok_c, sign_reject);
                     break;
                 case OPERATION_TAG_REVEAL:
                 case OPERATION_TAG_NONE:
                     // Reveal cases
-                    if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
-                        // ops->signing is generated from G.bip32_path and G.curve
-                        COMPARE(G.maybe_ops.v.operation.source, G.maybe_ops.v.signing) == 0) {
-                        result = perform_signature(send_hash);
-                    } else {
-                        THROW(EXC_SECURITY);
-                    }
+                    TZ_ASSERT(
+                        bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
+                            // ops->signing is generated from G.bip32_path and G.curve
+                            (COMPARE(G.maybe_ops.v.operation.source, G.maybe_ops.v.signing) == 0),
+                        EXC_SECURITY);
+                    result = perform_signature(send_hash);
                     break;
                 default:
-                    THROW(EXC_SECURITY);
+                    TZ_FAIL(EXC_SECURITY);
             }
             break;
         }
         default:
-            PARSE_ERROR();
+            TZ_FAIL(EXC_PARSE_ERROR);
     }
     return result;
+
+end:
+    return io_send_apdu_err(exc);
 }
 
 /**
@@ -237,21 +259,22 @@ static int baking_sign_complete(bool const send_hash) {
  *   + Bip32 path: signing key path
  */
 int select_signing_key(buffer_t *cdata, derivation_type_t derivation_type) {
-    check_null(cdata);
+    tz_exc exc = SW_OK;
+
+    TZ_ASSERT_NOT_NULL(cdata);
 
     clear_data();
 
-    if (!read_bip32_path(cdata, &global.path_with_curve.bip32_path)) {
-        THROW(EXC_WRONG_VALUES);
-    }
+    TZ_ASSERT(read_bip32_path(cdata, &global.path_with_curve.bip32_path), EXC_WRONG_VALUES);
 
-    if (cdata->size != cdata->offset) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(cdata->size == cdata->offset, EXC_WRONG_LENGTH);
 
     global.path_with_curve.derivation_type = derivation_type;
 
     return io_send_sw(SW_OK);
+
+end:
+    return io_send_apdu_err(exc);
 }
 
 /**
@@ -259,77 +282,63 @@ int select_signing_key(buffer_t *cdata, derivation_type_t derivation_type) {
  *   + (max-size) uint8 *: message
  */
 int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
-    check_null(cdata);
+    tz_exc exc = SW_OK;
 
-    if (global.path_with_curve.bip32_path.length == 0u) {
-        THROW(EXC_WRONG_LENGTH_FOR_INS);
-    }
+    TZ_ASSERT_NOT_NULL(cdata);
+
+    TZ_ASSERT(global.path_with_curve.bip32_path.length != 0u, EXC_WRONG_LENGTH_FOR_INS);
 
     // Guard against overflow
-    if (G.packet_index >= 0xFFu) {
-        PARSE_ERROR();
-    }
+    TZ_ASSERT(G.packet_index < 0xFFu, EXC_PARSE_ERROR);
     G.packet_index++;
 
-    if (G.packet_index != 1u) {
-        PARSE_ERROR();  // Only parse a single packet when baking
-    }
+    // Only parse a single packet when baking
+    TZ_ASSERT(G.packet_index == 1u, EXC_PARSE_ERROR);
 
-    if (!buffer_read_u8(cdata, &G.magic_byte)) {
-        PARSE_ERROR();
-    }
+    TZ_ASSERT(buffer_read_u8(cdata, &G.magic_byte), EXC_PARSE_ERROR);
 
     switch (G.magic_byte) {
         case MAGIC_BYTE_PREATTESTATION:
         case MAGIC_BYTE_ATTESTATION:
-            if (!parse_consensus_operation(cdata, &G.parsed_baking_data)) {
-                PARSE_ERROR();
-            }
+            TZ_ASSERT(parse_consensus_operation(cdata, &G.parsed_baking_data), EXC_PARSE_ERROR);
             break;
         case MAGIC_BYTE_BLOCK:
-            if (!parse_block(cdata, &G.parsed_baking_data)) {
-                PARSE_ERROR();
-            }
+            TZ_ASSERT(parse_block(cdata, &G.parsed_baking_data), EXC_PARSE_ERROR);
             break;
-        case MAGIC_BYTE_UNSAFE_OP: {
+        case MAGIC_BYTE_UNSAFE_OP:
             // Parse the operation. It will be verified in `baking_sign_complete`.
-            tz_exc exc = parse_operations(cdata, &G.maybe_ops.v, &global.path_with_curve);
-
-            if (exc != SW_OK) {
-                THROW(exc);
-            }
+            TZ_CHECK(parse_operations(cdata, &G.maybe_ops.v, &global.path_with_curve));
             break;
-        }
         default:
-            PARSE_ERROR();
+            TZ_FAIL(EXC_PARSE_ERROR);
     }
 
     // Hash contents of *previous* message (which may be empty).
-    blake2b_incremental_hash(G.message_data,
-                             sizeof(G.message_data),
-                             &G.message_data_length,
-                             &G.hash_state);
+    TZ_CHECK(blake2b_incremental_hash(G.message_data,
+                                      sizeof(G.message_data),
+                                      &G.message_data_length,
+                                      &G.hash_state));
 
-    if (!buffer_seek_set(cdata, 0) ||
-        !buffer_move(cdata,
-                     G.message_data + G.message_data_length,
-                     sizeof(G.message_data) - G.message_data_length)) {
-        PARSE_ERROR();
-    }
+    TZ_ASSERT(
+        buffer_seek_set(cdata, 0) && buffer_move(cdata,
+                                                 G.message_data + G.message_data_length,
+                                                 sizeof(G.message_data) - G.message_data_length),
+        EXC_PARSE_ERROR);
+
     G.message_data_length += cdata->size;
 
     if (last) {
         // Hash contents of *this* message and then get the final hash value.
-        blake2b_incremental_hash(G.message_data,
-                                 sizeof(G.message_data),
-                                 &G.message_data_length,
-                                 &G.hash_state);
-        blake2b_finish_hash(G.final_hash,
-                            sizeof(G.final_hash),
-                            G.message_data,
-                            sizeof(G.message_data),
-                            &G.message_data_length,
-                            &G.hash_state);
+        TZ_CHECK(blake2b_incremental_hash(G.message_data,
+                                          sizeof(G.message_data),
+                                          &G.message_data_length,
+                                          &G.hash_state));
+        TZ_CHECK(blake2b_finish_hash(G.final_hash,
+                                     sizeof(G.final_hash),
+                                     G.message_data,
+                                     sizeof(G.message_data),
+                                     &G.message_data_length,
+                                     &G.hash_state));
 
         G.maybe_ops.is_valid = parse_operations_final(&G.parse_state, &G.maybe_ops.v);
 
@@ -337,6 +346,9 @@ int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
     } else {
         return io_send_sw(SW_OK);
     }
+
+end:
+    return io_send_apdu_err(exc);
 }
 
 /**
@@ -350,11 +362,12 @@ int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
  * @return int: zero or positive integer if success, negative integer otherwise.
  */
 static int perform_signature(bool const send_hash) {
-    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
-        THROW(EXC_SECURITY);
-    }
+    tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
 
-    write_high_water_mark(&G.parsed_baking_data);
+    TZ_ASSERT(os_global_pin_is_validated() == BOLOS_UX_OK, EXC_SECURITY);
+
+    TZ_ASSERT(write_high_water_mark(&G.parsed_baking_data), EXC_MEMORY_ERROR);
 
     uint8_t resp[SIGN_HASH_SIZE + MAX_SIGNATURE_SIZE] = {0};
     size_t offset = 0;
@@ -366,7 +379,7 @@ static int perform_signature(bool const send_hash) {
 
     size_t signature_size = MAX_SIGNATURE_SIZE;
 
-    CX_THROW(sign(resp + offset,
+    CX_CHECK(sign(resp + offset,
                   &signature_size,
                   &global.path_with_curve,
                   G.final_hash,
@@ -377,4 +390,8 @@ static int perform_signature(bool const send_hash) {
     clear_data();
 
     return io_send_response_pointer(resp, offset, SW_OK);
+
+end:
+    TZ_CONVERT_CX();
+    return io_send_apdu_err(exc);
 }

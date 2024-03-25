@@ -52,7 +52,9 @@ nvram_data const N_data_real;
 
 high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
                                                nvram_data volatile *const ram) {
-    check_null(ram);
+    if (ram == NULL) {
+        return NULL;
+    }
     return ((chain_id.v == ram->main_chain_id.v) || !ram->main_chain_id.v) ? &ram->hwm.main
                                                                            : &ram->hwm.test;
 }

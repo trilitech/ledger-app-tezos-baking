@@ -55,29 +55,27 @@ UX_STEP_NOCB(ux_fee_step, bnnn_paging, {"Fee", delegation_context.fee});
 UX_CONFIRM_FLOW(ux_delegation_flow, &ux_register_step, &ux_delegate_step, &ux_fee_step);
 
 int prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
-    if (!G.maybe_ops.is_valid) {
-        THROW(EXC_MEMORY_ERROR);
-    }
+    tz_exc exc = SW_OK;
+
+    TZ_ASSERT(G.maybe_ops.is_valid, EXC_MEMORY_ERROR);
 
     memset(&delegation_context, 0, sizeof(delegation_context));
 
-    tz_exc exc = bip32_path_with_curve_to_pkh_string(delegation_context.address,
-                                                     sizeof(delegation_context.address),
-                                                     &global.path_with_curve);
+    TZ_CHECK(bip32_path_with_curve_to_pkh_string(delegation_context.address,
+                                                 sizeof(delegation_context.address),
+                                                 &global.path_with_curve));
 
-    if (exc != SW_OK) {
-        THROW(exc);
-    }
-
-    if (microtez_to_string(delegation_context.fee,
-                           sizeof(delegation_context.fee),
-                           G.maybe_ops.v.total_fee) < 0) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(microtez_to_string(delegation_context.fee,
+                                 sizeof(delegation_context.fee),
+                                 G.maybe_ops.v.total_fee) >= 0,
+              EXC_WRONG_LENGTH);
 
     ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
     ux_flow_init(0, ux_delegation_flow, NULL);
     return 0;
+
+end:
+    return io_send_apdu_err(exc);
 }
 
 #endif  // HAVE_BAGL

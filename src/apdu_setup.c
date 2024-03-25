@@ -70,23 +70,24 @@ static bool ok(void) {
  *   + Bip32 path: key path
  */
 int handle_setup(buffer_t *cdata, derivation_type_t derivation_type) {
-    check_null(cdata);
+    tz_exc exc = SW_OK;
+
+    TZ_ASSERT_NOT_NULL(cdata);
 
     global.path_with_curve.derivation_type = derivation_type;
 
-    if (!buffer_read_u32(cdata, &G.main_chain_id.v, BE) ||           // chain id
-        !buffer_read_u32(cdata, &G.hwm.main, BE) ||                  // main hwm level
-        !buffer_read_u32(cdata, &G.hwm.test, BE) ||                  // test hwm level
-        !read_bip32_path(cdata, &global.path_with_curve.bip32_path)  // key path
-    ) {
-        THROW(EXC_WRONG_VALUES);
-    }
+    TZ_ASSERT(buffer_read_u32(cdata, &G.main_chain_id.v, BE) &&  // chain id
+                  buffer_read_u32(cdata, &G.hwm.main, BE) &&     // main hwm level
+                  buffer_read_u32(cdata, &G.hwm.test, BE) &&     // test hwm level
+                  read_bip32_path(cdata, &global.path_with_curve.bip32_path),
+              EXC_WRONG_VALUES);
 
-    if (cdata->size != cdata->offset) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(cdata->size == cdata->offset, EXC_WRONG_LENGTH);
 
     return prompt_setup(ok, reject);
+
+end:
+    return io_send_apdu_err(exc);
 }
 
 int handle_deauthorize(void) {

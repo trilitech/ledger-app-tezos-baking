@@ -93,12 +93,14 @@ static void confirm_reset_page(void) {
 }
 
 int prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
+    tz_exc exc = SW_OK;
+
     reset_context.ok_cb = ok_cb;
     reset_context.cxl_cb = cxl_cb;
 
-    if (number_to_string(reset_context.buffer, sizeof(reset_context.buffer), G.reset_level) < 0) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(
+        number_to_string(reset_context.buffer, sizeof(reset_context.buffer), G.reset_level) >= 0,
+        EXC_WRONG_LENGTH);
 
     reset_context.tagValuePair[0].item = "Reset level";
     reset_context.tagValuePair[0].value = reset_context.buffer;
@@ -112,6 +114,9 @@ int prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
                             confirm_reset_page,
                             cancel_callback);
     return 0;
+
+end:
+    return io_send_apdu_err(exc);
 }
 
 #endif  // HAVE_NBGL

@@ -105,26 +105,21 @@ static void confirm_delegation_page(void) {
 }
 
 int prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
-    if (!G.maybe_ops.is_valid) {
-        THROW(EXC_MEMORY_ERROR);
-    }
+    tz_exc exc = SW_OK;
+
+    TZ_ASSERT(G.maybe_ops.is_valid, EXC_MEMORY_ERROR);
 
     delegation_context.ok_cb = ok_cb;
     delegation_context.cxl_cb = cxl_cb;
 
-    tz_exc exc = bip32_path_with_curve_to_pkh_string(delegation_context.buffer[0],
-                                                     sizeof(delegation_context.buffer[0]),
-                                                     &global.path_with_curve);
+    TZ_CHECK(bip32_path_with_curve_to_pkh_string(delegation_context.buffer[0],
+                                                 sizeof(delegation_context.buffer[0]),
+                                                 &global.path_with_curve));
 
-    if (exc != SW_OK) {
-        THROW(exc);
-    }
-
-    if (microtez_to_string(delegation_context.buffer[1],
-                           sizeof(delegation_context.buffer[1]),
-                           G.maybe_ops.v.total_fee) < 0) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(microtez_to_string(delegation_context.buffer[1],
+                                 sizeof(delegation_context.buffer[1]),
+                                 G.maybe_ops.v.total_fee) >= 0,
+              EXC_WRONG_LENGTH);
 
     delegation_context.tagValuePair[0].item = "Address";
     delegation_context.tagValuePair[0].value = delegation_context.buffer[0];
@@ -147,6 +142,9 @@ int prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
                             confirm_delegation_page,
                             cancel_callback);
     return 0;
+
+end:
+    return io_send_apdu_err(exc);
 }
 
 #endif  // HAVE_NBGL
