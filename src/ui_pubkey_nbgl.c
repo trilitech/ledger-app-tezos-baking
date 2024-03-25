@@ -88,12 +88,14 @@ static void verify_address_page(void) {
 }
 
 int prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
+    tz_exc exc = SW_OK;
+
     address_context.ok_cb = ok_cb;
     address_context.cxl_cb = cxl_cb;
 
-    bip32_path_with_curve_to_pkh_string(address_context.buffer,
-                                        sizeof(address_context.buffer),
-                                        &global.path_with_curve);
+    TZ_CHECK(bip32_path_with_curve_to_pkh_string(address_context.buffer,
+                                                 sizeof(address_context.buffer),
+                                                 &global.path_with_curve));
 
     const char* text;
     if (authorize) {
@@ -103,5 +105,9 @@ int prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
     }
     nbgl_useCaseReviewStart(&C_tezos, text, NULL, "Cancel", verify_address_page, cancel_callback);
     return 0;
+
+end:
+    return io_send_apdu_err(exc);
 }
+
 #endif  // HAVE_NBGL

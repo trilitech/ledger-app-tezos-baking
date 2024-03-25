@@ -23,6 +23,7 @@
 
 #include "buffer.h"
 #include "exception.h"
+#include "globals.h"
 #include "keys.h"
 #include "parser.h"
 #include "types.h"
@@ -74,11 +75,24 @@ static inline bool reject(void) {
 }
 
 /**
+ * @brief Sends an apdu error
+ *
+ *        Clears apdu state because the application state must not
+ *        persist through errors
+ *
+ * @return int: zero or positive integer if success, negative integer otherwise.
+ */
+static inline int io_send_apdu_err(uint16_t sw) {
+    clear_apdu_globals();
+    return io_send_sw(sw);
+}
+
+/**
  * @brief Provides the public key in the apdu response
  *
  *        Expects validated pin
  *
- * @param pubkey: public key
+ * @param path_with_curve: bip32 path and curve of the key
  * @return int: zero or positive integer if success, negative integer otherwise.
  */
-int provide_pubkey(cx_ecfp_public_key_t const* const pubkey);
+int provide_pubkey(bip32_path_with_curve_t const* const path_with_curve);

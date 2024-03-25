@@ -22,6 +22,7 @@
 #include "keys.h"
 
 #include "apdu.h"
+#include "crypto_helpers.h"
 #include "globals.h"
 #include "memory.h"
 #include "types.h"
@@ -35,126 +36,112 @@ bool read_bip32_path(buffer_t *buf, bip32_path_t *const out) {
 }
 
 /**
- * @brief Derivates private key from bip32 path and curve
+ * @brief Converts `derivation_type` to `derivation_mode`
  *
- * @param private_key: private key output
- * @param derivation_type: curve
- * @param bip32_path: bip32 path
- * @return int: error, 0 if none
+ * @param derivation_type: derivation_type
+ * @return unsigned int: derivation mode
  */
-static int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
-                                     derivation_type_t const derivation_type,
-                                     bip32_path_t const *const bip32_path) {
-    check_null(bip32_path);
-    uint8_t raw_private_key[PRIVATE_KEY_DATA_SIZE] = {0};
-    int error = 0;
+static inline unsigned int derivation_type_to_derivation_mode(
+    derivation_type_t const derivation_type) {
+    switch (derivation_type) {
+        case DERIVATION_TYPE_ED25519:
+            return HDW_ED25519_SLIP10;
+        case DERIVATION_TYPE_SECP256K1:
+        case DERIVATION_TYPE_SECP256R1:
+        case DERIVATION_TYPE_BIP32_ED25519:
+        default:
+            return HDW_NORMAL;
+    }
+}
 
-    cx_curve_t const cx_curve =
-        signature_type_to_cx_curve(derivation_type_to_signature_type(derivation_type));
+/**
+ * @brief Converts `signature_type` to `cx_curve`
+ *
+ * @param signature_type: signature_type
+ * @return cx_curve_t: curve result
+ */
+static inline cx_curve_t signature_type_to_cx_curve(signature_type_t const signature_type) {
+    switch (signature_type) {
+        case SIGNATURE_TYPE_SECP256K1:
+            return CX_CURVE_SECP256K1;
+        case SIGNATURE_TYPE_SECP256R1:
+            return CX_CURVE_SECP256R1;
+        case SIGNATURE_TYPE_ED25519:
+            return CX_CURVE_Ed25519;
+        default:
+            return CX_CURVE_NONE;
+    }
+}
 
-    if (derivation_type == DERIVATION_TYPE_ED25519) {
-        // Old, non BIP32_Ed25519 way...
-        error = os_derive_bip32_with_seed_no_throw(HDW_ED25519_SLIP10,
-                                                   CX_CURVE_Ed25519,
+cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
+                             bip32_path_with_curve_t const *const path_with_curve) {
+    if ((public_key == NULL) || (path_with_curve == NULL)) {
+        return CX_INVALID_PARAMETER;
+    }
+
+    cx_err_t error = CX_OK;
+
+    bip32_path_t const *const bip32_path = &path_with_curve->bip32_path;
+    derivation_type_t derivation_type = path_with_curve->derivation_type;
+    unsigned int derivation_mode = derivation_type_to_derivation_mode(derivation_type);
+    signature_type_t signature_type = derivation_type_to_signature_type(derivation_type);
+    cx_curve_t cx_curve = signature_type_to_cx_curve(signature_type);
+
+    public_key->W_len = 65;
+    public_key->curve = cx_curve;
+
+    // generate corresponding public key
+    CX_CHECK(bip32_derive_with_seed_get_pubkey_256(derivation_mode,
+                                                   public_key->curve,
                                                    bip32_path->components,
                                                    bip32_path->length,
-                                                   raw_private_key,
+                                                   public_key->W,
                                                    NULL,
+                                                   CX_SHA512,
                                                    NULL,
-                                                   0);
-    } else {
-        // derive the seed with bip32_path
-        error = os_derive_bip32_no_throw(cx_curve,
-                                         bip32_path->components,
-                                         bip32_path->length,
-                                         raw_private_key,
-                                         NULL);
+                                                   0));
+
+    // If we're using the old curve, make sure to adjust accordingly.
+    if (cx_curve == CX_CURVE_Ed25519) {
+        CX_CHECK(
+            cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, public_key->W, public_key->W_len));
+        public_key->W_len = 33;
     }
 
-    if (error == 0) {
-        // new private_key from raw
-        error = cx_ecfp_init_private_key_no_throw(cx_curve, raw_private_key, 32, private_key);
-    }
-
-    explicit_bzero(raw_private_key, sizeof(raw_private_key));
-
+end:
     return error;
 }
 
 /**
- * @brief Derivates public key from private and curve
+ * @brief Extract the public key hash from a public key and a curve
  *
+ *        Is non-reentrant
+ *
+ * @param hash_out: public key hash output
+ * @param hash_out_size: output size
+ * @param compressed_out: compressed public key output
+ *                        pass NULL if this value is not desired
  * @param derivation_type: curve
- * @param private_key: private key
- * @param public_key public key output
- * @return int: error, 0 if none
+ * @param param public_key: public key
+ * @return cx_err_t: error, CX_OK if none
  */
-static int crypto_init_public_key(derivation_type_t const derivation_type,
-                                  cx_ecfp_private_key_t *private_key,
-                                  cx_ecfp_public_key_t *public_key) {
-    int error = 0;
-    cx_curve_t const cx_curve =
-        signature_type_to_cx_curve(derivation_type_to_signature_type(derivation_type));
-
-    // generate corresponding public key
-    error = cx_ecfp_generate_pair_no_throw(cx_curve, public_key, private_key, 1);
-    if (error != 0) {
-        return error;
+static cx_err_t public_key_hash(uint8_t *const hash_out,
+                                size_t const hash_out_size,
+                                cx_ecfp_public_key_t *compressed_out,
+                                derivation_type_t const derivation_type,
+                                cx_ecfp_public_key_t const *const public_key) {
+    if ((hash_out == NULL) || (public_key == NULL)) {
+        return CX_INVALID_PARAMETER;
     }
 
-    // If we're using the old curve, make sure to adjust accordingly.
-    if (cx_curve == CX_CURVE_Ed25519) {
-        error =
-            cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, public_key->W, public_key->W_len);
-        public_key->W_len = 33;
-    }
-
-    return error;
-}
-
-// The caller should not forget to bzero out the `key_pair` as it contains sensitive information.
-int generate_key_pair(key_pair_t *key_pair,
-                      derivation_type_t const derivation_type,
-                      bip32_path_t const *const bip32_path) {
-    int error;
-
-    // derive private key according to BIP32 path
-    error = crypto_derive_private_key(&key_pair->private_key, derivation_type, bip32_path);
-    if (error != 0) {
-        return error;
-    }
-    // generate corresponding public key
-    error = crypto_init_public_key(derivation_type, &key_pair->private_key, &key_pair->public_key);
-    return error;
-}
-
-int generate_public_key(cx_ecfp_public_key_t *public_key,
-                        derivation_type_t const derivation_type,
-                        bip32_path_t const *const bip32_path) {
-    cx_ecfp_private_key_t private_key = {0};
-    int error;
-
-    error = crypto_derive_private_key(&private_key, derivation_type, bip32_path);
-    if (error != 0) {
-        return error;
-    }
-    error = crypto_init_public_key(derivation_type, &private_key, public_key);
-    return error;
-}
-
-void public_key_hash(uint8_t *const hash_out,
-                     size_t const hash_out_size,
-                     cx_ecfp_public_key_t *compressed_out,
-                     derivation_type_t const derivation_type,
-                     cx_ecfp_public_key_t const *const public_key) {
-    check_null(hash_out);
-    check_null(public_key);
     if (hash_out_size < HASH_SIZE) {
-        THROW(EXC_WRONG_LENGTH);
+        return CX_INVALID_PARAMETER_SIZE;
     }
 
+    signature_type_t signature_type = derivation_type_to_signature_type(derivation_type);
     cx_ecfp_public_key_t compressed = {0};
-    switch (derivation_type_to_signature_type(derivation_type)) {
+
+    switch (signature_type) {
         case SIGNATURE_TYPE_ED25519: {
             compressed.W_len = public_key->W_len - 1;
             memcpy(compressed.W, public_key->W + 1, compressed.W_len);
@@ -168,76 +155,104 @@ void public_key_hash(uint8_t *const hash_out,
             break;
         }
         default:
-            THROW(EXC_WRONG_PARAM);
+            return CX_INVALID_PARAMETER;
     }
 
+    cx_err_t error = CX_OK;
     cx_blake2b_t hash_state;
     // cx_blake2b_init takes size in bits.
-    CX_THROW(cx_blake2b_init_no_throw(&hash_state, HASH_SIZE * 8u));
-    CX_THROW(cx_hash_no_throw((cx_hash_t *) &hash_state,
+    CX_CHECK(cx_blake2b_init_no_throw(&hash_state, HASH_SIZE * 8u));
+
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &hash_state,
                               CX_LAST,
                               compressed.W,
                               compressed.W_len,
                               hash_out,
                               HASH_SIZE));
+
     if (compressed_out != NULL) {
         memmove(compressed_out, &compressed, sizeof(*compressed_out));
     }
+
+end:
+    return error;
 }
 
-size_t sign(uint8_t *const out,
-            size_t const out_size,
-            derivation_type_t const derivation_type,
-            key_pair_t const *const pair,
-            uint8_t const *const in,
-            size_t const in_size) {
-    check_null(out);
-    check_null(pair);
-    check_null(in);
+cx_err_t generate_public_key_hash(uint8_t *const hash_out,
+                                  size_t const hash_out_size,
+                                  cx_ecfp_public_key_t *compressed_out,
+                                  bip32_path_with_curve_t const *const path_with_curve) {
+    if ((hash_out == NULL) || (path_with_curve == NULL)) {
+        return CX_INVALID_PARAMETER;
+    }
 
-    size_t tx = 0;
-    switch (derivation_type_to_signature_type(derivation_type)) {
+    cx_ecfp_public_key_t pubkey = {0};
+    cx_err_t error = CX_OK;
+
+    CX_CHECK(generate_public_key(&pubkey, path_with_curve));
+
+    CX_CHECK(public_key_hash(hash_out,
+                             hash_out_size,
+                             compressed_out,
+                             path_with_curve->derivation_type,
+                             &pubkey));
+
+end:
+    return error;
+}
+
+cx_err_t sign(uint8_t *const out,
+              size_t *out_size,
+              bip32_path_with_curve_t const *const path_with_curve,
+              uint8_t const *const in,
+              size_t const in_size) {
+    if ((out == NULL) || (out_size == NULL) || (path_with_curve == NULL) || (in == NULL)) {
+        return CX_INVALID_PARAMETER;
+    }
+
+    cx_err_t error = CX_OK;
+
+    bip32_path_t const *const bip32_path = &path_with_curve->bip32_path;
+    derivation_type_t derivation_type = path_with_curve->derivation_type;
+    unsigned int derivation_mode = derivation_type_to_derivation_mode(derivation_type);
+    signature_type_t signature_type = derivation_type_to_signature_type(derivation_type);
+    cx_curve_t cx_curve = signature_type_to_cx_curve(signature_type);
+    uint32_t info;
+
+    switch (signature_type) {
         case SIGNATURE_TYPE_ED25519: {
-            static size_t const SIG_SIZE = 64u;
-            if (out_size < SIG_SIZE) {
-                THROW(EXC_WRONG_LENGTH);
-            }
-
-            CX_THROW(cx_eddsa_sign_no_throw(&pair->private_key,
-                                            CX_SHA512,
-                                            (uint8_t const *) PIC(in),
-                                            in_size,
-                                            out,
-                                            SIG_SIZE));
-
-            tx += SIG_SIZE;
-
+            CX_CHECK(bip32_derive_with_seed_eddsa_sign_hash_256(derivation_mode,
+                                                                cx_curve,
+                                                                bip32_path->components,
+                                                                bip32_path->length,
+                                                                CX_SHA512,
+                                                                (uint8_t const *) PIC(in),
+                                                                in_size,
+                                                                out,
+                                                                out_size,
+                                                                NULL,
+                                                                0));
         } break;
         case SIGNATURE_TYPE_SECP256K1:
         case SIGNATURE_TYPE_SECP256R1: {
-            static size_t const SIG_SIZE = 100u;
-            if (out_size < SIG_SIZE) {
-                THROW(EXC_WRONG_LENGTH);
-            }
-            unsigned int info;
-            size_t sig_len = SIG_SIZE;
-            CX_THROW(cx_ecdsa_sign_no_throw(&pair->private_key,
-                                            CX_LAST | CX_RND_RFC6979,
-                                            CX_SHA256,  // historical reasons...semantically CX_NONE
-                                            (uint8_t const *) PIC(in),
-                                            in_size,
-                                            out,
-                                            &sig_len,
-                                            &info));
-            tx += sig_len;
-
+            CX_CHECK(bip32_derive_ecdsa_sign_hash_256(cx_curve,
+                                                      bip32_path->components,
+                                                      bip32_path->length,
+                                                      CX_LAST | CX_RND_RFC6979,
+                                                      CX_SHA256,
+                                                      (uint8_t const *) PIC(in),
+                                                      in_size,
+                                                      out,
+                                                      out_size,
+                                                      &info));
             if ((info & CX_ECCINFO_PARITY_ODD) != 0) {
                 out[0] |= 0x01;
             }
         } break;
         default:
-            THROW(EXC_WRONG_PARAM);  // This should not be able to happen.
+            error = CX_INVALID_PARAMETER;
     }
 
-    return tx;
+end:
+    return error;
 }

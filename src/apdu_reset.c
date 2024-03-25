@@ -55,15 +55,17 @@ static bool ok(void) {
  *   + (4 bytes) uint32: reset level
  */
 int handle_reset(buffer_t* cdata) {
-    check_null(cdata);
+    tz_exc exc = SW_OK;
 
-    if (!buffer_read_u32(cdata, &G.reset_level, BE) || !is_valid_level(G.reset_level)) {
-        THROW(EXC_WRONG_VALUES);
-    }
+    TZ_ASSERT_NOT_NULL(cdata);
 
-    if (cdata->size != cdata->offset) {
-        THROW(EXC_WRONG_LENGTH);
-    }
+    TZ_ASSERT(buffer_read_u32(cdata, &G.reset_level, BE) && is_valid_level(G.reset_level),
+              EXC_WRONG_VALUES);
+
+    TZ_ASSERT(cdata->size == cdata->offset, EXC_WRONG_LENGTH);
 
     return prompt_reset(ok, reject);
+
+end:
+    return io_send_apdu_err(exc);
 }

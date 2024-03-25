@@ -54,11 +54,13 @@ UX_CONFIRM_FLOW(ux_authorize_flow, &ux_authorize_step, &ux_public_key_hash_step)
 UX_CONFIRM_FLOW(ux_provide_flow, &ux_provide_step, &ux_public_key_hash_step);
 
 int prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
+    tz_exc exc = SW_OK;
+
     memset(&address_context, 0, sizeof(address_context));
 
-    bip32_path_with_curve_to_pkh_string(address_context.public_key_hash,
-                                        sizeof(address_context.public_key_hash),
-                                        &global.path_with_curve);
+    TZ_CHECK(bip32_path_with_curve_to_pkh_string(address_context.public_key_hash,
+                                                 sizeof(address_context.public_key_hash),
+                                                 &global.path_with_curve));
 
     ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
     if (authorize) {
@@ -67,6 +69,9 @@ int prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
         ux_flow_init(0, ux_provide_flow, NULL);
     }
     return 0;
+
+end:
+    return io_send_apdu_err(exc);
 }
 
 #endif  // HAVE_BAGL

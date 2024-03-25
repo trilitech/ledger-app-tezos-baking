@@ -37,14 +37,18 @@ bool is_valid_level(level_t lvl) {
     return !(lvl & 0xC0000000);
 }
 
-void write_high_water_mark(parsed_baking_data_t const *const in) {
-    check_null(in);
-    if (!is_valid_level(in->level)) {
-        THROW(EXC_WRONG_VALUES);
-    }
+tz_exc write_high_water_mark(parsed_baking_data_t const *const in) {
+    tz_exc exc = SW_OK;
+
+    TZ_ASSERT_NOT_NULL(in);
+
+    TZ_ASSERT(is_valid_level(in->level), EXC_WRONG_VALUES);
+
     UPDATE_NVRAM(ram, {
         // If the chain matches the main chain *or* the main chain is not set, then use 'main' HWM.
         high_watermark_t volatile *const dest = select_hwm_by_chain(in->chain_id, ram);
+        TZ_ASSERT_NOT_NULL(dest);
+
         if ((in->level > dest->highest_level) || (in->round > dest->highest_round)) {
             dest->had_attestation = false;
             dest->had_preattestation = false;
@@ -55,20 +59,29 @@ void write_high_water_mark(parsed_baking_data_t const *const in) {
         dest->had_preattestation |= in->type == BAKING_TYPE_PREATTESTATION;
         dest->migrated_to_tenderbake |= in->is_tenderbake;
     });
+
+end:
+    return exc;
 }
 
-void authorize_baking(derivation_type_t const derivation_type,
-                      bip32_path_t const *const bip32_path) {
-    check_null(bip32_path);
-    if ((bip32_path->length > NUM_ELEMENTS(N_data.baking_key.bip32_path.components)) ||
-        (bip32_path->length == 0u)) {
-        return;
+tz_exc authorize_baking(derivation_type_t const derivation_type,
+                        bip32_path_t const *const bip32_path) {
+    tz_exc exc = SW_OK;
+
+    TZ_ASSERT_NOT_NULL(bip32_path);
+
+    TZ_ASSERT(bip32_path->length <= NUM_ELEMENTS(N_data.baking_key.bip32_path.components),
+              EXC_WRONG_LENGTH);
+
+    if (bip32_path->length != 0u) {
+        UPDATE_NVRAM(ram, {
+            ram->baking_key.derivation_type = derivation_type;
+            copy_bip32_path(&ram->baking_key.bip32_path, bip32_path);
+        });
     }
 
-    UPDATE_NVRAM(ram, {
-        ram->baking_key.derivation_type = derivation_type;
-        copy_bip32_path(&ram->baking_key.bip32_path, bip32_path);
-    });
+end:
+    return exc;
 }
 
 /**
@@ -80,35 +93,41 @@ void authorize_baking(derivation_type_t const derivation_type,
  * @return bool: return true if it has passed checks
  */
 static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
-    check_null(baking_info);
+    if (baking_info == NULL) {
+        return false;
+    }
+
     if (!is_valid_level(baking_info->level)) {
         return false;
     }
+
     high_watermark_t volatile const *const hwm =
         select_hwm_by_chain(baking_info->chain_id, &N_data);
-
-    if (baking_info->is_tenderbake) {
-        return (baking_info->level > hwm->highest_level) ||
-
-               ((baking_info->level == hwm->highest_level) &&
-                (baking_info->round > hwm->highest_round)) ||
-
-               // It is ok to sign an attestation if we have not already signed an attestation for
-               // the level/round
-               ((baking_info->level == hwm->highest_level) &&
-                (baking_info->round == hwm->highest_round) &&
-                (baking_info->type == BAKING_TYPE_ATTESTATION) && !hwm->had_attestation) ||
-
-               // It is ok to sign a preattestation if we have not already signed neither an
-               // attestation nor a preattestation for the level/round
-               ((baking_info->level == hwm->highest_level) &&
-                (baking_info->round == hwm->highest_round) &&
-                (baking_info->type == BAKING_TYPE_PREATTESTATION) && !hwm->had_attestation &&
-                !hwm->had_preattestation);
-
-    } else {
+    if (hwm == NULL) {
         return false;
     }
+
+    if (!baking_info->is_tenderbake) {
+        return false;
+    }
+
+    return (baking_info->level > hwm->highest_level) ||
+
+           ((baking_info->level == hwm->highest_level) &&
+            (baking_info->round > hwm->highest_round)) ||
+
+           // It is ok to sign an attestation if we have not already signed an attestation for
+           // the level/round
+           ((baking_info->level == hwm->highest_level) &&
+            (baking_info->round == hwm->highest_round) &&
+            (baking_info->type == BAKING_TYPE_ATTESTATION) && !hwm->had_attestation) ||
+
+           // It is ok to sign a preattestation if we have not already signed neither an
+           // attestation nor a preattestation for the level/round
+           ((baking_info->level == hwm->highest_level) &&
+            (baking_info->round == hwm->highest_round) &&
+            (baking_info->type == BAKING_TYPE_PREATTESTATION) && !hwm->had_attestation &&
+            !hwm->had_preattestation);
 }
 
 /**
@@ -120,23 +139,24 @@ static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
  */
 static bool is_path_authorized(derivation_type_t const derivation_type,
                                bip32_path_t const *const bip32_path) {
-    check_null(bip32_path);
-    return derivation_type && (derivation_type == N_data.baking_key.derivation_type) &&
-           (bip32_path->length != 0u) &&
+    return (bip32_path != NULL) && (derivation_type != DERIVATION_TYPE_UNSET) &&
+           (derivation_type == N_data.baking_key.derivation_type) && (bip32_path->length != 0u) &&
            bip32_paths_eq(bip32_path, (const bip32_path_t *) &N_data.baking_key.bip32_path);
 }
 
-void guard_baking_authorized(parsed_baking_data_t const *const baking_info,
-                             bip32_path_with_curve_t const *const key) {
-    check_null(baking_info);
-    check_null(key);
-    if (!is_path_authorized(key->derivation_type, &key->bip32_path)) {
-        THROW(EXC_SECURITY);
-    }
-    if (!is_level_authorized(baking_info)) {
-        THROW(EXC_WRONG_VALUES);
-    }
+tz_exc guard_baking_authorized(parsed_baking_data_t const *const baking_info,
+                               bip32_path_with_curve_t const *const key) {
+    tz_exc exc = SW_OK;
+
+    TZ_ASSERT_NOT_NULL(baking_info);
+    TZ_ASSERT_NOT_NULL(key);
+    TZ_ASSERT(is_path_authorized(key->derivation_type, &key->bip32_path), EXC_SECURITY);
+    TZ_ASSERT(is_level_authorized(baking_info), EXC_WRONG_VALUES);
+
+end:
+    return exc;
 }
+
 #define MINIMUM_FITNESS_SIZE 33u  // When 'locked_round' == none
 #define MAXIMUM_FITNESS_SIZE 37u  // When 'locked_round' != none
 

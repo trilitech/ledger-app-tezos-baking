@@ -38,11 +38,7 @@
  * @return true
  */
 static bool pubkey_ok(void) {
-    cx_ecfp_public_key_t public_key = {0};
-    generate_public_key(&public_key,
-                        global.path_with_curve.derivation_type,
-                        &global.path_with_curve.bip32_path);
-    provide_pubkey(&public_key);
+    provide_pubkey(&global.path_with_curve);
     return true;
 }
 
@@ -54,8 +50,14 @@ static bool pubkey_ok(void) {
  * @return true
  */
 static bool baking_ok(void) {
-    authorize_baking(global.path_with_curve.derivation_type, &global.path_with_curve.bip32_path);
+    tz_exc exc = SW_OK;
+
+    TZ_CHECK(authorize_baking(global.path_with_curve.derivation_type,
+                              &global.path_with_curve.bip32_path));
     return pubkey_ok();
+
+end:
+    return io_send_apdu_err(exc);
 }
 
 /**
@@ -66,29 +68,23 @@ int handle_get_public_key(buffer_t *cdata,
                           derivation_type_t derivation_type,
                           bool authorize,
                           bool prompt) {
-    check_null(cdata);
+    tz_exc exc = SW_OK;
+
+    TZ_ASSERT_NOT_NULL(cdata);
 
     global.path_with_curve.derivation_type = derivation_type;
 
     if ((cdata->size == 0u) && authorize) {
-        copy_bip32_path_with_curve(&global.path_with_curve, &N_data.baking_key);
+        TZ_ASSERT(copy_bip32_path_with_curve(&global.path_with_curve, &N_data.baking_key),
+                  EXC_MEMORY_ERROR);
     } else {
-        if (!read_bip32_path(cdata, &global.path_with_curve.bip32_path)) {
-            THROW(EXC_WRONG_VALUES);
-        }
+        TZ_ASSERT(read_bip32_path(cdata, &global.path_with_curve.bip32_path), EXC_WRONG_VALUES);
     }
 
-    if (cdata->size != cdata->offset) {
-        THROW(EXC_WRONG_LENGTH);
-    }
-
-    cx_ecfp_public_key_t public_key = {0};
-    generate_public_key(&public_key,
-                        global.path_with_curve.derivation_type,
-                        &global.path_with_curve.bip32_path);
+    TZ_ASSERT(cdata->size == cdata->offset, EXC_WRONG_LENGTH);
 
     if (!prompt) {
-        return provide_pubkey(&public_key);
+        return provide_pubkey(&global.path_with_curve);
     } else {
         // INS_PROMPT_PUBLIC_KEY || INS_AUTHORIZE_BAKING
         ui_callback_t cb;
@@ -103,4 +99,7 @@ int handle_get_public_key(buffer_t *cdata,
         }
         return prompt_pubkey(bake, cb, reject);
     }
+
+end:
+    return io_send_apdu_err(exc);
 }

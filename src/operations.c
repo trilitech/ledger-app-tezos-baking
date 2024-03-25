@@ -31,18 +31,38 @@
 #include <stdint.h>
 #include <string.h>
 
+/// Parser result
+typedef enum {
+    PARSER_DONE,      // parsing has ended successfully
+    PARSER_CONTINUE,  // parsing did not finish
+    PARSER_ERROR      // parsing fail
+} tz_parser_result;
+
+// Checks that parsing  has ended successfully
+#define PARSER_CHECK(call)        \
+    do {                          \
+        res = (call);             \
+        if (res != PARSER_DONE) { \
+            goto end;             \
+        }                         \
+    } while (0)
+
+// Fail parsing
+#define PARSER_FAIL()       \
+    do {                    \
+        res = PARSER_ERROR; \
+        goto end;           \
+    } while (0)
+
+// Asserts a condition
+#define PARSER_ASSERT(cond) \
+    do {                    \
+        if (!(cond)) {      \
+            PARSER_FAIL();  \
+        }                   \
+    } while (0)
+
 #define STEP_HARD_FAIL -2
-
-/**
- * @brief Raises an exception and force hard fail if continue to parse
- *
- */
-__attribute__((noreturn)) static void parse_error(void) {
-    global.apdu.u.sign.parse_state.op_step = STEP_HARD_FAIL;
-    THROW(EXC_PARSE_ERROR);
-}
-
-#define PARSE_ERROR() parse_error()
 
 /// Conversion/check functions
 
@@ -50,21 +70,36 @@ __attribute__((noreturn)) static void parse_error(void) {
  * @brief Get signature_type from a raw signature_type
  *
  * @param raw_signature_type: raw signature_type
- * @return signature_type_t: signature_type result
+ * @param signature_type: signature_type result
+ * @return tz_parser_result: result of the parsing
  */
-static inline signature_type_t parse_raw_tezos_header_signature_type(
-    raw_tezos_header_signature_type_t const *const raw_signature_type) {
-    check_null(raw_signature_type);
+static tz_parser_result parse_raw_tezos_header_signature_type(
+    raw_tezos_header_signature_type_t const *const raw_signature_type,
+    signature_type_t *signature_type) {
+    tz_parser_result res = PARSER_CONTINUE;
+    signature_type_t signature_type_result;
+
+    PARSER_ASSERT(raw_signature_type != NULL);
+
     switch (raw_signature_type->v) {
         case 0:
-            return SIGNATURE_TYPE_ED25519;
+            signature_type_result = SIGNATURE_TYPE_ED25519;
+            break;
         case 1:
-            return SIGNATURE_TYPE_SECP256K1;
+            signature_type_result = SIGNATURE_TYPE_SECP256K1;
+            break;
         case 2:
-            return SIGNATURE_TYPE_SECP256R1;
+            signature_type_result = SIGNATURE_TYPE_SECP256R1;
+            break;
         default:
-            PARSE_ERROR();
+            PARSER_FAIL();
     }
+
+    *signature_type = signature_type_result;
+    res = PARSER_DONE;
+
+end:
+    return res;
 }
 
 /**
@@ -72,28 +107,33 @@ static inline signature_type_t parse_raw_tezos_header_signature_type(
  *
  * @param compressed_pubkey_out: compressed_pubkey output
  * @param contract_out: contract output
- * @param derivation_type: curve of the key
- * @param bip32_path: bip32 path of the key
+ * @param path_with_curve: bip32 path and curve of the key
+ * @return tz_exc: exception, SW_OK if none
  */
-static inline void compute_pkh(cx_ecfp_public_key_t *const compressed_pubkey_out,
-                               parsed_contract_t *const contract_out,
-                               derivation_type_t const derivation_type,
-                               bip32_path_t const *const bip32_path) {
-    check_null(bip32_path);
-    check_null(compressed_pubkey_out);
-    check_null(contract_out);
-    cx_ecfp_public_key_t pubkey = {0};
-    generate_public_key(&pubkey, derivation_type, bip32_path);
-    public_key_hash(contract_out->hash,
-                    sizeof(contract_out->hash),
-                    compressed_pubkey_out,
-                    derivation_type,
-                    &pubkey);
-    contract_out->signature_type = derivation_type_to_signature_type(derivation_type);
-    if (contract_out->signature_type == SIGNATURE_TYPE_UNSET) {
-        THROW(EXC_MEMORY_ERROR);
-    }
+static inline tz_exc compute_pkh(cx_ecfp_public_key_t *const compressed_pubkey_out,
+                                 parsed_contract_t *const contract_out,
+                                 bip32_path_with_curve_t const *const path_with_curve) {
+    tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
+
+    TZ_ASSERT_NOT_NULL(path_with_curve);
+    TZ_ASSERT_NOT_NULL(compressed_pubkey_out);
+    TZ_ASSERT_NOT_NULL(contract_out);
+
+    CX_CHECK(generate_public_key_hash(contract_out->hash,
+                                      sizeof(contract_out->hash),
+                                      compressed_pubkey_out,
+                                      path_with_curve));
+
+    contract_out->signature_type =
+        derivation_type_to_signature_type(path_with_curve->derivation_type);
+    TZ_ASSERT(contract_out->signature_type != SIGNATURE_TYPE_UNSET, EXC_MEMORY_ERROR);
+
     contract_out->originated = 0;
+
+end:
+    TZ_CONVERT_CX();
+    return exc;
 }
 
 /**
@@ -102,14 +142,22 @@ static inline void compute_pkh(cx_ecfp_public_key_t *const compressed_pubkey_out
  * @param out:  implict contract output
  * @param raw_signature_type: raw signature_type
  * @param hash: input hash
+ * @return tz_parser_result: result of the parsing
  */
-static inline void parse_implicit(parsed_contract_t *const out,
-                                  raw_tezos_header_signature_type_t const *const raw_signature_type,
-                                  uint8_t const hash[HASH_SIZE]) {
-    check_null(raw_signature_type);
+static tz_parser_result parse_implicit(
+    parsed_contract_t *const out,
+    raw_tezos_header_signature_type_t const *const raw_signature_type,
+    uint8_t const hash[HASH_SIZE]) {
+    tz_parser_result res = PARSER_CONTINUE;
+
     out->originated = 0;
-    out->signature_type = parse_raw_tezos_header_signature_type(raw_signature_type);
+    PARSER_CHECK(parse_raw_tezos_header_signature_type(raw_signature_type, &out->signature_type));
     memcpy(out->hash, hash, sizeof(out->hash));
+
+    res = PARSER_DONE;
+
+end:
+    return res;
 }
 
 /**
@@ -119,11 +167,8 @@ static inline void parse_implicit(parsed_contract_t *const out,
  *       this file without using the CALL_SUBPARSER macro above.
  *
  */
-#define CALL_SUBPARSER_LN(func, line, ...) \
-    if (func(__VA_ARGS__, line)) {         \
-        return true;                       \
-    }
-#define CALL_SUBPARSER(func, ...) CALL_SUBPARSER_LN(func, __LINE__, __VA_ARGS__)
+#define CALL_SUBPARSER_LN(func, line, ...) PARSER_CHECK(func(__VA_ARGS__, line))
+#define CALL_SUBPARSER(func, ...)          CALL_SUBPARSER_LN(func, __LINE__, __VA_ARGS__)
 
 #define NEXT_BYTE (byte)
 
@@ -134,11 +179,13 @@ static inline void parse_implicit(parsed_contract_t *const out,
  * @param current_byte: the current read byte
  * @param state: parsing state
  * @param lineno: line number of the caller
- * @return bool: if has finished to read the number
+ * @return tz_parser_result: result of the parsing
  */
-static inline bool parse_z(uint8_t current_byte,
-                           struct int_subparser_state *state,
-                           uint32_t lineno) {
+static inline tz_parser_result parse_z(uint8_t current_byte,
+                                       struct int_subparser_state *state,
+                                       uint32_t lineno) {
+    tz_parser_result res = PARSER_CONTINUE;
+
     if (state->lineno != lineno) {
         // New call; initialize.
         state->lineno = lineno;
@@ -147,11 +194,17 @@ static inline bool parse_z(uint8_t current_byte,
     }
     // Fails when the resulting shifted value overflows 64 bits
     if ((state->shift > 63u) || ((state->shift == 63u) && (current_byte != 1u))) {
-        PARSE_ERROR();
+        PARSER_FAIL();
     }
     state->value |= ((uint64_t) current_byte & 0x7Fu) << state->shift;
     state->shift += 7u;
-    return current_byte & 0x80u;  // Return true if we need more bytes.
+
+    if ((current_byte & 0x80u) == 0u) {
+        res = PARSER_DONE;
+    }
+
+end:
+    return res;
 }
 #define PARSE_Z                                                             \
     ({                                                                      \
@@ -166,15 +219,17 @@ static inline bool parse_z(uint8_t current_byte,
  * @param state: parsing state
  * @param sizeof_type: size of the type
  * @param lineno: line number of the caller
- * @return bool: if has finished to read the type
+ * @return tz_parser_result: result of the parsing
  */
-static inline bool parse_next_type(uint8_t current_byte,
-                                   struct nexttype_subparser_state *state,
-                                   uint32_t sizeof_type,
-                                   uint32_t lineno) {
+static tz_parser_result parse_next_type(uint8_t current_byte,
+                                        struct nexttype_subparser_state *state,
+                                        uint32_t sizeof_type,
+                                        uint32_t lineno) {
+    tz_parser_result res = PARSER_CONTINUE;
+
 #ifdef DEBUG
     if (sizeof_type > sizeof(state->body)) {
-        PARSE_ERROR();  // Shouldn't happen, but error if it does and we're debugging. Neither side
+        PARSER_FAIL();  // Shouldn't happen, but error if it does and we're debugging. Neither side
                         // is dynamic.
     }
 #endif
@@ -187,7 +242,16 @@ static inline bool parse_next_type(uint8_t current_byte,
     state->body.raw[state->fill_idx] = current_byte;
     state->fill_idx++;
 
-    return state->fill_idx < sizeof_type;  // Return true if we need more bytes.
+    if (state->fill_idx == sizeof_type) {
+        res = PARSER_DONE;
+    }
+
+    if (state->fill_idx > sizeof_type) {
+        PARSER_FAIL();
+    }
+
+end:
+    return res;
 }
 // do _NOT_ keep pointers to this data around.
 #define NEXT_TYPE(type)                                                                          \
@@ -202,21 +266,23 @@ static inline bool parse_next_type(uint8_t current_byte,
  * @brief Initialize the operation parser
  *
  * @param out: parsing output
- * @param derivation_type: curve of the key
- * @param bip32_path: bip32 path of the key
+ * @param path_with_curve: bip32 path and curve of the key
  * @param state: parsing state
+ * @return tz_exc: exception, SW_OK if none
  */
-static void parse_operations_init(struct parsed_operation_group *const out,
-                                  derivation_type_t derivation_type,
-                                  bip32_path_t const *const bip32_path,
-                                  struct parse_state *const state) {
-    check_null(out);
-    check_null(bip32_path);
+static tz_exc parse_operations_init(struct parsed_operation_group *const out,
+                                    bip32_path_with_curve_t const *const path_with_curve,
+                                    struct parse_state *const state) {
+    tz_exc exc = SW_OK;
+
+    TZ_ASSERT_NOT_NULL(out);
+    TZ_ASSERT_NOT_NULL(path_with_curve);
+
     memset(out, 0, sizeof(*out));
 
     out->operation.tag = OPERATION_TAG_NONE;
 
-    compute_pkh(&out->public_key, &out->signing, derivation_type, bip32_path);
+    TZ_CHECK(compute_pkh(&out->public_key, &out->signing, path_with_curve));
 
     // Start out with source = signing, for reveals
     // TODO: This is slightly hackish
@@ -225,6 +291,9 @@ static void parse_operations_init(struct parsed_operation_group *const out,
     state->op_step = 0;
     state->subparser_state.integer.lineno = -1;
     state->tag = OPERATION_TAG_NONE;  // This and the rest shouldn't be required.
+
+end:
+    return exc;
 }
 
 /// Named steps in the top-level state machine
@@ -247,29 +316,31 @@ bool parse_operations_final(struct parse_state *const state,
  * @param byte: byte to read
  * @param state: parsing state
  * @param out: parsing output
- * @return bool: returns true on success
+ * @return tz_parser_result: result of the parsing
  */
-static inline bool parse_byte(uint8_t byte,
-                              struct parse_state *const state,
-                              struct parsed_operation_group *const out) {
+static inline tz_parser_result parse_byte(uint8_t byte,
+                                          struct parse_state *const state,
+                                          struct parsed_operation_group *const out) {
+    tz_parser_result res = PARSER_CONTINUE;
+
 // OP_STEP finishes the current state transition, setting the state, and introduces the next state.
 // For linear chains of states, this keeps the code structurally similar to equivalent imperative
 // parsing code.
 #define OP_STEP                \
     state->op_step = __LINE__; \
-    return true;               \
+    break;                     \
     case __LINE__:
 
 // The same as OP_STEP, but with a particular name, such that we could jump to this state.
 #define OP_NAMED_STEP(name) \
     state->op_step = name;  \
-    return true;            \
+    break;                  \
     case name:
 
 // "jump" to specific state: (set state to foo and return.)
 #define JMP(step)          \
     state->op_step = step; \
-    return true
+    break;
 
 // Set the next state to start-of-payload; used after reveal.
 #define JMP_TO_TOP JMP(1)
@@ -278,15 +349,15 @@ static inline bool parse_byte(uint8_t byte,
 #define OP_JMPIF(step, cond)   \
     if (cond) {                \
         state->op_step = step; \
-        return true;           \
+        break;                 \
     }
 
     switch (state->op_step) {
         case STEP_HARD_FAIL:
-            PARSE_ERROR();
+            PARSER_FAIL();
 
         case STEP_END_OF_MESSAGE:
-            PARSE_ERROR();  // We already hit a hard end of message; fail.
+            PARSER_FAIL();  // We already hit a hard end of message; fail.
 
         case 0: {
             // Ignore block hash
@@ -306,9 +377,12 @@ static inline bool parse_byte(uint8_t byte,
                 case OPERATION_TAG_REVEAL: {
                     struct implicit_contract const *const implicit_source =
                         NEXT_TYPE(struct implicit_contract);
+
                     out->operation.source.originated = 0;
-                    out->operation.source.signature_type =
-                        parse_raw_tezos_header_signature_type(&implicit_source->signature_type);
+                    PARSER_CHECK(parse_raw_tezos_header_signature_type(
+                        &implicit_source->signature_type,
+                        &out->operation.source.signature_type));
+
                     memcpy(out->operation.source.hash,
                            implicit_source->pkh,
                            sizeof(out->operation.source.hash));
@@ -316,16 +390,14 @@ static inline bool parse_byte(uint8_t byte,
                 }
 
                 default:
-                    PARSE_ERROR();
+                    PARSER_FAIL();
                     break;
             }
 
             // If the source is an implicit contract,...
             if (!out->operation.source.originated) {
                 // ... it had better match our key, otherwise why are we signing it?
-                if (COMPARE(&out->operation.source, &out->signing) != 0) {
-                    PARSE_ERROR();
-                }
+                PARSER_ASSERT(COMPARE(out->operation.source, out->signing) == 0);
             }
             // OK, it passes muster.
 
@@ -353,10 +425,10 @@ static inline bool parse_byte(uint8_t byte,
             {
                 raw_tezos_header_signature_type_t const *const sig_type =
                     NEXT_TYPE(raw_tezos_header_signature_type_t);
-                if (parse_raw_tezos_header_signature_type(sig_type) !=
-                    out->signing.signature_type) {
-                    PARSE_ERROR();
-                }
+                signature_type_t reveal_signature_type = {0};
+                PARSER_CHECK(
+                    parse_raw_tezos_header_signature_type(sig_type, &reveal_signature_type));
+                PARSER_ASSERT(reveal_signature_type == out->signing.signature_type);
             }
 
             OP_STEP
@@ -368,10 +440,9 @@ static inline bool parse_byte(uint8_t byte,
 
                 CALL_SUBPARSER(parse_next_type, byte, &(state->subparser_state.nexttype), klen);
 
-                if (memcmp(out->public_key.W, &(state->subparser_state.nexttype.body.raw), klen) !=
-                    0) {
-                    PARSE_ERROR();
-                }
+                PARSER_ASSERT(memcmp(out->public_key.W,
+                                     &(state->subparser_state.nexttype.body.raw),
+                                     klen) == 0);
 
                 out->has_reveal = true;
 
@@ -380,10 +451,8 @@ static inline bool parse_byte(uint8_t byte,
 
         case STEP_AFTER_MANAGER_FIELDS:  // Anything but a reveal
 
-            if (out->operation.tag != OPERATION_TAG_NONE) {
-                // We are only currently allowing one non-reveal operation
-                PARSE_ERROR();
-            }
+            // We are only currently allowing one non-reveal operation
+            PARSER_ASSERT(out->operation.tag == OPERATION_TAG_NONE);
 
             // This is the one allowable non-reveal operation per set
 
@@ -410,67 +479,39 @@ static inline bool parse_byte(uint8_t byte,
                     case STEP_HAS_DELEGATE: {
                         const struct delegation_contents *dlg =
                             NEXT_TYPE(struct delegation_contents);
-                        parse_implicit(&out->operation.destination,
-                                       &dlg->signature_type,
-                                       dlg->hash);
+                        PARSER_CHECK(parse_implicit(&out->operation.destination,
+                                                    &dlg->signature_type,
+                                                    dlg->hash));
                     }
                         JMP_TO_TOP;  // These go back to the top to catch any reveals.
                     default:         // Any other tag; probably not possible here.
-                        PARSE_ERROR();
+                        PARSER_FAIL();
                 }
             }
     }
 
-    PARSE_ERROR();
+end:
+    if (res == PARSER_ERROR) {
+        global.apdu.u.sign.parse_state.op_step = STEP_HARD_FAIL;
+    }
+    return res;
 }
 
 #define G global.apdu.u.sign
 
-/**
- * @brief Parses a group of operation
- *
- *        Throws on parsing failure
- *
- * @param buf: input operation
- * @param out: output
- * @param derivation_type: curve of the key
- * @param bip32_path: bip32 path of the key
- */
-static void parse_operations_throws_parse_error(buffer_t *buf,
-                                                struct parsed_operation_group *const out,
-                                                derivation_type_t derivation_type,
-                                                bip32_path_t const *const bip32_path) {
+tz_exc parse_operations(buffer_t *buf,
+                        struct parsed_operation_group *const out,
+                        bip32_path_with_curve_t const *const path_with_curve) {
+    tz_exc exc = SW_OK;
     uint8_t byte;
 
-    parse_operations_init(out, derivation_type, bip32_path, &G.parse_state);
+    TZ_CHECK(parse_operations_init(out, path_with_curve, &G.parse_state));
 
     while (buffer_read_u8(buf, &byte) == true) {
-        parse_byte(byte, &G.parse_state, out);
+        TZ_ASSERT(parse_byte(byte, &G.parse_state, out) != PARSER_ERROR, EXC_PARSE_ERROR);
         PRINTF("Byte: %x - Next op_step state: %d\n", byte, G.parse_state.op_step);
     }
 
-    if (!parse_operations_final(&G.parse_state, out)) {
-        PARSE_ERROR();
-    }
-}
-
-bool parse_operations(buffer_t *buf,
-                      struct parsed_operation_group *const out,
-                      derivation_type_t derivation_type,
-                      bip32_path_t const *const bip32_path) {
-    BEGIN_TRY {
-        TRY {
-            parse_operations_throws_parse_error(buf, out, derivation_type, bip32_path);
-        }
-        CATCH(EXC_PARSE_ERROR) {
-            return false;
-        }
-        CATCH_OTHER(e) {
-            THROW(e);
-        }
-        FINALLY {
-        }
-    }
-    END_TRY;
-    return true;
+end:
+    return exc;
 }

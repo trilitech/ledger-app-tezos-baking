@@ -32,14 +32,5 @@ static void require_pin(void) {
 
 void exit_app(void) {
     require_pin();
-    BEGIN_TRY_L(exit) {
-        TRY_L(exit) {
-            os_sched_exit(-1);
-        }
-        FINALLY_L(exit) {
-        }
-    }
-    END_TRY_L(exit);
-
-    THROW(0);  // Suppress warning
+    os_sched_exit(-1);
 }

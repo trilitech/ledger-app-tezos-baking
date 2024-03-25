@@ -33,25 +33,32 @@
 #include <stdint.h>
 #include <string.h>
 
-int provide_pubkey(cx_ecfp_public_key_t const* const pubkey) {
-    check_null(pubkey);
+int provide_pubkey(bip32_path_with_curve_t const* const path_with_curve) {
+    tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
 
-    // 100 = MAX(SIGNATURE_LEN)
-    uint8_t resp[1u + 100u] = {0};
+    TZ_ASSERT_NOT_NULL(path_with_curve);
+
+    uint8_t resp[1u + MAX_SIGNATURE_SIZE] = {0};
     size_t offset = 0;
 
     // Application could be PIN-locked, and pubkey->W_len would then be 0,
     // so throwing an error rather than returning an empty key
-    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
-        THROW(EXC_SECURITY);
-    }
+    TZ_ASSERT(os_global_pin_is_validated() == BOLOS_UX_OK, EXC_SECURITY);
 
-    resp[offset] = pubkey->W_len;
+    cx_ecfp_public_key_t pubkey = {0};
+    CX_CHECK(generate_public_key(&pubkey, path_with_curve));
+
+    resp[offset] = pubkey.W_len;
     offset++;
-    memmove(resp + offset, pubkey->W, pubkey->W_len);
-    offset += pubkey->W_len;
+    memmove(resp + offset, pubkey.W, pubkey.W_len);
+    offset += pubkey.W_len;
 
     return io_send_response_pointer(resp, offset, SW_OK);
+
+end:
+    TZ_CONVERT_CX();
+    return io_send_apdu_err(exc);
 }
 
 /**
@@ -80,48 +87,33 @@ static int handle_git(void) {
 #define P1_LAST_MARKER 0x80u  /// Last packet
 
 int apdu_dispatcher(const command_t* cmd) {
-    check_null(cmd);
+    tz_exc exc = SW_OK;
+
+    TZ_ASSERT_NOT_NULL(cmd);
 
     if (cmd->lc > MAX_APDU_SIZE) {
-        THROW(EXC_WRONG_LENGTH_FOR_INS);
+        TZ_FAIL(EXC_WRONG_LENGTH_FOR_INS);
     }
 
     if (cmd->cla != CLA) {
-        THROW(EXC_CLASS);
+        TZ_FAIL(EXC_CLASS);
     }
 
     int result = 0;
     buffer_t buf = {0};
     derivation_type_t derivation_type = DERIVATION_TYPE_UNSET;
 
-#define ASSERT_NO_P1                \
-    do {                            \
-        if (cmd->p1 != 0u) {        \
-            THROW(EXC_WRONG_PARAM); \
-        }                           \
+#define ASSERT_NO_P1 TZ_ASSERT(cmd->p1 == 0u, EXC_WRONG_PARAM)
+
+#define ASSERT_NO_P2 TZ_ASSERT(cmd->p2 == 0u, EXC_WRONG_PARAM)
+
+#define READ_P2_DERIVATION_TYPE                                               \
+    do {                                                                      \
+        derivation_type = parse_derivation_type(cmd->p2);                     \
+        TZ_ASSERT(derivation_type != DERIVATION_TYPE_UNSET, EXC_WRONG_PARAM); \
     } while (0)
 
-#define ASSERT_NO_P2                \
-    do {                            \
-        if (cmd->p2 != 0u) {        \
-            THROW(EXC_WRONG_PARAM); \
-        }                           \
-    } while (0)
-
-#define READ_P2_DERIVATION_TYPE                           \
-    do {                                                  \
-        derivation_type = parse_derivation_type(cmd->p2); \
-        if (derivation_type == DERIVATION_TYPE_UNSET) {   \
-            THROW(EXC_WRONG_PARAM);                       \
-        }                                                 \
-    } while (0)
-
-#define ASSERT_NO_DATA               \
-    do {                             \
-        if (cmd->data != NULL) {     \
-            THROW(EXC_WRONG_VALUES); \
-        }                            \
-    } while (0)
+#define ASSERT_NO_DATA TZ_ASSERT(cmd->data == NULL, EXC_WRONG_VALUES)
 
 #define READ_DATA            \
     do {                     \
@@ -228,9 +220,7 @@ int apdu_dispatcher(const command_t* cmd) {
             break;
         case INS_SIGN:
         case INS_SIGN_WITH_HASH:
-            if (os_global_pin_is_validated() != BOLOS_UX_OK) {
-                THROW(EXC_SECURITY);
-            }
+            TZ_ASSERT(os_global_pin_is_validated() == BOLOS_UX_OK, EXC_SECURITY);
 
             switch (cmd->p1 & ~P1_LAST_MARKER) {
                 case P1_FIRST:
@@ -252,7 +242,7 @@ int apdu_dispatcher(const command_t* cmd) {
 
                     break;
                 default:
-                    THROW(EXC_WRONG_PARAM);
+                    TZ_FAIL(EXC_WRONG_PARAM);
             }
 
             break;
@@ -266,7 +256,10 @@ int apdu_dispatcher(const command_t* cmd) {
 
             break;
         default:
-            THROW(EXC_INVALID_INS);
+            TZ_FAIL(EXC_INVALID_INS);
     }
     return result;
+
+end:
+    return io_send_apdu_err(exc);
 }
