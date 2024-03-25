@@ -317,7 +317,7 @@ static inline bool parse_byte(uint8_t byte,
             // If the source is an implicit contract,...
             if (!out->operation.source.originated) {
                 // ... it had better match our key, otherwise why are we signing it?
-                if (COMPARE(&out->operation.source, &out->signing) != 0) {
+                if (COMPARE(out->operation.source, out->signing) != 0) {
                     PARSE_ERROR();
                 }
             }

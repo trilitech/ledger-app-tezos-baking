@@ -201,9 +201,8 @@ static int baking_sign_complete(bool const send_hash) {
                     // Must be self-delegation signed by the *authorized* baking key
                     if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
                         // ops->signing is generated from G.bip32_path and G.curve
-                        COMPARE(&G.maybe_ops.v.operation.source, &G.maybe_ops.v.signing) == 0 &&
-                        COMPARE(&G.maybe_ops.v.operation.destination, &G.maybe_ops.v.signing) ==
-                            0) {
+                        COMPARE(G.maybe_ops.v.operation.source, G.maybe_ops.v.signing) == 0 &&
+                        COMPARE(G.maybe_ops.v.operation.destination, G.maybe_ops.v.signing) == 0) {
                         ui_callback_t const ok_c =
                             send_hash ? sign_with_hash_ok : sign_without_hash_ok;
                         result = prompt_delegation(ok_c, sign_reject);
@@ -216,7 +215,7 @@ static int baking_sign_complete(bool const send_hash) {
                     // Reveal cases
                     if (bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
                         // ops->signing is generated from G.bip32_path and G.curve
-                        COMPARE(&G.maybe_ops.v.operation.source, &G.maybe_ops.v.signing) == 0) {
+                        COMPARE(G.maybe_ops.v.operation.source, G.maybe_ops.v.signing) == 0) {
                         result = perform_signature(send_hash);
                     } else {
                         THROW(EXC_SECURITY);

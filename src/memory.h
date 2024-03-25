@@ -33,12 +33,10 @@
  * @param a: first buffer
  * @param b: second buffer
  */
-#define COMPARE(a, b)                                                         \
-    ({                                                                        \
-        _Static_assert(sizeof(*a) == sizeof(*b), "Size mismatch in COMPARE"); \
-        check_null(a);                                                        \
-        check_null(b);                                                        \
-        memcmp((const uint8_t *) a, (const uint8_t *) b, sizeof(*a));         \
+#define COMPARE(a, b)                                                       \
+    ({                                                                      \
+        _Static_assert(sizeof(a) == sizeof(b), "Size mismatch in COMPARE"); \
+        memcmp((const uint8_t *) &(a), (const uint8_t *) &(b), sizeof(a));  \
     })
 
 /**
