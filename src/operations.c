@@ -108,23 +108,32 @@ end:
  * @param compressed_pubkey_out: compressed_pubkey output
  * @param contract_out: contract output
  * @param path_with_curve: bip32 path and curve of the key
+ * @return tz_exc: exception, SW_OK if none
  */
-static inline void compute_pkh(cx_ecfp_public_key_t *const compressed_pubkey_out,
-                               parsed_contract_t *const contract_out,
-                               bip32_path_with_curve_t const *const path_with_curve) {
-    check_null(path_with_curve);
-    check_null(compressed_pubkey_out);
-    check_null(contract_out);
-    CX_THROW(generate_public_key_hash(contract_out->hash,
+static inline tz_exc compute_pkh(cx_ecfp_public_key_t *const compressed_pubkey_out,
+                                 parsed_contract_t *const contract_out,
+                                 bip32_path_with_curve_t const *const path_with_curve) {
+    tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
+
+    TZ_ASSERT_NOT_NULL(path_with_curve);
+    TZ_ASSERT_NOT_NULL(compressed_pubkey_out);
+    TZ_ASSERT_NOT_NULL(contract_out);
+
+    CX_CHECK(generate_public_key_hash(contract_out->hash,
                                       sizeof(contract_out->hash),
                                       compressed_pubkey_out,
                                       path_with_curve));
+
     contract_out->signature_type =
         derivation_type_to_signature_type(path_with_curve->derivation_type);
-    if (contract_out->signature_type == SIGNATURE_TYPE_UNSET) {
-        THROW(EXC_MEMORY_ERROR);
-    }
+    TZ_ASSERT(contract_out->signature_type != SIGNATURE_TYPE_UNSET, EXC_MEMORY_ERROR);
+
     contract_out->originated = 0;
+
+end:
+    TZ_CONVERT_CX();
+    return exc;
 }
 
 /**
@@ -259,17 +268,21 @@ end:
  * @param out: parsing output
  * @param path_with_curve: bip32 path and curve of the key
  * @param state: parsing state
+ * @return tz_exc: exception, SW_OK if none
  */
-static void parse_operations_init(struct parsed_operation_group *const out,
-                                  bip32_path_with_curve_t const *const path_with_curve,
-                                  struct parse_state *const state) {
-    check_null(out);
-    check_null(path_with_curve);
+static tz_exc parse_operations_init(struct parsed_operation_group *const out,
+                                    bip32_path_with_curve_t const *const path_with_curve,
+                                    struct parse_state *const state) {
+    tz_exc exc = SW_OK;
+
+    TZ_ASSERT_NOT_NULL(out);
+    TZ_ASSERT_NOT_NULL(path_with_curve);
+
     memset(out, 0, sizeof(*out));
 
     out->operation.tag = OPERATION_TAG_NONE;
 
-    compute_pkh(&out->public_key, &out->signing, path_with_curve);
+    TZ_CHECK(compute_pkh(&out->public_key, &out->signing, path_with_curve));
 
     // Start out with source = signing, for reveals
     // TODO: This is slightly hackish
@@ -278,6 +291,9 @@ static void parse_operations_init(struct parsed_operation_group *const out,
     state->op_step = 0;
     state->subparser_state.integer.lineno = -1;
     state->tag = OPERATION_TAG_NONE;  // This and the rest shouldn't be required.
+
+end:
+    return exc;
 }
 
 /// Named steps in the top-level state machine
@@ -483,51 +499,19 @@ end:
 
 #define G global.apdu.u.sign
 
-/**
- * @brief Parses a group of operation
- *
- *        Throws on parsing failure
- *
- * @param buf: input operation
- * @param out: output
- * @param path_with_curve: bip32 path and curve of the key
- */
-static void parse_operations_throws_parse_error(
-    buffer_t *buf,
-    struct parsed_operation_group *const out,
-    bip32_path_with_curve_t const *const path_with_curve) {
+tz_exc parse_operations(buffer_t *buf,
+                        struct parsed_operation_group *const out,
+                        bip32_path_with_curve_t const *const path_with_curve) {
+    tz_exc exc = SW_OK;
     uint8_t byte;
 
-    parse_operations_init(out, path_with_curve, &G.parse_state);
+    TZ_CHECK(parse_operations_init(out, path_with_curve, &G.parse_state));
 
     while (buffer_read_u8(buf, &byte) == true) {
-        if (parse_byte(byte, &G.parse_state, out) == PARSER_ERROR) {
-            THROW(EXC_PARSE_ERROR);
-        }
+        TZ_ASSERT(parse_byte(byte, &G.parse_state, out) != PARSER_ERROR, EXC_PARSE_ERROR);
         PRINTF("Byte: %x - Next op_step state: %d\n", byte, G.parse_state.op_step);
     }
 
-    if (!parse_operations_final(&G.parse_state, out)) {
-        THROW(EXC_PARSE_ERROR);
-    }
-}
-
-bool parse_operations(buffer_t *buf,
-                      struct parsed_operation_group *const out,
-                      bip32_path_with_curve_t const *const path_with_curve) {
-    BEGIN_TRY {
-        TRY {
-            parse_operations_throws_parse_error(buf, out, path_with_curve);
-        }
-        CATCH(EXC_PARSE_ERROR) {
-            return false;
-        }
-        CATCH_OTHER(e) {
-            THROW(e);
-        }
-        FINALLY {
-        }
-    }
-    END_TRY;
-    return true;
+end:
+    return exc;
 }

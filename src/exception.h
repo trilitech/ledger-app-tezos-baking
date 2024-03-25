@@ -62,6 +62,15 @@ static inline void check_null(void volatile const *const ptr) {
     }
 }
 
+// Checks the error code of a function
+#define TZ_CHECK(call)      \
+    do {                    \
+        exc = (call);       \
+        if (exc != SW_OK) { \
+            goto end;       \
+        }                   \
+    } while (0)
+
 // Asserts a condition. Updates `exc` accordingly
 #define TZ_ASSERT(cond, _exc) \
     do {                      \

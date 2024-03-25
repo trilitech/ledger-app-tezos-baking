@@ -148,11 +148,11 @@ struct parse_state {
  * @param out: parsing output
  * @param curve: curve of the key
  * @param path_with_curve: bip32 path and curve of the key
- * @return bool: returns true on success
+ * @return tz_exc: exception, SW_OK if none
  */
-bool parse_operations(buffer_t *buf,
-                      struct parsed_operation_group *const out,
-                      bip32_path_with_curve_t const *const path_with_curve);
+tz_exc parse_operations(buffer_t *buf,
+                        struct parsed_operation_group *const out,
+                        bip32_path_with_curve_t const *const path_with_curve);
 
 /**
  * @brief Checks parsing has been completed successfully

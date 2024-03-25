@@ -291,10 +291,15 @@ int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
                 PARSE_ERROR();
             }
             break;
-        case MAGIC_BYTE_UNSAFE_OP:
+        case MAGIC_BYTE_UNSAFE_OP: {
             // Parse the operation. It will be verified in `baking_sign_complete`.
-            G.maybe_ops.is_valid = parse_operations(cdata, &G.maybe_ops.v, &global.path_with_curve);
+            tz_exc exc = parse_operations(cdata, &G.maybe_ops.v, &global.path_with_curve);
+
+            if (exc != SW_OK) {
+                THROW(exc);
+            }
             break;
+        }
         default:
             PARSE_ERROR();
     }
