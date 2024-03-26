@@ -1,20 +1,37 @@
-# Tezos Ledger Applications
+# Tezos Baking
 
-## Investigation
+## Introduction
 
 
 ## Overview
 
-This repository contains Ledger application to support baking on Tezos blockchain:
-
-1. The "Tezos Baking" application (Nano S only) is for baking: signing new blocks and
-attestations. For more information about baking, see
+This repository contains Ledger application to support baking on Tezos blockchain , i.e. signing new blocks and pre-attestations and attestations. For more information about baking, see
 *[Benefits and Risks of Home Baking](https://medium.com/@tezos_91823/benefits-and-risks-of-home-baking-a631c9ca745)*.
 
 It is possible to do all of these things without a hardware wallet, but using a
 hardware wallet provides you better security against key theft.
 
+## Usage
 
+Install `tezos-baking` app from [Ledger-live](https://www.ledger.com/ledger-live). You may have to enable developer mode to see tezos-baking in the available apps list.
+You also will need to install `tezos-wallet` app for initial setup to stake tez for baking.
+
+### STEP 1
+  - Initialize your ledger device with your secret phrase and PIN and
+  - Install `tezos-baking` and `tezos-wallet` apps.
+
+### STEP 2
+  - Setup ledger for baking using instructions given in this file in section [Baking](./README.md#setup-tezos-baking-using-ledger) upto [Staking tez](./README.md#stake-tez-to-get-baking-rights).
+  - Exit the Tezos wallet app.
+### STEP 3
+  - `IMPORTANT` Make sure to `enable screensaver` and `disable global PIN lock` in ledger settings.
+  - Open the baking app and start baking with octez client.
+
+Disabling global PIN lock makes it possible for baking app to continue respond to signing requests even when screensaver is running on the screen of the ledger. Baking app uses Ledger screensaver to avoid screen burn.
+
+The baking app once opened can not be exited until you enter PIN again so disabling global PIN lock while baking does not pose any risk.
+
+`Caution` Make sure that a dedicated Ledger device is used for baking and not to leave any other app open in screensaver mode while global PIN lock is disabled.
 ## Hacking
 
 See [CONTRIBUTING.md](CONTRIBUTING.md)
@@ -230,7 +247,7 @@ Then follow the prompts on the Ledger device screen.
 
 You should now have `Tezos Baking` app installed on the device. The `Tezos Baking` application should display a `0` under screen on the screen ,`Highest Watermark` which is the highest block level baked so far (`0` in case of no blocks).
 
-## Using the Tezos Baking Application (Nano S only)
+## Setup tezos baking using Ledger
 
 The Tezos Baking Application supports the following operations:
 
@@ -347,7 +364,7 @@ This command is intended to inform the blockchain itself of your intention to
 bake with this key.
 
 ### Stake tez to get baking rights
-Currently baking app does not support signing transactions. You need to stake certain amount of tez to get baking rights. Install Tezos wallet app on the same ledger device and run following command. No setup is needed as we have already setup the address from which we are deducting the amount.
+To sign transactions involving exchange of tez you need tezos-wallet app. You need to stake certain amount of tez to get baking rights. Install Tezos wallet app on the same ledger device and run following command. No setup is needed as we have already setup the address from which we are deducting the amount.
 ```
 $ octez-client stake <amount> ledger_<...>
 ```
