@@ -128,7 +128,7 @@ void ui_initial_screen(void) {
 void update_baking_idle_screens(void) {
     if (calculate_baking_idle_screens_data()) {
         /// refresh
-        ux_stack_display(0);
+        ux_stack_redisplay();
     }
 }
 
