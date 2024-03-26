@@ -20,6 +20,7 @@ from typing import Callable, Optional, Tuple
 
 import hashlib
 import hmac
+import time
 
 import pytest
 from pytezos import pytezos
@@ -187,7 +188,6 @@ def test_ledger_screensaver(client: TezosClient, tezos_navigator: TezosNavigator
        assert True
        return
 
-    import time
     lvl = 0
     main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(lvl)
@@ -217,7 +217,6 @@ def test_benchmark_attestation_time(account: Account, client: TezosClient, tezos
         assert True
         return
 
-    import time
     lvl = 0
     main_chain_id = DEFAULT_CHAIN_ID
     main_hwm = Hwm(lvl)
@@ -262,23 +261,35 @@ def test_authorize_baking(account: Account, tezos_navigator: TezosNavigator) -> 
     )
 
 
-def test_deauthorize(client: TezosClient, tezos_navigator: TezosNavigator) -> None:
+def test_deauthorize(firmware: Firmware,
+                     backend: BackendInterface,
+                     client: TezosClient,
+                     tezos_navigator: TezosNavigator) -> None:
     """Test the DEAUTHORIZE instruction."""
 
     account = DEFAULT_ACCOUNT
 
     tezos_navigator.authorize_baking(account)
 
-    client.deauthorize()
+    with tezos_navigator.goto_home_public_key():
+        tezos_navigator.assert_screen("authorized_key_before_authorize")
 
-    # TODO : re-check app context after nanos black screen fixed
+        client.deauthorize()
 
-    # tezos_navigator.check_app_context(
-    #     None,
-    #     chain_id=DEFAULT_CHAIN_ID,
-    #     main_hwm=Hwm(0),
-    #     test_hwm=Hwm(0)
-    # )
+        if firmware.is_nano:
+            # No update for Stax
+            backend.wait_for_screen_change()
+        if firmware.device == "nanos":
+            # Wait blink
+            time.sleep(0.5)
+        tezos_navigator.assert_screen("authorized_key_after_authorize")
+
+    tezos_navigator.check_app_context(
+        None,
+        chain_id=DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0),
+        test_hwm=Hwm(0)
+    )
 
 @pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_auth_key(
@@ -473,6 +484,8 @@ def build_block(level, current_round, chain_id):
 def test_sign_preattestation(
         account: Account,
         with_hash: bool,
+        firmware: Firmware,
+        backend: BackendInterface,
         client: TezosClient,
         tezos_navigator: TezosNavigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on preattestation."""
@@ -495,14 +508,26 @@ def test_sign_preattestation(
         chain_id=main_chain_id
     )
 
-    if not with_hash:
-        signature = client.sign_message(account, preattestation)
-        account.check_signature(signature, bytes(preattestation))
-    else:
-        preattestation_hash, signature = client.sign_message_with_hash(account, preattestation)
-        assert preattestation_hash == preattestation.hash, \
-            f"Expected hash {preattestation.hash.hex()} but got {preattestation_hash.hex()}"
-        account.check_signature(signature, bytes(preattestation))
+    with tezos_navigator.goto_home_hwm():
+        tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
+
+        if not with_hash:
+            signature = client.sign_message(account, preattestation)
+            account.check_signature(signature, bytes(preattestation))
+        else:
+            preattestation_hash, signature = client.sign_message_with_hash(account, preattestation)
+            assert preattestation_hash == preattestation.hash, \
+                f"Expected hash {preattestation.hash.hex()} but got {preattestation_hash.hex()}"
+            account.check_signature(signature, bytes(preattestation))
+
+        if firmware.is_nano:
+            # No update for Stax
+            backend.wait_for_screen_change()
+        if firmware.device == "nanos":
+            # Wait blink
+            time.sleep(0.5)
+        tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
+
 
     tezos_navigator.check_app_context(
         account,
@@ -517,6 +542,8 @@ def test_sign_preattestation(
 def test_sign_attestation(
         account: Account,
         with_hash: bool,
+        firmware: Firmware,
+        backend: BackendInterface,
         client: TezosClient,
         tezos_navigator: TezosNavigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
@@ -539,14 +566,25 @@ def test_sign_attestation(
         chain_id=main_chain_id
     )
 
-    if not with_hash:
-        signature = client.sign_message(account, attestation)
-        account.check_signature(signature, bytes(attestation))
-    else:
-        attestation_hash, signature = client.sign_message_with_hash(account, attestation)
-        assert attestation_hash == attestation.hash, \
-            f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
-        account.check_signature(signature, bytes(attestation))
+    with tezos_navigator.goto_home_hwm():
+        tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
+
+        if not with_hash:
+            signature = client.sign_message(account, attestation)
+            account.check_signature(signature, bytes(attestation))
+        else:
+            attestation_hash, signature = client.sign_message_with_hash(account, attestation)
+            assert attestation_hash == attestation.hash, \
+                f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
+            account.check_signature(signature, bytes(attestation))
+
+        if firmware.is_nano:
+            # No update for Stax
+            backend.wait_for_screen_change()
+        if firmware.device == "nanos":
+            # Wait blink
+            time.sleep(0.5)
+        tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
 
     tezos_navigator.check_app_context(
         account,
@@ -561,6 +599,8 @@ def test_sign_attestation(
 def test_sign_attestation_dal(
         account: Account,
         with_hash: bool,
+        firmware: Firmware,
+        backend: BackendInterface,
         client: TezosClient,
         tezos_navigator: TezosNavigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
@@ -583,14 +623,25 @@ def test_sign_attestation_dal(
         chain_id=main_chain_id
     )
 
-    if not with_hash:
-        signature = client.sign_message(account, attestation)
-        account.check_signature(signature, bytes(attestation))
-    else:
-        attestation_hash, signature = client.sign_message_with_hash(account, attestation)
-        assert attestation_hash == attestation.hash, \
-            f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
-        account.check_signature(signature, bytes(attestation))
+    with tezos_navigator.goto_home_hwm():
+        tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
+
+        if not with_hash:
+            signature = client.sign_message(account, attestation)
+            account.check_signature(signature, bytes(attestation))
+        else:
+            attestation_hash, signature = client.sign_message_with_hash(account, attestation)
+            assert attestation_hash == attestation.hash, \
+                f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
+            account.check_signature(signature, bytes(attestation))
+
+        if firmware.is_nano:
+            # No update for Stax
+            backend.wait_for_screen_change()
+        if firmware.device == "nanos":
+            # Wait blink
+            time.sleep(0.5)
+        tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
 
     tezos_navigator.check_app_context(
         account,
@@ -605,6 +656,8 @@ def test_sign_attestation_dal(
 def test_sign_block(
         account: Account,
         with_hash: bool,
+        firmware: Firmware,
+        backend: BackendInterface,
         client: TezosClient,
         tezos_navigator: TezosNavigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on block."""
@@ -627,14 +680,25 @@ def test_sign_block(
         chain_id=main_chain_id
     )
 
-    if not with_hash:
-        signature = client.sign_message(account, block)
-        account.check_signature(signature, bytes(block))
-    else:
-        block_hash, signature = client.sign_message_with_hash(account, block)
-        assert block_hash == block.hash, \
-            f"Expected hash {block.hash.hex()} but got {block_hash.hex()}"
-        account.check_signature(signature, bytes(block))
+    with tezos_navigator.goto_home_hwm():
+        tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
+
+        if not with_hash:
+            signature = client.sign_message(account, block)
+            account.check_signature(signature, bytes(block))
+        else:
+            block_hash, signature = client.sign_message_with_hash(account, block)
+            assert block_hash == block.hash, \
+                f"Expected hash {block.hash.hex()} but got {block_hash.hex()}"
+            account.check_signature(signature, bytes(block))
+
+        if firmware.is_nano:
+            # No update for Stax
+            backend.wait_for_screen_change()
+        if firmware.device == "nanos":
+            # Wait blink
+            time.sleep(0.5)
+        tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
 
     tezos_navigator.check_app_context(
         account,

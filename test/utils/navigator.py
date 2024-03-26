@@ -16,9 +16,10 @@
 """Module providing a tezos navigator."""
 
 from pathlib import Path
-from typing import TypeVar, Callable, Optional, Tuple, Union
+from typing import TypeVar, Callable, Optional, Tuple, Union, Generator
 import time
 
+from contextlib import contextmanager
 from multiprocessing.pool import ThreadPool
 
 from ragger.backend import BackendInterface
@@ -74,6 +75,7 @@ class TezosUseCaseAddressConfirmation(UseCaseAddressConfirmation):
         """Tap to show qr code."""
         self.client.finger_touch(*TezosUseCaseAddressConfirmation.SHOW_QR)
 
+APP_CONTEXT = Path("app_context")
 class TezosNavigator(metaclass=MetaScreen):
     """Class representing the tezos app navigator."""
 
@@ -196,7 +198,7 @@ class TezosNavigator(metaclass=MetaScreen):
                 f"Expected signature scheme {account.sig_scheme.name} "\
                 f"but got {received_sig_scheme.name}"
 
-        snap_path = snap_path / "app_context"
+        snap_path = snap_path / APP_CONTEXT
         if self.firmware.is_nano:
             self.backend.wait_for_home_screen()
             self.backend.right_click()
@@ -231,6 +233,72 @@ class TezosNavigator(metaclass=MetaScreen):
             self.settings.next()
             self.backend.wait_for_screen_change()
             self.assert_screen("description", snap_path=snap_path)
+            self.settings.multi_page_exit()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("home_screen", snap_path=snap_path)
+
+    @contextmanager
+    def goto_home_public_key(self, snap_path: Path = Path("")) -> Generator[None, None, None]:
+        snap_path = snap_path / APP_CONTEXT
+
+        if self.firmware.is_nano:
+            self.backend.wait_for_home_screen()
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("version", snap_path=snap_path)
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("chain_id", snap_path=snap_path)
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
+        else:
+            self.assert_screen("home_screen", snap_path=snap_path)
+            self.home.settings()
+            self.backend.wait_for_screen_change()
+
+        yield
+
+        if self.firmware.is_nano:
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("chain_id", snap_path=snap_path)
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("version", snap_path=snap_path)
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("home_screen", snap_path=snap_path)
+        else:
+            self.settings.multi_page_exit()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("home_screen", snap_path=snap_path)
+
+    @contextmanager
+    def goto_home_hwm(self, snap_path: Path = Path("")) -> Generator[None, None, None]:
+        snap_path = snap_path / APP_CONTEXT
+
+        if self.firmware.is_nano:
+            self.backend.wait_for_home_screen()
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("exit", snap_path=snap_path)
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
+        else:
+            self.assert_screen("home_screen", snap_path=snap_path)
+            self.home.settings()
+            self.backend.wait_for_screen_change()
+
+        yield
+
+        if self.firmware.is_nano:
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("exit", snap_path=snap_path)
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("home_screen", snap_path=snap_path)
+        else:
             self.settings.multi_page_exit()
             self.backend.wait_for_screen_change()
             self.assert_screen("home_screen", snap_path=snap_path)
