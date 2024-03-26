@@ -38,7 +38,7 @@
 #include "nbgl_use_case.h"
 
 static const char* const infoTypes[] = {"Version", "Developer", "Copyright"};
-static const char* const infoContents[] = {VERSION, "Ledger", "(c) 2023 Ledger"};
+static const char* const infoContents[] = {APPVERSION, "Ledger", "(c) 2023 Ledger"};
 
 #define MAX_LENGTH 200
 static char* bakeInfoContents[3];
