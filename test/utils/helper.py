@@ -52,8 +52,6 @@ class BytesReader:
 
 def get_current_commit() -> str:
     """Return the current commit."""
-    repo = git.Repo(".")
-    commit = repo.head.commit.hexsha[:8]
-    if repo.is_dirty():
-        commit += "*"
-    return commit
+    repo = git.Repo(search_parent_directories=True)
+    git_describe = repo.git.describe(tags=True, abbrev=8, always=True, long=True, dirty=True)
+    return git_describe.replace('-dirty', '*')
