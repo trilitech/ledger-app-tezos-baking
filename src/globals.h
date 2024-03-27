@@ -43,6 +43,14 @@ void clear_apdu_globals(void);
  */
 void init_globals(void);
 
+/**
+ * @brief Toggle high watermark tracking by Ledger.
+ *
+ * if its off, the responsibility to track watermark for blocks/attestation signed falls on the
+ * signer being used.
+ */
+void toggle_hwm(void);
+
 /// Maximum number of bytes in a single APDU
 #define MAX_APDU_SIZE 235u
 

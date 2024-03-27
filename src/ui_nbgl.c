@@ -50,6 +50,16 @@ static const char* const bakeInfoTypes[] = {
     "High Watermark",
 };
 
+enum {
+    HWM_ENABLED_TOKEN = FIRST_USER_TOKEN
+};
+enum {
+    HWM_ENABLED_TOKEN_ID = 0,
+    SETTINGS_SWITCHES_NB
+};
+
+static nbgl_layoutSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
+
 /**
  * @brief Callback to fill the settings page content
  *
@@ -58,7 +68,7 @@ static const char* const bakeInfoTypes[] = {
  * @return bool: if the page is not out of bounds
  */
 static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
-    if (page > 1u) {
+    if (page > 2u) {
         return false;
     }
 
@@ -67,6 +77,7 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
     bakeInfoContents[0] = buffer[0];
     bakeInfoContents[1] = buffer[1];
     bakeInfoContents[2] = buffer[2];
+    const bool hwm_disabled = N_data.hwm_disabled;
 
     TZ_ASSERT(
         chain_id_to_string_with_aliases(buffer[0], sizeof(buffer[0]), &N_data.main_chain_id) >= 0,
@@ -81,24 +92,48 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
 
     TZ_ASSERT(hwm_to_string(buffer[2], sizeof(buffer[2]), &N_data.hwm.main) >= 0, EXC_WRONG_LENGTH);
 
-    if (page == 0u) {
-        content->type = INFOS_LIST;
-        content->infosList.nbInfos = 3;
-        content->infosList.infoTypes = bakeInfoTypes;
-        content->infosList.infoContents = bakeInfoContents;
-    } else {
-        content->type = INFOS_LIST;
-        content->infosList.nbInfos = 3;
-        content->infosList.infoTypes = infoTypes;
-        content->infosList.infoContents = infoContents;
+    switch (page) {
+        case 0:
+            content->type = INFOS_LIST;
+            content->infosList.nbInfos = 3;
+            content->infosList.infoTypes = bakeInfoTypes;
+            content->infosList.infoContents = bakeInfoContents;
+            break;
+        case 1:
+            switches[HWM_ENABLED_TOKEN_ID].initState = (nbgl_state_t) (!hwm_disabled);
+            switches[HWM_ENABLED_TOKEN_ID].text = "High Watermark";
+            switches[HWM_ENABLED_TOKEN_ID].subText = "Track high watermark\n in Ledger";
+            switches[HWM_ENABLED_TOKEN_ID].token = HWM_ENABLED_TOKEN;
+            switches[HWM_ENABLED_TOKEN_ID].tuneId = TUNE_TAP_CASUAL;
+            content->type = SWITCHES_LIST;
+            content->switchesList.nbSwitches = SETTINGS_SWITCHES_NB;
+            content->switchesList.switches = (nbgl_layoutSwitch_t*) switches;
+            break;
+        case 2:
+            content->type = INFOS_LIST;
+            content->infosList.nbInfos = 3;
+            content->infosList.infoTypes = infoTypes;
+            content->infosList.infoContents = infoContents;
+            break;
+        default:
+            return false;
     }
-
     return true;
-
 end:
     TZ_EXC_PRINT(exc);
     return true;
 }
+
+static void controls_callback(int token, uint8_t index) {
+    UNUSED(index);
+    if (token == HWM_ENABLED_TOKEN) {
+        toggle_hwm();
+    }
+}
+
+#define TOTAL_SETTINGS_PAGE  (3)
+#define INIT_SETTINGS_PAGE   (0)
+#define DISABLE_SUB_SETTINGS false
 
 /**
  * @brief Draws settings pages
@@ -106,16 +141,23 @@ end:
  */
 static void ui_menu_about_baking(void) {
     nbgl_useCaseSettings("Tezos baking",
-                         0,
-                         2,
-                         false,
+                         INIT_SETTINGS_PAGE,
+                         TOTAL_SETTINGS_PAGE,
+                         DISABLE_SUB_SETTINGS,
                          ui_initial_screen,
                          navigation_cb_baking,
-                         NULL);
+                         controls_callback);
 }
 
+#define SETTINGS_BUTTON_ENABLED (true)
+
 void ui_initial_screen(void) {
-    nbgl_useCaseHome("Tezos Baking", &C_tezos, NULL, false, ui_menu_about_baking, app_exit);
+    nbgl_useCaseHome("Tezos Baking",
+                     &C_tezos,
+                     NULL,
+                     SETTINGS_BUTTON_ENABLED,
+                     ui_menu_about_baking,
+                     app_exit);
 }
 
 #endif  // HAVE_NBGL

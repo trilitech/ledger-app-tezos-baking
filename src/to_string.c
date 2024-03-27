@@ -326,6 +326,14 @@ int hwm_to_string(char *dest, size_t dest_size, high_watermark_t const *const hw
     }
 }
 
+int hwm_status_to_string(char *dest, size_t dest_size, volatile bool const *hwm_disabled) {
+    if ((dest == NULL) || (dest_size < 9u)) {
+        return -1;
+    }
+    memcpy(dest, *hwm_disabled ? "Disabled" : "Enabled", dest_size);
+    return dest_size;
+}
+
 int copy_string(char *const dest, size_t const dest_size, char const *const src) {
     if ((dest == NULL) || (src == NULL)) {
         return false;

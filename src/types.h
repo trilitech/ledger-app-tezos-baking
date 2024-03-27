@@ -50,6 +50,7 @@ typedef enum {
     DERIVATION_TYPE_ED25519 = 3,
     DERIVATION_TYPE_BIP32_ED25519 = 4
 } derivation_type_t;
+
 typedef enum {
     SIGNATURE_TYPE_UNSET = 0,
     SIGNATURE_TYPE_SECP256K1 = 1,
@@ -197,12 +198,17 @@ typedef struct {
         high_watermark_t main;  ///< HWM of main
         high_watermark_t test;  ///< HWM of test
     } hwm;
+
     bip32_path_with_curve_t baking_key;  ///< authorized key
+    bool hwm_disabled;                   /**< Set HWM setting on/off,
+                                              e.g. if you are using signer assisted HWM,
+                                              no need to track HWM using Ledger.*/
 } nvram_data;
 
 #define SIGN_HASH_SIZE 32u  // TODO: Rename or use a different constant.
 
 #define PKH_STRING_SIZE 40u  // includes null byte // TODO: use sizeof for this.
+#define HWM_STATUS_SIZE 9u   // HWM status takes values Enabled and Disabled.
 #define PROTOCOL_HASH_BASE58_STRING_SIZE \
     sizeof("ProtoBetaBetaBetaBetaBetaBetaBetaBetaBet11111a5ug96")
 
@@ -226,11 +232,11 @@ typedef struct {
  *
  */
 typedef struct parsed_contract {
-    uint8_t originated;  ///< a lightweight bool
-    signature_type_t
-        signature_type;       ///< 0 in originated case
-                              ///< An implicit contract with signature_type of 0 means not present
-    uint8_t hash[HASH_SIZE];  ///< hash of the contract
+    uint8_t originated;              ///< a lightweight bool
+    signature_type_t signature_type; /**< 0 in originated case
+                                     An implicit contract with signature_type of 0
+                                     means not present*/
+    uint8_t hash[HASH_SIZE];         ///< hash of the contract
 } parsed_contract_t;
 
 /**
