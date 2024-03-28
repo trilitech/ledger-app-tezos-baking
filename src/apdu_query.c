@@ -40,21 +40,14 @@ int handle_query_all_hwm(void) {
     write_u32_be(resp, offset, N_data.hwm.main.highest_level);
     offset += sizeof(uint32_t);
 
-    bool has_a_chain_migrated =
-        N_data.hwm.main.migrated_to_tenderbake || N_data.hwm.test.migrated_to_tenderbake;
-
-    if (has_a_chain_migrated) {
-        write_u32_be(resp, offset, N_data.hwm.main.highest_round);
-        offset += sizeof(uint32_t);
-    }
+    write_u32_be(resp, offset, N_data.hwm.main.highest_round);
+    offset += sizeof(uint32_t);
 
     write_u32_be(resp, offset, N_data.hwm.test.highest_level);
     offset += sizeof(uint32_t);
 
-    if (has_a_chain_migrated) {
-        write_u32_be(resp, offset, N_data.hwm.test.highest_round);
-        offset += sizeof(uint32_t);
-    }
+    write_u32_be(resp, offset, N_data.hwm.test.highest_round);
+    offset += sizeof(uint32_t);
 
     write_u32_be(resp, offset, N_data.main_chain_id.v);
     offset += sizeof(uint32_t);
@@ -69,10 +62,8 @@ int handle_query_main_hwm(void) {
     write_u32_be(resp, offset, N_data.hwm.main.highest_level);
     offset += sizeof(uint32_t);
 
-    if (N_data.hwm.main.migrated_to_tenderbake) {
-        write_u32_be(resp, offset, N_data.hwm.main.highest_round);
-        offset += sizeof(uint32_t);
-    }
+    write_u32_be(resp, offset, N_data.hwm.main.highest_round);
+    offset += sizeof(uint32_t);
 
     return io_send_response_pointer(resp, offset, SW_OK);
 }

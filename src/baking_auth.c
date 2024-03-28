@@ -57,7 +57,6 @@ tz_exc write_high_water_mark(parsed_baking_data_t const *const in) {
         dest->highest_round = in->round;
         dest->had_attestation |= in->type == BAKING_TYPE_ATTESTATION;
         dest->had_preattestation |= in->type == BAKING_TYPE_PREATTESTATION;
-        dest->migrated_to_tenderbake |= in->is_tenderbake;
     });
 
 end:

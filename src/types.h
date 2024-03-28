@@ -179,11 +179,10 @@ static inline bool bip32_path_with_curve_eq(bip32_path_with_curve_t volatile con
  *
  */
 typedef struct {
-    level_t highest_level;        ///< highest level seen
-    round_t highest_round;        ///< highest round seen
-    bool had_attestation;         ///< if an attestation has been seen at current level/round
-    bool had_preattestation;      ///< if a pre-attestation has been seen at current level/round
-    bool migrated_to_tenderbake;  ///< if chain has migrated to tenderbake
+    level_t highest_level;    ///< highest level seen
+    round_t highest_round;    ///< highest round seen
+    bool had_attestation;     ///< if an attestation has been seen at current level/round
+    bool had_preattestation;  ///< if a pre-attestation has been seen at current level/round
 } high_watermark_t;
 
 /**
