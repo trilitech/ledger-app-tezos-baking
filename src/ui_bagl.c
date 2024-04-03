@@ -78,15 +78,24 @@ UX_FLOW(ux_idle_flow,
         &ux_idle_quit_step,
         FLOW_LOOP);
 
-bool calculate_baking_idle_screens_data(void) {
+tz_exc calculate_idle_screen_chain_id(void) {
     tz_exc exc = SW_OK;
 
-    memset(&home_context, 0, sizeof(home_context));
+    memset(&home_context.chain_id, 0, sizeof(home_context.chain_id));
 
     TZ_ASSERT(chain_id_to_string_with_aliases(home_context.chain_id,
                                               sizeof(home_context.chain_id),
                                               &N_data.main_chain_id) >= 0,
               EXC_WRONG_LENGTH);
+
+end:
+    return exc;
+}
+
+tz_exc calculate_idle_screen_authorized_key(void) {
+    tz_exc exc = SW_OK;
+
+    memset(&home_context.authorized_key, 0, sizeof(home_context.authorized_key));
 
     if (N_data.baking_key.bip32_path.length == 0u) {
         TZ_ASSERT(copy_string(home_context.authorized_key,
@@ -99,25 +108,50 @@ bool calculate_baking_idle_screens_data(void) {
                                                      &N_data.baking_key));
     }
 
+end:
+    return exc;
+}
+
+tz_exc calculate_idle_screen_hwm(void) {
+    tz_exc exc = SW_OK;
+
+    memset(&home_context.hwm, 0, sizeof(home_context.hwm));
+
     TZ_ASSERT(hwm_to_string(home_context.hwm, sizeof(home_context.hwm), &N_data.hwm.main) >= 0,
               EXC_WRONG_LENGTH);
 
-    return true;
+end:
+    return exc;
+}
+
+tz_exc calculate_baking_idle_screens_data(void) {
+    tz_exc exc = SW_OK;
+
+    TZ_CHECK(calculate_idle_screen_chain_id());
+
+    TZ_CHECK(calculate_idle_screen_authorized_key());
+
+    TZ_CHECK(calculate_idle_screen_hwm());
 
 end:
-    TZ_EXC_PRINT(exc);
-    return false;
+    return exc;
 }
 
 void ui_initial_screen(void) {
+    tz_exc exc = SW_OK;
+
     // reserve a display stack slot if none yet
     if (G_ux.stack_count == 0) {
         ux_stack_push();
     }
 
-    if (calculate_baking_idle_screens_data()) {
-        ux_flow_init(0, ux_idle_flow, NULL);
-    }
+    TZ_CHECK(calculate_baking_idle_screens_data());
+
+    ux_flow_init(0, ux_idle_flow, NULL);
+
+    return;
+end:
+    TZ_EXC_PRINT(exc);
 }
 
 void ux_prepare_confirm_callbacks(ui_callback_t ok_c, ui_callback_t cxl_c) {

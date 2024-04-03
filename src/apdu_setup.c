@@ -94,7 +94,7 @@ int handle_deauthorize(void) {
     UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });
 #ifdef HAVE_BAGL
     // Ignore calculation errors
-    calculate_baking_idle_screens_data();
+    calculate_idle_screen_authorized_key();
     refresh_screens();
 #endif  // HAVE_BAGL
 

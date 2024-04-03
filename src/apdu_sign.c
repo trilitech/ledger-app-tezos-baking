@@ -211,7 +211,7 @@ static int baking_sign_complete(bool const send_hash) {
             result = perform_signature(send_hash);
 #ifdef HAVE_BAGL
             // Ignore calculation errors
-            calculate_baking_idle_screens_data();
+            calculate_idle_screen_hwm();
             // The HWM screen is not updated to avoid slowing down the
             // application. Updating the HWM screen may slow down the
             // next signing.

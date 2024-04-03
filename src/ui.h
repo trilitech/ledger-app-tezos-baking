@@ -43,11 +43,32 @@ void __attribute__((noreturn)) app_exit(void);
 #ifdef HAVE_BAGL
 
 /**
+ * @brief Calculates the chain id for the idle screens
+ *
+ * @return tz_exc: exception, SW_OK if none
+ */
+tz_exc calculate_idle_screen_chain_id(void);
+
+/**
+ * @brief Calculates the authorized key for the idle screens
+ *
+ * @return tz_exc: exception, SW_OK if none
+ */
+tz_exc calculate_idle_screen_authorized_key(void);
+
+/**
+ * @brief Calculates the HWM for the idle screens
+ *
+ * @return tz_exc: exception, SW_OK if none
+ */
+tz_exc calculate_idle_screen_hwm(void);
+
+/**
  * @brief Calculates baking values for the idle screens
  *
- * @return bool: whether the values have been calculated successfully or not
+ * @return tz_exc: exception, SW_OK if none
  */
-bool calculate_baking_idle_screens_data(void);
+tz_exc calculate_baking_idle_screens_data(void);
 
 /**
  * @brief Prepare confirmation screens callbacks
