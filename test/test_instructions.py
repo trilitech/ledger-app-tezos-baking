@@ -522,6 +522,11 @@ def test_sign_preattestation(
 
         tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
 
+        if firmware.is_nano:
+            # No update for Stax
+            backend.both_click()
+            backend.wait_for_screen_change()
+        tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
 
     tezos_navigator.check_app_context(
         account,
@@ -574,6 +579,12 @@ def test_sign_attestation(
 
         tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
 
+        if firmware.is_nano:
+            # No update for Stax
+            backend.both_click()
+            backend.wait_for_screen_change()
+        tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
+
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
@@ -625,6 +636,12 @@ def test_sign_attestation_dal(
 
         tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
 
+        if firmware.is_nano:
+            # No update for Stax
+            backend.both_click()
+            backend.wait_for_screen_change()
+        tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
+
     tezos_navigator.check_app_context(
         account,
         chain_id=main_chain_id,
@@ -675,6 +692,12 @@ def test_sign_block(
             account.check_signature(signature, bytes(block))
 
         tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
+
+        if firmware.is_nano:
+            # No update for Stax
+            backend.both_click()
+            backend.wait_for_screen_change()
+        tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
 
     tezos_navigator.check_app_context(
         account,

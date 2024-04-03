@@ -455,6 +455,16 @@ The latter will require the correct URL for the Ledger device acquired from:
 $ octez-client list connected ledgers
 ```
 
+## How the app works
+
+### High water mark (HWM)
+
+To avoid double baking, double attestation and double pre-attestation, the application maintains a high water mark (HWM) corresponding to the last level/round encountered during signature requests. The HWMs are displayed on the home screen and are updated after each signature.
+
+For performance reasons, the HWM screen is not updated dynamically.
+On Nano devices, press both buttons to update.
+
+
 ## Benchmarking
 The time taken to sign attestations/pre-attestations for baking app can depend on the device used, derivation type etc.
 
