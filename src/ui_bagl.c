@@ -78,12 +78,7 @@ UX_FLOW(ux_idle_flow,
         &ux_idle_quit_step,
         FLOW_LOOP);
 
-/**
- * @brief Calculates baking values for the idle screens
- *
- * @return bool: whether the values have been calculated successfully or not
- */
-static bool calculate_baking_idle_screens_data(void) {
+bool calculate_baking_idle_screens_data(void) {
     tz_exc exc = SW_OK;
 
     memset(&home_context, 0, sizeof(home_context));
@@ -125,13 +120,6 @@ void ui_initial_screen(void) {
     }
 }
 
-void update_baking_idle_screens(void) {
-    if (calculate_baking_idle_screens_data()) {
-        /// refresh
-        ux_stack_redisplay();
-    }
-}
-
 void ux_prepare_confirm_callbacks(ui_callback_t ok_c, ui_callback_t cxl_c) {
     if (ok_c) {
         G_display.ok_callback = ok_c;
@@ -158,5 +146,9 @@ static void prompt_response(bool const accepted) {
 UX_STEP_CB(ux_prompt_flow_reject_step, pb, prompt_response(false), {&C_icon_crossmark, "Reject"});
 UX_STEP_CB(ux_prompt_flow_accept_step, pb, prompt_response(true), {&C_icon_validate_14, "Accept"});
 UX_STEP_NOCB(ux_eye_step, nn, {"Review", "Request"});
+
+void refresh_screens(void) {
+    ux_stack_redisplay();
+}
 
 #endif  // HAVE_BAGL

@@ -43,10 +43,11 @@ void __attribute__((noreturn)) app_exit(void);
 #ifdef HAVE_BAGL
 
 /**
- * @brief Updates the baking screens
+ * @brief Calculates baking values for the idle screens
  *
+ * @return bool: whether the values have been calculated successfully or not
  */
-void update_baking_idle_screens(void);
+bool calculate_baking_idle_screens_data(void);
 
 /**
  * @brief Prepare confirmation screens callbacks
@@ -74,5 +75,11 @@ extern const ux_flow_step_t ux_prompt_flow_accept_step;
             __VA_ARGS__,                 \
             &ux_prompt_flow_reject_step, \
             &ux_prompt_flow_accept_step)
+
+/**
+ * @brief Refreshes all screens of the current flow
+ *
+ */
+void refresh_screens(void);
 
 #endif  // HAVE_BAGL
