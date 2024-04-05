@@ -115,7 +115,7 @@ static void ui_menu_about_baking(void) {
 }
 
 void ui_initial_screen(void) {
-    nbgl_useCaseHome("Tezos Baking", &C_tezos, NULL, false, ui_menu_about_baking, exit_app);
+    nbgl_useCaseHome("Tezos Baking", &C_tezos, NULL, false, ui_menu_about_baking, app_exit);
 }
 
 #endif  // HAVE_NBGL

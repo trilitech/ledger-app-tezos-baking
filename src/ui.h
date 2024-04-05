@@ -38,7 +38,7 @@ void ui_initial_screen(void);
  * @brief Exits the app
  *
  */
-void exit_app(void);
+void __attribute__((noreturn)) app_exit(void);
 
 #ifdef HAVE_BAGL
 

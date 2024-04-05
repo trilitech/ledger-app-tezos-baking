@@ -67,7 +67,7 @@ UX_STEP_NOCB(ux_version_step, bnnn_paging, {"Tezos Baking", APPVERSION});
 UX_STEP_NOCB(ux_chain_id_step, bnnn_paging, {"Chain", home_context.chain_id});
 UX_STEP_NOCB(ux_authorized_key_step, bnnn_paging, {"Public Key Hash", home_context.authorized_key});
 UX_STEP_NOCB(ux_hwm_step, bnnn_paging, {"High Watermark", home_context.hwm});
-UX_STEP_CB(ux_idle_quit_step, pb, exit_app(), {&C_icon_dashboard_x, "Quit"});
+UX_STEP_CB(ux_idle_quit_step, pb, app_exit(), {&C_icon_dashboard_x, "Quit"});
 
 UX_FLOW(ux_idle_flow,
         &ux_app_is_ready_step,

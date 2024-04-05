@@ -30,7 +30,7 @@ static void require_pin(void) {
     os_global_pin_invalidate();
 }
 
-void exit_app(void) {
+void __attribute__((noreturn)) app_exit(void) {
     require_pin();
     os_sched_exit(-1);
 }
