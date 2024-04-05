@@ -43,10 +43,32 @@ void __attribute__((noreturn)) app_exit(void);
 #ifdef HAVE_BAGL
 
 /**
- * @brief Updates the baking screens
+ * @brief Calculates the chain id for the idle screens
  *
+ * @return tz_exc: exception, SW_OK if none
  */
-void update_baking_idle_screens(void);
+tz_exc calculate_idle_screen_chain_id(void);
+
+/**
+ * @brief Calculates the authorized key for the idle screens
+ *
+ * @return tz_exc: exception, SW_OK if none
+ */
+tz_exc calculate_idle_screen_authorized_key(void);
+
+/**
+ * @brief Calculates the HWM for the idle screens
+ *
+ * @return tz_exc: exception, SW_OK if none
+ */
+tz_exc calculate_idle_screen_hwm(void);
+
+/**
+ * @brief Calculates baking values for the idle screens
+ *
+ * @return tz_exc: exception, SW_OK if none
+ */
+tz_exc calculate_baking_idle_screens_data(void);
 
 /**
  * @brief Prepare confirmation screens callbacks
@@ -74,5 +96,11 @@ extern const ux_flow_step_t ux_prompt_flow_accept_step;
             __VA_ARGS__,                 \
             &ux_prompt_flow_reject_step, \
             &ux_prompt_flow_accept_step)
+
+/**
+ * @brief Refreshes all screens of the current flow
+ *
+ */
+void refresh_screens(void);
 
 #endif  // HAVE_BAGL

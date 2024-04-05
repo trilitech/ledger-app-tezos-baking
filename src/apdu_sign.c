@@ -210,7 +210,11 @@ static int baking_sign_complete(bool const send_hash) {
             TZ_CHECK(guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve));
             result = perform_signature(send_hash);
 #ifdef HAVE_BAGL
-            update_baking_idle_screens();
+            // Ignore calculation errors
+            calculate_idle_screen_hwm();
+            // The HWM screen is not updated to avoid slowing down the
+            // application. Updating the HWM screen may slow down the
+            // next signing.
 #endif
             break;
 

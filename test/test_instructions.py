@@ -520,14 +520,13 @@ def test_sign_preattestation(
                 f"Expected hash {preattestation.hash.hex()} but got {preattestation_hash.hex()}"
             account.check_signature(signature, bytes(preattestation))
 
+        tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
+
         if firmware.is_nano:
             # No update for Stax
+            backend.both_click()
             backend.wait_for_screen_change()
-        if firmware.device == "nanos":
-            # Wait blink
-            time.sleep(0.5)
         tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
-
 
     tezos_navigator.check_app_context(
         account,
@@ -578,12 +577,12 @@ def test_sign_attestation(
                 f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
             account.check_signature(signature, bytes(attestation))
 
+        tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
+
         if firmware.is_nano:
             # No update for Stax
+            backend.both_click()
             backend.wait_for_screen_change()
-        if firmware.device == "nanos":
-            # Wait blink
-            time.sleep(0.5)
         tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
 
     tezos_navigator.check_app_context(
@@ -635,12 +634,12 @@ def test_sign_attestation_dal(
                 f"Expected hash {attestation.hash.hex()} but got {attestation_hash.hex()}"
             account.check_signature(signature, bytes(attestation))
 
+        tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
+
         if firmware.is_nano:
             # No update for Stax
+            backend.both_click()
             backend.wait_for_screen_change()
-        if firmware.device == "nanos":
-            # Wait blink
-            time.sleep(0.5)
         tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
 
     tezos_navigator.check_app_context(
@@ -692,12 +691,12 @@ def test_sign_block(
                 f"Expected hash {block.hash.hex()} but got {block_hash.hex()}"
             account.check_signature(signature, bytes(block))
 
+        tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
+
         if firmware.is_nano:
             # No update for Stax
+            backend.both_click()
             backend.wait_for_screen_change()
-        if firmware.device == "nanos":
-            # Wait blink
-            time.sleep(0.5)
         tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
 
     tezos_navigator.check_app_context(

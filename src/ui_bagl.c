@@ -38,6 +38,8 @@
 
 #define G_display global.dynamic_display
 
+static void ui_refresh_idle_hwm_screen(void);
+
 /**
  * @brief This structure represents a context needed for home screens navigation
  *
@@ -66,7 +68,10 @@ UX_STEP_NOCB(ux_app_is_ready_step, nn, {"Application", "is ready"});
 UX_STEP_NOCB(ux_version_step, bnnn_paging, {"Tezos Baking", APPVERSION});
 UX_STEP_NOCB(ux_chain_id_step, bnnn_paging, {"Chain", home_context.chain_id});
 UX_STEP_NOCB(ux_authorized_key_step, bnnn_paging, {"Public Key Hash", home_context.authorized_key});
-UX_STEP_NOCB(ux_hwm_step, bnnn_paging, {"High Watermark", home_context.hwm});
+UX_STEP_CB(ux_hwm_step,
+           bnnn_paging,
+           ui_refresh_idle_hwm_screen(),
+           {"High Watermark", home_context.hwm});
 UX_STEP_CB(ux_idle_quit_step, pb, app_exit(), {&C_icon_dashboard_x, "Quit"});
 
 UX_FLOW(ux_idle_flow,
@@ -78,20 +83,24 @@ UX_FLOW(ux_idle_flow,
         &ux_idle_quit_step,
         FLOW_LOOP);
 
-/**
- * @brief Calculates baking values for the idle screens
- *
- * @return bool: whether the values have been calculated successfully or not
- */
-static bool calculate_baking_idle_screens_data(void) {
+tz_exc calculate_idle_screen_chain_id(void) {
     tz_exc exc = SW_OK;
 
-    memset(&home_context, 0, sizeof(home_context));
+    memset(&home_context.chain_id, 0, sizeof(home_context.chain_id));
 
     TZ_ASSERT(chain_id_to_string_with_aliases(home_context.chain_id,
                                               sizeof(home_context.chain_id),
                                               &N_data.main_chain_id) >= 0,
               EXC_WRONG_LENGTH);
+
+end:
+    return exc;
+}
+
+tz_exc calculate_idle_screen_authorized_key(void) {
+    tz_exc exc = SW_OK;
+
+    memset(&home_context.authorized_key, 0, sizeof(home_context.authorized_key));
 
     if (N_data.baking_key.bip32_path.length == 0u) {
         TZ_ASSERT(copy_string(home_context.authorized_key,
@@ -104,32 +113,60 @@ static bool calculate_baking_idle_screens_data(void) {
                                                      &N_data.baking_key));
     }
 
+end:
+    return exc;
+}
+
+tz_exc calculate_idle_screen_hwm(void) {
+    tz_exc exc = SW_OK;
+
+    memset(&home_context.hwm, 0, sizeof(home_context.hwm));
+
     TZ_ASSERT(hwm_to_string(home_context.hwm, sizeof(home_context.hwm), &N_data.hwm.main) >= 0,
               EXC_WRONG_LENGTH);
 
-    return true;
+end:
+    return exc;
+}
+
+tz_exc calculate_baking_idle_screens_data(void) {
+    tz_exc exc = SW_OK;
+
+    TZ_CHECK(calculate_idle_screen_chain_id());
+
+    TZ_CHECK(calculate_idle_screen_authorized_key());
+
+    TZ_CHECK(calculate_idle_screen_hwm());
 
 end:
-    TZ_EXC_PRINT(exc);
-    return false;
+    return exc;
 }
 
 void ui_initial_screen(void) {
+    tz_exc exc = SW_OK;
+
     // reserve a display stack slot if none yet
     if (G_ux.stack_count == 0) {
         ux_stack_push();
     }
 
-    if (calculate_baking_idle_screens_data()) {
-        ux_flow_init(0, ux_idle_flow, NULL);
-    }
+    TZ_CHECK(calculate_baking_idle_screens_data());
+
+    ux_flow_init(0, ux_idle_flow, NULL);
+
+    return;
+end:
+    TZ_EXC_PRINT(exc);
 }
 
-void update_baking_idle_screens(void) {
-    if (calculate_baking_idle_screens_data()) {
-        /// refresh
-        ux_stack_redisplay();
-    }
+/**
+ * @brief Refreshes the idle HWM screen
+ *
+ *        Used to update the HWM by pushing both buttons
+ *
+ */
+static void ui_refresh_idle_hwm_screen(void) {
+    ux_flow_init(0, ux_idle_flow, &ux_hwm_step);
 }
 
 void ux_prepare_confirm_callbacks(ui_callback_t ok_c, ui_callback_t cxl_c) {
@@ -158,5 +195,9 @@ static void prompt_response(bool const accepted) {
 UX_STEP_CB(ux_prompt_flow_reject_step, pb, prompt_response(false), {&C_icon_crossmark, "Reject"});
 UX_STEP_CB(ux_prompt_flow_accept_step, pb, prompt_response(true), {&C_icon_validate_14, "Accept"});
 UX_STEP_NOCB(ux_eye_step, nn, {"Review", "Request"});
+
+void refresh_screens(void) {
+    ux_stack_redisplay();
+}
 
 #endif  // HAVE_BAGL
