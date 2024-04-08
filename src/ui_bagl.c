@@ -104,7 +104,7 @@ UX_FLOW(ux_settings_flow, &ux_hwm_info, &ux_menu_back_step, FLOW_LOOP);
 void ui_settings(void) {
     hwm_status_to_string(home_context.hwm_status,
                          sizeof(home_context.hwm_status),
-                         &N_data.hwm_disabled);
+                         &g_hwm.hwm_disabled);
     ux_flow_init(0, ux_settings_flow, NULL);
 }
 
@@ -120,7 +120,7 @@ tz_exc calculate_idle_screen_chain_id(void) {
 
     TZ_ASSERT(chain_id_to_string_with_aliases(home_context.chain_id,
                                               sizeof(home_context.chain_id),
-                                              &N_data.main_chain_id) >= 0,
+                                              &g_hwm.main_chain_id) >= 0,
               EXC_WRONG_LENGTH);
 
 end:
@@ -132,7 +132,7 @@ tz_exc calculate_idle_screen_authorized_key(void) {
 
     memset(&home_context.authorized_key, 0, sizeof(home_context.authorized_key));
 
-    if (N_data.baking_key.bip32_path.length == 0u) {
+    if (g_hwm.baking_key.bip32_path.length == 0u) {
         TZ_ASSERT(copy_string(home_context.authorized_key,
                               sizeof(home_context.authorized_key),
                               "No Key Authorized"),
@@ -140,7 +140,7 @@ tz_exc calculate_idle_screen_authorized_key(void) {
     } else {
         TZ_CHECK(bip32_path_with_curve_to_pkh_string(home_context.authorized_key,
                                                      sizeof(home_context.authorized_key),
-                                                     &N_data.baking_key));
+                                                     &g_hwm.baking_key));
     }
 
 end:
@@ -152,7 +152,7 @@ tz_exc calculate_idle_screen_hwm(void) {
 
     memset(&home_context.hwm, 0, sizeof(home_context.hwm));
 
-    TZ_ASSERT(hwm_to_string(home_context.hwm, sizeof(home_context.hwm), &N_data.hwm.main) >= 0,
+    TZ_ASSERT(hwm_to_string(home_context.hwm, sizeof(home_context.hwm), &g_hwm.hwm.main) >= 0,
               EXC_WRONG_LENGTH);
 
 end:

@@ -77,20 +77,20 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
     bakeInfoContents[0] = buffer[0];
     bakeInfoContents[1] = buffer[1];
     bakeInfoContents[2] = buffer[2];
-    const bool hwm_disabled = N_data.hwm_disabled;
+    const bool hwm_disabled = g_hwm.hwm_disabled;
 
     TZ_ASSERT(
-        chain_id_to_string_with_aliases(buffer[0], sizeof(buffer[0]), &N_data.main_chain_id) >= 0,
+        chain_id_to_string_with_aliases(buffer[0], sizeof(buffer[0]), &g_hwm.main_chain_id) >= 0,
         EXC_WRONG_LENGTH);
 
-    if (N_data.baking_key.bip32_path.length == 0u) {
+    if (g_hwm.baking_key.bip32_path.length == 0u) {
         TZ_ASSERT(copy_string(buffer[1], sizeof(buffer[1]), "No Key Authorized"), EXC_WRONG_LENGTH);
     } else {
         TZ_CHECK(
-            bip32_path_with_curve_to_pkh_string(buffer[1], sizeof(buffer[1]), &N_data.baking_key));
+            bip32_path_with_curve_to_pkh_string(buffer[1], sizeof(buffer[1]), &g_hwm.baking_key));
     }
 
-    TZ_ASSERT(hwm_to_string(buffer[2], sizeof(buffer[2]), &N_data.hwm.main) >= 0, EXC_WRONG_LENGTH);
+    TZ_ASSERT(hwm_to_string(buffer[2], sizeof(buffer[2]), &g_hwm.hwm.main) >= 0, EXC_WRONG_LENGTH);
 
     switch (page) {
         case 0:

@@ -37,19 +37,19 @@ int handle_query_all_hwm(void) {
     uint8_t resp[5u * sizeof(uint32_t)] = {0};
     size_t offset = 0;
 
-    write_u32_be(resp, offset, N_data.hwm.main.highest_level);
+    write_u32_be(resp, offset, g_hwm.hwm.main.highest_level);
     offset += sizeof(uint32_t);
 
-    write_u32_be(resp, offset, N_data.hwm.main.highest_round);
+    write_u32_be(resp, offset, g_hwm.hwm.main.highest_round);
     offset += sizeof(uint32_t);
 
-    write_u32_be(resp, offset, N_data.hwm.test.highest_level);
+    write_u32_be(resp, offset, g_hwm.hwm.test.highest_level);
     offset += sizeof(uint32_t);
 
-    write_u32_be(resp, offset, N_data.hwm.test.highest_round);
+    write_u32_be(resp, offset, g_hwm.hwm.test.highest_round);
     offset += sizeof(uint32_t);
 
-    write_u32_be(resp, offset, N_data.main_chain_id.v);
+    write_u32_be(resp, offset, g_hwm.main_chain_id.v);
     offset += sizeof(uint32_t);
 
     return io_send_response_pointer(resp, offset, SW_OK);
@@ -59,10 +59,10 @@ int handle_query_main_hwm(void) {
     uint8_t resp[2u * sizeof(uint32_t)] = {0};
     size_t offset = 0;
 
-    write_u32_be(resp, offset, N_data.hwm.main.highest_level);
+    write_u32_be(resp, offset, g_hwm.hwm.main.highest_level);
     offset += sizeof(uint32_t);
 
-    write_u32_be(resp, offset, N_data.hwm.main.highest_round);
+    write_u32_be(resp, offset, g_hwm.hwm.main.highest_round);
     offset += sizeof(uint32_t);
 
     return io_send_response_pointer(resp, offset, SW_OK);
@@ -72,13 +72,13 @@ int handle_query_auth_key(void) {
     uint8_t resp[1u + (MAX_BIP32_PATH * sizeof(uint32_t))] = {0};
     size_t offset = 0;
 
-    uint8_t const length = N_data.baking_key.bip32_path.length;
+    uint8_t const length = g_hwm.baking_key.bip32_path.length;
 
     resp[offset] = length;
     offset++;
 
     for (uint8_t i = 0; i < length; ++i) {
-        write_u32_be(resp, offset, N_data.baking_key.bip32_path.components[i]);
+        write_u32_be(resp, offset, g_hwm.baking_key.bip32_path.components[i]);
         offset += sizeof(uint32_t);
     }
 
@@ -89,22 +89,22 @@ int handle_query_auth_key_with_curve(void) {
     uint8_t resp[2u + (MAX_BIP32_PATH * sizeof(uint32_t))] = {0};
     size_t offset = 0;
 
-    uint8_t const length = N_data.baking_key.bip32_path.length;
+    uint8_t const length = g_hwm.baking_key.bip32_path.length;
 
-    int derivation_type = unparse_derivation_type(N_data.baking_key.derivation_type);
+    int derivation_type = unparse_derivation_type(g_hwm.baking_key.derivation_type);
 
     if (derivation_type < 0) {
         return io_send_apdu_err(EXC_REFERENCED_DATA_NOT_FOUND);
     }
 
-    resp[offset] = unparse_derivation_type(N_data.baking_key.derivation_type);
+    resp[offset] = unparse_derivation_type(g_hwm.baking_key.derivation_type);
     offset++;
 
     resp[offset] = length;
     offset++;
 
     for (uint8_t i = 0; i < length; ++i) {
-        write_u32_be(resp, offset, N_data.baking_key.bip32_path.components[i]);
+        write_u32_be(resp, offset, g_hwm.baking_key.bip32_path.components[i]);
         offset += sizeof(uint32_t);
     }
 

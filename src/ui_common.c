@@ -22,6 +22,8 @@
 #include "ui.h"
 #include "os_pin.h"
 
+#include <globals.h>
+
 /**
  * @brief Invalidates the pin to enforce its requirement.
  *
@@ -31,6 +33,7 @@ static void require_pin(void) {
 }
 
 void __attribute__((noreturn)) app_exit(void) {
+    UPDATE_NVRAM
     require_pin();
     os_sched_exit(-1);
 }

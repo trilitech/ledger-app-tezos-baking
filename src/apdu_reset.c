@@ -36,13 +36,12 @@
  * @return true
  */
 static bool ok(void) {
-    baking_hwm_data *hwm_data = &global.apdu.baking_auth.new_data;
-    hwm_data->hwm.main.highest_level = G.reset_level;
-    hwm_data->hwm.main.highest_round = 0;
-    hwm_data->hwm.main.had_attestation = false;
-    hwm_data->hwm.test.highest_level = G.reset_level;
-    hwm_data->hwm.test.highest_round = 0;
-    hwm_data->hwm.test.had_attestation = false;
+    g_hwm.hwm.main.highest_level = G.reset_level;
+    g_hwm.hwm.main.highest_round = 0;
+    g_hwm.hwm.main.had_attestation = false;
+    g_hwm.hwm.test.highest_level = G.reset_level;
+    g_hwm.hwm.test.highest_round = 0;
+    g_hwm.hwm.test.had_attestation = false;
 
     UPDATE_NVRAM;
 

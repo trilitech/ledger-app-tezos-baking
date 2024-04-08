@@ -202,7 +202,7 @@ typedef struct {
     bool hwm_disabled;                   /**< Set HWM setting on/off,
                                               e.g. if you are using signer assisted HWM,
                                               no need to track HWM using Ledger.*/
-} baking_hwm_data;
+} baking_data;
 
 #define SIGN_HASH_SIZE 32u  // TODO: Rename or use a different constant.
 

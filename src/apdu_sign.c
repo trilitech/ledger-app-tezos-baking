@@ -225,7 +225,7 @@ static int baking_sign_complete(bool const send_hash) {
                 case OPERATION_TAG_DELEGATION:
                     // Must be self-delegation signed by the *authorized* baking key
                     TZ_ASSERT(
-                        bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
+                        bip32_path_with_curve_eq(&global.path_with_curve, &g_hwm.baking_key) &&
                             // ops->signing is generated from G.bip32_path and G.curve
                             (COMPARE(G.maybe_ops.v.operation.source, G.maybe_ops.v.signing) == 0) &&
                             (COMPARE(G.maybe_ops.v.operation.destination, G.maybe_ops.v.signing) ==
@@ -238,7 +238,7 @@ static int baking_sign_complete(bool const send_hash) {
                 case OPERATION_TAG_NONE:
                     // Reveal cases
                     TZ_ASSERT(
-                        bip32_path_with_curve_eq(&global.path_with_curve, &N_data.baking_key) &&
+                        bip32_path_with_curve_eq(&global.path_with_curve, &g_hwm.baking_key) &&
                             // ops->signing is generated from G.bip32_path and G.curve
                             (COMPARE(G.maybe_ops.v.operation.source, G.maybe_ops.v.signing) == 0),
                         EXC_SECURITY);
