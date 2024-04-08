@@ -42,18 +42,19 @@
  * @return true
  */
 static bool ok(void) {
-    UPDATE_NVRAM(ram, {
-        copy_bip32_path_with_curve(&ram->baking_key, &global.path_with_curve);
-        ram->main_chain_id = G.main_chain_id;
-        ram->hwm.main.highest_level = G.hwm.main;
-        ram->hwm.main.highest_round = 0;
-        ram->hwm.main.had_attestation = false;
-        ram->hwm.main.had_preattestation = false;
-        ram->hwm.test.highest_level = G.hwm.test;
-        ram->hwm.test.highest_round = 0;
-        ram->hwm.test.had_attestation = false;
-        ram->hwm.test.had_preattestation = false;
-    });
+    baking_hwm_data *hwm_data = &global.apdu.baking_auth.new_data;
+    copy_bip32_path_with_curve(&(hwm_data->baking_key), &global.path_with_curve);
+    hwm_data->main_chain_id = G.main_chain_id;
+    hwm_data->hwm.main.highest_level = G.hwm.main;
+    hwm_data->hwm.main.highest_round = 0;
+    hwm_data->hwm.main.had_attestation = false;
+    hwm_data->hwm.main.had_preattestation = false;
+    hwm_data->hwm.test.highest_level = G.hwm.test;
+    hwm_data->hwm.test.highest_round = 0;
+    hwm_data->hwm.test.had_attestation = false;
+    hwm_data->hwm.test.had_preattestation = false;
+
+    UPDATE_NVRAM;
 
     provide_pubkey(&global.path_with_curve);
 
@@ -89,7 +90,9 @@ end:
 }
 
 int handle_deauthorize(void) {
-    UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });
+    baking_hwm_data *hwm_data = &global.apdu.baking_auth.new_data;
+    memset(&(hwm_data->baking_key), 0, sizeof(hwm_data->baking_key));
+    UPDATE_NVRAM_VAR(baking_key);
 #ifdef HAVE_BAGL
     // Ignore calculation errors
     calculate_idle_screen_authorized_key();

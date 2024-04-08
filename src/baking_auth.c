@@ -44,20 +44,21 @@ tz_exc write_high_water_mark(parsed_baking_data_t const *const in) {
 
     TZ_ASSERT(is_valid_level(in->level), EXC_WRONG_VALUES);
 
-    UPDATE_NVRAM(ram, {
-        // If the chain matches the main chain *or* the main chain is not set, then use 'main' HWM.
-        high_watermark_t volatile *const dest = select_hwm_by_chain(in->chain_id, ram);
-        TZ_ASSERT_NOT_NULL(dest);
+    baking_hwm_data *hwm_data = &global.apdu.baking_auth.new_data;
+    // If the chain matches the main chain *or* the main chain is not set, then use 'main' HWM.
+    high_watermark_t *dest = select_hwm_by_chain(in->chain_id, hwm_data);
+    TZ_ASSERT_NOT_NULL(dest);
 
-        if ((in->level > dest->highest_level) || (in->round > dest->highest_round)) {
-            dest->had_attestation = false;
-            dest->had_preattestation = false;
-        };
-        dest->highest_level = CUSTOM_MAX(in->level, dest->highest_level);
-        dest->highest_round = in->round;
-        dest->had_attestation |= in->type == BAKING_TYPE_ATTESTATION;
-        dest->had_preattestation |= in->type == BAKING_TYPE_PREATTESTATION;
-    });
+    if ((in->level > dest->highest_level) || (in->round > dest->highest_round)) {
+        dest->had_attestation = false;
+        dest->had_preattestation = false;
+    };
+    dest->highest_level = CUSTOM_MAX(in->level, dest->highest_level);
+    dest->highest_round = in->round;
+    dest->had_attestation |= in->type == BAKING_TYPE_ATTESTATION;
+    dest->had_preattestation |= in->type == BAKING_TYPE_PREATTESTATION;
+
+    UPDATE_NVRAM_VAR(hwm);
 
 end:
     return exc;
@@ -73,10 +74,10 @@ tz_exc authorize_baking(derivation_type_t const derivation_type,
               EXC_WRONG_LENGTH);
 
     if (bip32_path->length != 0u) {
-        UPDATE_NVRAM(ram, {
-            ram->baking_key.derivation_type = derivation_type;
-            copy_bip32_path(&ram->baking_key.bip32_path, bip32_path);
-        });
+        baking_hwm_data *out_data = &global.apdu.baking_auth.new_data;
+        out_data->baking_key.derivation_type = derivation_type;
+        copy_bip32_path(&out_data->baking_key.bip32_path, bip32_path);
+        UPDATE_NVRAM_VAR(baking_key);
     }
 
 end:

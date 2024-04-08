@@ -36,14 +36,15 @@
  * @return true
  */
 static bool ok(void) {
-    UPDATE_NVRAM(ram, {
-        ram->hwm.main.highest_level = G.reset_level;
-        ram->hwm.main.highest_round = 0;
-        ram->hwm.main.had_attestation = false;
-        ram->hwm.test.highest_level = G.reset_level;
-        ram->hwm.test.highest_round = 0;
-        ram->hwm.test.had_attestation = false;
-    });
+    baking_hwm_data *hwm_data = &global.apdu.baking_auth.new_data;
+    hwm_data->hwm.main.highest_level = G.reset_level;
+    hwm_data->hwm.main.highest_round = 0;
+    hwm_data->hwm.main.had_attestation = false;
+    hwm_data->hwm.test.highest_level = G.reset_level;
+    hwm_data->hwm.test.highest_round = 0;
+    hwm_data->hwm.test.had_attestation = false;
+
+    UPDATE_NVRAM;
 
     // Send back the response, do not restart the event loop
     io_send_sw(SW_OK);

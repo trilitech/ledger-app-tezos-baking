@@ -47,15 +47,16 @@ void init_globals(void) {
 }
 
 void toggle_hwm(void) {
-    UPDATE_NVRAM(ram, { ram->hwm_disabled = !ram->hwm_disabled; });
+    baking_hwm_data *out = &global.apdu.baking_auth.new_data;
+    out->hwm_disabled = !out->hwm_disabled;
+    UPDATE_NVRAM_VAR(hwm_disabled);  // Update the NVRAM data.
 }
 
 // DO NOT TRY TO INIT THIS. This can only be written via an system call.
 // The "N_" is *significant*. It tells the linker to put this in NVRAM.
-nvram_data const N_data_real;
+baking_hwm_data const N_data_real;
 
-high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
-                                               nvram_data volatile *const ram) {
+high_watermark_t *select_hwm_by_chain(chain_id_t const chain_id, baking_hwm_data *const ram) {
     if (ram == NULL) {
         return NULL;
     }
