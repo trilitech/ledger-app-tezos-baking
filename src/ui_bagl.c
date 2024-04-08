@@ -48,11 +48,15 @@ typedef struct {
     char chain_id[CHAIN_ID_BASE58_STRING_SIZE];
     char authorized_key[PKH_STRING_SIZE];
     char hwm[MAX_INT_DIGITS + 1u + MAX_INT_DIGITS + 1u];
+    char hwm_status[HWM_STATUS_SIZE];
 } HomeContext_t;
 
 /// Current home context
 static HomeContext_t home_context;
 
+void ui_settings(void);    ///> Initialize settings page
+void ui_toggle_hwm(void);  ///> Toggle HWM settings
+void ui_menu_init(void);   ///> Load main menu page
 /**
  * @brief Idle flow
  *
@@ -68,6 +72,7 @@ UX_STEP_NOCB(ux_app_is_ready_step, nn, {"Application", "is ready"});
 UX_STEP_NOCB(ux_version_step, bnnn_paging, {"Tezos Baking", APPVERSION});
 UX_STEP_NOCB(ux_chain_id_step, bnnn_paging, {"Chain", home_context.chain_id});
 UX_STEP_NOCB(ux_authorized_key_step, bnnn_paging, {"Public Key Hash", home_context.authorized_key});
+UX_STEP_CB(ux_settings_step, pb, ui_settings(), {&C_icon_coggle, "Settings"});
 UX_STEP_CB(ux_hwm_step,
            bnnn_paging,
            ui_refresh_idle_hwm_screen(),
@@ -80,8 +85,33 @@ UX_FLOW(ux_idle_flow,
         &ux_chain_id_step,
         &ux_authorized_key_step,
         &ux_hwm_step,
+        &ux_settings_step,
         &ux_idle_quit_step,
         FLOW_LOOP);
+
+void ui_menu_init(void) {
+    ux_flow_init(0, ux_idle_flow, NULL);
+}
+
+UX_STEP_CB(ux_hwm_info, bn, ui_toggle_hwm(), {"High Watermark", home_context.hwm_status});
+UX_STEP_CB(ux_menu_back_step, pb, ui_menu_init(), {&C_icon_back, "Back"});
+
+// FLOW for the about submenu:
+// #1 screen: app info
+// #2 screen: back button to main menu
+UX_FLOW(ux_settings_flow, &ux_hwm_info, &ux_menu_back_step, FLOW_LOOP);
+
+void ui_settings(void) {
+    hwm_status_to_string(home_context.hwm_status,
+                         sizeof(home_context.hwm_status),
+                         &N_data.hwm_disabled);
+    ux_flow_init(0, ux_settings_flow, NULL);
+}
+
+void ui_toggle_hwm(void) {
+    toggle_hwm();
+    ui_settings();
+}
 
 tz_exc calculate_idle_screen_chain_id(void) {
     tz_exc exc = SW_OK;
@@ -152,8 +182,7 @@ void ui_initial_screen(void) {
 
     TZ_CHECK(calculate_baking_idle_screens_data());
 
-    ux_flow_init(0, ux_idle_flow, NULL);
-
+    ui_menu_init();
     return;
 end:
     TZ_EXC_PRINT(exc);

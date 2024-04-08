@@ -25,6 +25,7 @@ from multiprocessing.pool import ThreadPool
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.firmware.stax.screen import MetaScreen
+from ragger.firmware.stax.layouts import ChoiceList
 from ragger.firmware.stax.use_cases import (
     UseCaseHome,
     UseCaseSettings,
@@ -83,11 +84,13 @@ class TezosNavigator(metaclass=MetaScreen):
     use_case_settings   = UseCaseSettings
     use_case_review     = UseCaseReview
     use_case_provide_pk = UseCaseAddressConfirmation
+    layout_choice_list  = ChoiceList
 
-    home:       UseCaseHome
-    settings:   UseCaseSettings
-    review:     UseCaseReview
-    provide_pk: TezosUseCaseAddressConfirmation
+    home:        UseCaseHome
+    settings:    UseCaseSettings
+    review:      UseCaseReview
+    provide_pk:  TezosUseCaseAddressConfirmation
+    layout_choice: ChoiceList
 
     backend:   BackendInterface
     firmware:  Firmware
@@ -111,6 +114,7 @@ class TezosNavigator(metaclass=MetaScreen):
         self.firmware  = firmware
         self.client    = client
         self.navigator = navigator
+        self.layout_choice = ChoiceList(backend, firmware)
 
         self._golden_run        = golden_run
         self._root_dir          = TESTS_ROOT_DIR
@@ -221,6 +225,9 @@ class TezosNavigator(metaclass=MetaScreen):
             self.assert_screen("high_watermark", snap_path=snap_path)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
+            self.assert_screen("settings", snap_path=snap_path)
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
             self.assert_screen("exit", snap_path=snap_path)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
@@ -230,6 +237,9 @@ class TezosNavigator(metaclass=MetaScreen):
             self.home.settings()
             self.backend.wait_for_screen_change()
             self.assert_screen("app_context", snap_path=snap_path)
+            self.settings.next()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("hwm_status", snap_path=snap_path)
             self.settings.next()
             self.backend.wait_for_screen_change()
             self.assert_screen("description", snap_path=snap_path)
@@ -284,6 +294,9 @@ class TezosNavigator(metaclass=MetaScreen):
             self.assert_screen("exit", snap_path=snap_path)
             self.backend.left_click()
             self.backend.wait_for_screen_change()
+            self.assert_screen("settings", snap_path=snap_path)
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
         else:
             self.assert_screen("home_screen", snap_path=snap_path)
             self.home.settings()
@@ -292,6 +305,9 @@ class TezosNavigator(metaclass=MetaScreen):
         yield
 
         if self.firmware.is_nano:
+            self.backend.right_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("settings", snap_path=snap_path)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
             self.assert_screen("exit", snap_path=snap_path)

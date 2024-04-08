@@ -305,25 +305,29 @@ int hwm_to_string(char *dest, size_t dest_size, high_watermark_t const *const hw
     if (dest == NULL) {
         return -1;
     }
-    if (hwm->migrated_to_tenderbake) {
-        int result = number_to_string(dest, dest_size, hwm->highest_level);
-        if (result < 0) {
-            return result;
-        }
-        size_t offset = (size_t) result;
-
-        dest[offset] = ' ';
-        offset++;
-
-        result = number_to_string(dest + offset, dest_size - offset, hwm->highest_round);
-        if (result < 0) {
-            return result;
-        }
-
-        return offset + (size_t) result;
-    } else {
-        return number_to_string(dest, dest_size, hwm->highest_level);
+    int result = number_to_string(dest, dest_size, hwm->highest_level);
+    if (result < 0) {
+        return result;
     }
+    size_t offset = (size_t) result;
+
+    dest[offset] = ' ';
+    offset++;
+
+    result = number_to_string(dest + offset, dest_size - offset, hwm->highest_round);
+    if (result < 0) {
+        return result;
+    }
+
+    return offset + (size_t) result;
+}
+
+int hwm_status_to_string(char *dest, size_t dest_size, volatile bool const *hwm_disabled) {
+    if ((dest == NULL) || (dest_size < 9u)) {
+        return -1;
+    }
+    memcpy(dest, *hwm_disabled ? "Disabled" : "Enabled", dest_size);
+    return dest_size;
 }
 
 int copy_string(char *const dest, size_t const dest_size, char const *const src) {

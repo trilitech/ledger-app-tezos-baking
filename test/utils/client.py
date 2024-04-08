@@ -80,11 +80,11 @@ class Hwm:
     """Class representing app high water mark."""
 
     highest_level: int
-    highest_round: Optional[int]
+    highest_round: int
 
     def __init__(self,
                  highest_level: int,
-                 highest_round: Optional[int] = None,
+                 highest_round: int,
             ):
         self.highest_level = highest_level
         self.highest_round = highest_round
@@ -113,9 +113,7 @@ class Hwm:
 
         reader = BytesReader(raw_hwm)
         highest_level = reader.read_int(4)
-        highest_round = \
-            None if reader.has_finished() else \
-            reader.read_int(4)
+        highest_round = reader.read_int(4)
         reader.assert_finished()
 
         return Hwm(highest_level, highest_round)
@@ -194,6 +192,7 @@ class TezosClient:
     """Class representing the tezos app client."""
 
     backend: BackendInterface
+
 
     def __init__(self, backend) -> None:
         self.backend = backend

@@ -89,6 +89,15 @@ int microtez_to_string(char *const dest, size_t dest_size, uint64_t number);
 int hwm_to_string(char *dest, size_t dest_size, high_watermark_t const *const hwm);
 
 /**
+ * @brief Converts hwm status to string (Enabled/Disabled)
+ * @param dest output buffer
+ * @param dest_size output size >= 9u
+ * @param hwm_disabled High watermark status from NVRAM
+ * @return size of the result, negative integer on failure.
+ */
+int hwm_status_to_string(char *dest, size_t dest_size, volatile bool const *hwm_disabled);
+
+/**
  * @brief Copies a string in a buffer
  *
  *        `src` may be unrelocated pointer to rodata.

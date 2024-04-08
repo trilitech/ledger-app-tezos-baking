@@ -64,8 +64,8 @@ def test_review_home(account: Optional[Account],
 
     if account is not None:
         main_chain_id = "NetXH12AexHqTQa" # Chain = 1
-        main_hwm = Hwm(1)
-        test_hwm = Hwm(2)
+        main_hwm = Hwm(1,0)
+        test_hwm = Hwm(2,0)
 
         tezos_navigator.setup_app_context(
             account,
@@ -102,11 +102,15 @@ def test_review_home(account: Optional[Account],
             right()
         screen("high_watermark")
         right()
+        screen("settings")
+        right()
         screen("exit")
         right()
         screen("home_screen")
         left()
         screen("exit")
+        left()
+        screen("settings")
         left()
         screen("high_watermark")
         left()
@@ -129,15 +133,39 @@ def test_review_home(account: Optional[Account],
         left()
         screen("exit")
         left()
+        screen("settings")
+        left()
         screen("high_watermark")
-    else:
+        right()
+        # Check settings menu
+        screen("settings")
+        both()
+        screen("hwm_status_enabled")
+        both()
+        screen("hwm_status_disabled")
+        right()
+        screen("back")
+        both()
         screen("home_screen")
+        left()
+        screen("exit")
+        right()
+        screen("home_screen")
+        left()
+    else:
+        backend.wait_for_home_screen()
         tezos_navigator.home.settings()
         backend.wait_for_screen_change()
         screen("app_context")
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
+        screen("hwm_status")
+        tezos_navigator.settings.next()
+        backend.wait_for_screen_change()
         screen("description")
+        tezos_navigator.settings.previous()
+        backend.wait_for_screen_change()
+        screen("hwm_status")
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
         screen("app_context")
@@ -149,13 +177,25 @@ def test_review_home(account: Optional[Account],
         screen("app_context")
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
+        screen("hwm_status_on")
+        tezos_navigator.layout_choice.choose(1)
+        backend.wait_for_screen_change()
+        screen("hwm_status_off")
+        tezos_navigator.layout_choice.choose(1)
+        backend.wait_for_screen_change()
+        screen("hwm_status_on")
+        tezos_navigator.settings.next()
+        backend.wait_for_screen_change()
         screen("description")
+        tezos_navigator.settings.previous()
+        backend.wait_for_screen_change()
+        screen("hwm_status_on")
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
         screen("app_context")
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        screen("description")
+        screen("hwm_status_on")
         tezos_navigator.settings.multi_page_exit()
         backend.wait_for_screen_change()
         screen("home_screen")
@@ -190,8 +230,8 @@ def test_ledger_screensaver(client: TezosClient, tezos_navigator: TezosNavigator
 
     lvl = 0
     main_chain_id = DEFAULT_CHAIN_ID
-    main_hwm = Hwm(lvl)
-    test_hwm = Hwm(0)
+    main_hwm = Hwm(lvl, 0)
+    test_hwm = Hwm(0, 0)
 
     tezos_navigator.setup_app_context(
         account,
@@ -219,8 +259,8 @@ def test_benchmark_attestation_time(account: Account, client: TezosClient, tezos
 
     lvl = 0
     main_chain_id = DEFAULT_CHAIN_ID
-    main_hwm = Hwm(lvl)
-    test_hwm = Hwm(0)
+    main_hwm = Hwm(lvl, 0)
+    test_hwm = Hwm(0, 0)
 
     tezos_navigator.setup_app_context(
         account,
@@ -255,8 +295,8 @@ def test_authorize_baking(account: Account, tezos_navigator: TezosNavigator) -> 
     tezos_navigator.check_app_context(
         account,
         chain_id=DEFAULT_CHAIN_ID,
-        main_hwm=Hwm(0),
-        test_hwm=Hwm(0),
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0),
         snap_path=snap_path
     )
 
@@ -287,8 +327,8 @@ def test_deauthorize(firmware: Firmware,
     tezos_navigator.check_app_context(
         None,
         chain_id=DEFAULT_CHAIN_ID,
-        main_hwm=Hwm(0),
-        test_hwm=Hwm(0)
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
     )
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -361,8 +401,8 @@ def test_reset_app_context(tezos_navigator: TezosNavigator) -> None:
     tezos_navigator.check_app_context(
         None,
         chain_id=DEFAULT_CHAIN_ID,
-        main_hwm=Hwm(reset_level),
-        test_hwm=Hwm(reset_level)
+        main_hwm=Hwm(reset_level, 0),
+        test_hwm=Hwm(reset_level, 0)
     )
 
 
@@ -372,8 +412,8 @@ def test_setup_app_context(account: Account, tezos_navigator: TezosNavigator) ->
     snap_path = Path(f"{account}")
 
     main_chain_id = "NetXH12AexHqTQa" # Chain = 1
-    main_hwm = Hwm(1)
-    test_hwm = Hwm(2)
+    main_hwm = Hwm(1, 0)
+    test_hwm = Hwm(2, 0)
 
     public_key = tezos_navigator.setup_app_context(
         account,
@@ -402,8 +442,8 @@ def test_get_main_hwm(
     """Test the QUERY_MAIN_HWM instruction."""
 
     main_chain_id = DEFAULT_CHAIN_ID
-    main_hwm = Hwm(0)
-    test_hwm = Hwm(0)
+    main_hwm = Hwm(0, 0)
+    test_hwm = Hwm(0, 0)
 
     tezos_navigator.setup_app_context(
         account,
@@ -426,8 +466,8 @@ def test_get_all_hwm(
     """Test the QUERY_ALL_HWM instruction."""
 
     main_chain_id = DEFAULT_CHAIN_ID
-    main_hwm = Hwm(0)
-    test_hwm = Hwm(0)
+    main_hwm = Hwm(0, 0)
+    test_hwm = Hwm(0, 0)
 
     tezos_navigator.setup_app_context(
         account,
@@ -492,8 +532,8 @@ def test_sign_preattestation(
     snap_path = Path(f"{account}")
 
     main_chain_id = DEFAULT_CHAIN_ID
-    main_hwm = Hwm(0)
-    test_hwm = Hwm(0)
+    main_hwm = Hwm(0, 0)
+    test_hwm = Hwm(0, 0)
 
     tezos_navigator.setup_app_context(
         account,
@@ -549,8 +589,8 @@ def test_sign_attestation(
     snap_path = Path(f"{account}")
 
     main_chain_id = DEFAULT_CHAIN_ID
-    main_hwm = Hwm(0)
-    test_hwm = Hwm(0)
+    main_hwm = Hwm(0, 0)
+    test_hwm = Hwm(0, 0)
 
     tezos_navigator.setup_app_context(
         account,
@@ -606,8 +646,8 @@ def test_sign_attestation_dal(
     snap_path = Path(f"{account}")
 
     main_chain_id = DEFAULT_CHAIN_ID
-    main_hwm = Hwm(0)
-    test_hwm = Hwm(0)
+    main_hwm = Hwm(0, 0)
+    test_hwm = Hwm(0, 0)
 
     tezos_navigator.setup_app_context(
         account,
@@ -663,8 +703,8 @@ def test_sign_block(
     snap_path = Path(f"{account}")
 
     main_chain_id = DEFAULT_CHAIN_ID
-    main_hwm = Hwm(0)
-    test_hwm = Hwm(0)
+    main_hwm = Hwm(0, 0)
+    test_hwm = Hwm(0, 0)
 
     tezos_navigator.setup_app_context(
         account,
@@ -715,8 +755,8 @@ def test_sign_block_at_reset_level(client: TezosClient, tezos_navigator: TezosNa
     reset_level: int = 1
 
     main_chain_id = DEFAULT_CHAIN_ID
-    main_hwm = Hwm(reset_level)
-    test_hwm = Hwm(0)
+    main_hwm = Hwm(reset_level, 0)
+    test_hwm = Hwm(0, 0)
 
     tezos_navigator.setup_app_context(
         account,
@@ -782,8 +822,8 @@ def test_sign_level_authorized(
     tezos_navigator.setup_app_context(
         account,
         main_chain_id,
-        main_hwm=Hwm(main_level),
-        test_hwm=Hwm(0)
+        main_hwm=Hwm(main_level, 0),
+        test_hwm=Hwm(0, 0)
     )
 
     level_1, round_1 = level_round_1
@@ -820,8 +860,8 @@ def test_sign_delegation(
     tezos_navigator.setup_app_context(
         account,
         DEFAULT_CHAIN_ID,
-        main_hwm=Hwm(0),
-        test_hwm=Hwm(0)
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
     )
 
     delegation = Delegation(
@@ -891,8 +931,8 @@ def test_sign_delegation_constraints(
     tezos_navigator.setup_app_context(
         setup_account,
         DEFAULT_CHAIN_ID,
-        main_hwm=Hwm(0),
-        test_hwm=Hwm(0)
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
     )
 
     delegation = Delegation(
@@ -919,8 +959,8 @@ def test_sign_reveal(
     tezos_navigator.setup_app_context(
         account,
         DEFAULT_CHAIN_ID,
-        main_hwm=Hwm(0),
-        test_hwm=Hwm(0)
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
     )
 
     reveal = Reveal(
@@ -986,8 +1026,8 @@ def test_sign_reveal_constraints(
     tezos_navigator.setup_app_context(
         setup_account,
         DEFAULT_CHAIN_ID,
-        main_hwm=Hwm(0),
-        test_hwm=Hwm(0)
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
     )
 
     reveal = Reveal(
@@ -1015,8 +1055,8 @@ def test_sign_not_authorized_key(
     tezos_navigator.setup_app_context(
         account_1,
         main_chain_id,
-        main_hwm=Hwm(0),
-        test_hwm=Hwm(0)
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
     )
 
     attestation = build_attestation(0, 0, main_chain_id)
@@ -1038,8 +1078,8 @@ def test_sign_transaction(
     tezos_navigator.setup_app_context(
         account_1,
         main_chain_id,
-        main_hwm=Hwm(0),
-        test_hwm=Hwm(0)
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
     )
 
     ctxt = pytezos.using()
@@ -1155,8 +1195,8 @@ def test_sign_multiple_operation(
     tezos_navigator.setup_app_context(
         account,
         DEFAULT_CHAIN_ID,
-        main_hwm=Hwm(0),
-        test_hwm=Hwm(0)
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
     )
 
     operation = operation_builder_1(account)
@@ -1197,8 +1237,8 @@ def test_sign_when_no_chain_setup(
     tezos_navigator.setup_app_context(
         account,
         DEFAULT_CHAIN_ID, # Chain = 0
-        main_hwm=Hwm(0),
-        test_hwm=Hwm(0)
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
     )
 
     attestation = build_attestation(
@@ -1257,8 +1297,8 @@ def test_sign_when_chain_is_setup(
     tezos_navigator.setup_app_context(
         account,
         main_chain_id,
-        main_hwm=Hwm(0),
-        test_hwm=Hwm(0)
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
     )
 
     attestation = build_attestation(

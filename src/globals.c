@@ -46,6 +46,10 @@ void init_globals(void) {
     memset(&global, 0, sizeof(global));
 }
 
+void toggle_hwm(void) {
+    UPDATE_NVRAM(ram, { ram->hwm_disabled = !ram->hwm_disabled; });
+}
+
 // DO NOT TRY TO INIT THIS. This can only be written via an system call.
 // The "N_" is *significant*. It tells the linker to put this in NVRAM.
 nvram_data const N_data_real;
