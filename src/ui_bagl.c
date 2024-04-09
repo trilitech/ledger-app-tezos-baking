@@ -32,6 +32,7 @@
 #include "memory.h"
 #include "os_cx.h"  // ui-menu
 #include "to_string.h"
+#include "ui_screensaver.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -134,7 +135,11 @@ void ui_menu_init(void);   ///> Load main menu page
  *        - Exit screen
  *
  */
+#ifdef TARGET_NANOS
+UX_STEP_CB(ux_app_is_ready_step, nn, ui_start_screensaver(), {"Application", "is ready"});
+#else   // TARGET_NANOS
 UX_STEP_NOCB(ux_app_is_ready_step, nn, {"Application", "is ready"});
+#endif  // TARGET_NANOS
 UX_STEP_NOCB(ux_version_step, bnnn_paging, {"Tezos Baking", APPVERSION});
 UX_STEP_NOCB(ux_chain_id_step, bnnn_paging, {"Chain", home_context.chain_id});
 UX_STEP_NOCB(ux_authorized_key_step, bnnn_paging, {"Public Key Hash", home_context.authorized_key});
