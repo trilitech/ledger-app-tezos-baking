@@ -208,6 +208,10 @@ static int baking_sign_complete(bool const send_hash) {
         case MAGIC_BYTE_PREATTESTATION:
         case MAGIC_BYTE_ATTESTATION:
             TZ_CHECK(guard_baking_authorized(&G.parsed_baking_data, &global.path_with_curve));
+#ifdef TARGET_NANOS
+            // To be efficient, the signing needs a low-cost display
+            ux_set_low_cost_display_mode(true);
+#endif
             result = perform_signature(send_hash);
 #ifdef HAVE_BAGL
             // Ignore calculation errors

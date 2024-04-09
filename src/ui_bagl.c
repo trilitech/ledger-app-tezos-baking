@@ -41,10 +41,19 @@
 #ifdef TARGET_NANOS
 #include "io.h"
 
+void ux_set_low_cost_display_mode(bool enable) {
+    G_display.low_cost_display_mode = enable;
+}
+
 uint8_t io_event(uint8_t channel);
 
 /**
- * Function similar to the one in `lib_standard_app/`
+ * Function similar to the one in `lib_standard_app/` except that the
+ * `TICKER_EVENT` handling is not enabled on low-cost display mode.
+ *
+ * Low-cost display mode is deactivated when the button is pressed and
+ * activated during signing because `TICKER_EVENT` handling slows down
+ * the application.
  *
  */
 uint8_t io_event(uint8_t channel) {
@@ -52,6 +61,7 @@ uint8_t io_event(uint8_t channel) {
 
     switch (G_io_seproxyhal_spi_buffer[0]) {
         case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
+            ux_set_low_cost_display_mode(false);
             UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
             break;
         case SEPROXYHAL_TAG_STATUS_EVENT:
@@ -75,8 +85,10 @@ uint8_t io_event(uint8_t channel) {
             break;
 #endif  // HAVE_NBGL
         case SEPROXYHAL_TAG_TICKER_EVENT:
-            app_ticker_event_callback();
-            UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
+            if (!G_display.low_cost_display_mode) {
+                app_ticker_event_callback();
+                UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
+            }
             break;
         default:
             UX_DEFAULT_EVENT();
