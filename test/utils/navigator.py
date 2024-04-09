@@ -76,7 +76,10 @@ class TezosUseCaseAddressConfirmation(UseCaseAddressConfirmation):
         """Tap to show qr code."""
         self.client.finger_touch(*TezosUseCaseAddressConfirmation.SHOW_QR)
 
+
 APP_CONTEXT = Path("app_context")
+
+
 class TezosNavigator(metaclass=MetaScreen):
     """Class representing the tezos app navigator."""
 
@@ -84,12 +87,12 @@ class TezosNavigator(metaclass=MetaScreen):
     use_case_settings   = UseCaseSettings
     use_case_review     = UseCaseReview
     use_case_provide_pk = UseCaseAddressConfirmation
-    layout_choice_list  = ChoiceList
+    layout_choice_list = ChoiceList
 
-    home:        UseCaseHome
-    settings:    UseCaseSettings
-    review:      UseCaseReview
-    provide_pk:  TezosUseCaseAddressConfirmation
+    home:       UseCaseHome
+    settings:   UseCaseSettings
+    review:     UseCaseReview
+    provide_pk: TezosUseCaseAddressConfirmation
     layout_choice: ChoiceList
 
     backend:   BackendInterface
@@ -177,7 +180,8 @@ class TezosNavigator(metaclass=MetaScreen):
                           chain_id: str,
                           main_hwm: Hwm,
                           test_hwm: Hwm,
-                          snap_path: Path = Path("")) -> None:
+                          snap_path: Path = Path(""),
+                          backend_name = "speculos") -> None:
         """Check that the app context."""
 
         received_chain_id, received_main_hwm, received_test_hwm = self.client.get_all_hwm()
@@ -201,6 +205,9 @@ class TezosNavigator(metaclass=MetaScreen):
             assert received_sig_scheme == account.sig_scheme, \
                 f"Expected signature scheme {account.sig_scheme.name} "\
                 f"but got {received_sig_scheme.name}"
+
+        if backend_name != "speculos":
+            return
 
         snap_path = snap_path / APP_CONTEXT
         if self.firmware.is_nano:
@@ -490,3 +497,49 @@ class TezosNavigator(metaclass=MetaScreen):
             ),
             navigate=lambda: navigate(**kwargs)
         )
+
+    def right(self):
+        """Move to right screen"""
+        self.backend.right_click()
+        self.backend.wait_for_screen_change()
+
+    def left(self):
+        """Move to left screen"""
+        self.backend.left_click()
+        self.backend.wait_for_screen_change()
+
+    def press_both_buttons(self):
+        """Press both buttons in Nano device"""
+        self.backend.both_click()
+        self.backend.wait_for_screen_change()
+
+    def disable_hwm(self, snap_path: Path) -> None:
+        """Disables HWM settings by navigating on the screen starting from home_screen"""
+        if self.firmware.is_nano:
+            self.assert_screen("home_screen",snap_path)
+            self.left()
+            self.assert_screen("quit",snap_path)
+            self.left()
+            self.assert_screen("Settings",snap_path)
+            self.press_both_buttons()
+            self.assert_screen("hwm_enabled",snap_path)
+            self.press_both_buttons()
+            self.assert_screen("hwm_disabled",snap_path)
+            self.right()
+            self.assert_screen("back",snap_path)
+            self.press_both_buttons()
+            self.assert_screen("home_screen",snap_path)
+        else:
+            self.backend.wait_for_home_screen()
+            self.home.settings()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("app_context",snap_path)
+            self.settings.next()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("hwm_status_on",snap_path)
+            self.layout_choice.choose(1)
+            self.backend.wait_for_screen_change()
+            self.assert_screen("hwm_status_off",snap_path)
+            self.settings.multi_page_exit()
+            self.backend.wait_for_screen_change()
+            self.assert_screen("home_screen",snap_path)
