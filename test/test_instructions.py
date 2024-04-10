@@ -221,12 +221,21 @@ def test_git(client: TezosClient) -> None:
         f"Expected {expected_commit} but got {commit}"
 
 
-def test_ledger_screensaver(client: TezosClient, tezos_navigator: TezosNavigator, backend_name) -> None:
+def test_ledger_screensaver(firmware: Firmware,
+                            backend: BackendInterface,
+                            client: TezosClient,
+                            tezos_navigator: TezosNavigator,
+                            backend_name) -> None:
     # Make sure that ledger device being tested has screensaver time set to 1 minute and PIN lock is disabled.
     account = DEFAULT_ACCOUNT
     if backend_name == "speculos":
-       assert True
-       return
+        assert True
+        return
+
+    time.sleep(70)
+
+    res = input("Has the Ledger screensaver been activated?")
+    assert (res.find("y") != -1), "Ledger screensaver should have activated"
 
     lvl = 0
     main_chain_id = DEFAULT_CHAIN_ID
@@ -248,6 +257,12 @@ def test_ledger_screensaver(client: TezosClient, tezos_navigator: TezosNavigator
         )
         client.sign_message(account, attestation)
         time.sleep(1)
+
+    res = input("Has the Ledger screensaver been activated?")
+    if firmware.device == "nanos":
+        assert (res.find("y") == -1), "Ledger screensaver should not have been activated"
+    else:
+        assert (res.find("y") != -1), "Ledger screensaver should have activated"
 
 
 @pytest.mark.parametrize("account", ZEBRA_ACCOUNTS)
