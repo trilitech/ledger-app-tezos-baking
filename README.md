@@ -457,6 +457,14 @@ $ octez-client list connected ledgers
 
 ## How the app works
 
+### Screen saver
+
+The screen saver is the one provided by Ledger ([Configure screen saver timeout](https://support.ledger.com/hc/en-us/articles/360017152034-Configure-PIN-lock-and-screen-saver?docs=true)).
+
+On Nanos devices, the Ledger screensaver can slow down the baking app. This is why it is deactivated during signings.
+After a signature, a low-cost screensaver will take over. It will switch the screen off after 20 seconds of inactivity.
+Press any button to exit sleep mode. When the sleep mode is exited, the Ledger screen saver will take over again if there are no more signatures.
+
 ### High water mark (HWM)
 
 To avoid double baking, double attestation and double pre-attestation, the application maintains a high water mark (HWM) corresponding to the last level/round encountered during signature requests. The HWMs are displayed on the home screen and are updated after each signature.
