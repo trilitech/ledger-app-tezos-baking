@@ -43,7 +43,14 @@
 #include "io.h"
 
 void ux_set_low_cost_display_mode(bool enable) {
-    G_display.low_cost_display_mode = enable;
+    if (G_display.low_cost_display_mode != enable) {
+        G_display.low_cost_display_mode = enable;
+        if (G_display.low_cost_display_mode) {
+            ux_screensaver_start_clock();
+        } else {
+            ux_screensaver_stop_clock();
+        }
+    }
 }
 
 uint8_t io_event(uint8_t channel);
@@ -89,6 +96,8 @@ uint8_t io_event(uint8_t channel) {
             if (!G_display.low_cost_display_mode) {
                 app_ticker_event_callback();
                 UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
+            } else {
+                ux_screensaver_apply_tick();
             }
             break;
         default:

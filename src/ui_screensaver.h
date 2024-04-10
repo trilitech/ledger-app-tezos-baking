@@ -24,8 +24,17 @@
 #ifdef HAVE_BAGL
 
 typedef struct {
+    /// Clock has started
+    bool on;
+    /// Timeout out before saving screen
+    unsigned int timeout;
+} ux_screensaver_clock_t;
+
+typedef struct {
     /// Screensaver is on/off.
     bool on;
+    /// Timeout out before saving screen
+    ux_screensaver_clock_t clock;
 } ux_screensaver_state_t;
 
 /**
@@ -37,5 +46,25 @@ typedef struct {
  *
  */
 void ui_start_screensaver(void);
+
+/**
+ * @brief Start a timeout before saving screen
+ *
+ */
+void ux_screensaver_start_clock(void);
+
+/**
+ * @brief Stop the clock
+ *
+ */
+void ux_screensaver_stop_clock(void);
+
+/**
+ * @brief Apply one tick to the clock
+ *
+ *        The tick is assumed to be 100 ms
+ *
+ */
+void ux_screensaver_apply_tick(void);
 
 #endif

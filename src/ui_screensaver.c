@@ -95,4 +95,27 @@ void ui_start_screensaver(void) {
     }
 }
 
+#define MS                  100u
+#define SCREENSAVER_TIMEOUT 20000u  // 20u * 10u * MS
+
+void ux_screensaver_start_clock(void) {
+    G_screensaver_state.clock.on = true;
+    G_screensaver_state.clock.timeout = SCREENSAVER_TIMEOUT;
+}
+
+void ux_screensaver_stop_clock(void) {
+    G_screensaver_state.clock.on = false;
+}
+
+void ux_screensaver_apply_tick(void) {
+    if (G_screensaver_state.clock.on) {
+        if (G_screensaver_state.clock.timeout < MS) {
+            ui_start_screensaver();
+            ux_screensaver_stop_clock();
+        } else {
+            G_screensaver_state.clock.timeout -= MS;
+        }
+    }
+}
+
 #endif
