@@ -200,6 +200,29 @@ def test_review_home(account: Optional[Account],
         backend.wait_for_screen_change()
         screen("home_screen")
 
+def test_low_cost_screensaver(firmware: Firmware,
+                              backend: BackendInterface,
+                              tezos_navigator: TezosNavigator) -> None:
+    """Test if the low-cost screensaver work as intended."""
+
+    if firmware.name != "nanos":
+        pytest.skip("Only on nanos devices")
+
+    all_click = [
+        backend.both_click,
+        backend.left_click,
+        backend.right_click,
+    ]
+    tezos_navigator.assert_screen("home_screen")
+    for click in all_click:
+        backend.both_click()
+        backend.wait_for_screen_change()
+        tezos_navigator.assert_screen("black")
+        click()
+        backend.wait_for_screen_change()
+        tezos_navigator.assert_screen("home_screen")
+
+
 def test_version(client: TezosClient) -> None:
     """Test the VERSION instruction."""
 
