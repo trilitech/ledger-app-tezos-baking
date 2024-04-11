@@ -27,11 +27,41 @@ You also will need to install `tezos-wallet` app for initial setup to stake tez 
   - `IMPORTANT` Make sure to `enable screensaver` and `disable global PIN lock` in ledger settings.
   - Open the baking app and start baking with octez client.
 
-Disabling global PIN lock makes it possible for baking app to continue respond to signing requests even when screensaver is running on the screen of the ledger. Baking app uses Ledger screensaver to avoid screen burn.
+Disabling global PIN lock makes it possible for baking app to continue respond to signing requests even when screensaver is running on the screen of the ledger. Baking app uses Ledger screensaver (custom screensaver for nanos) to avoid screen burn.
 
 The baking app once opened can not be exited until you enter PIN again so disabling global PIN lock while baking does not pose any risk.
 
 `Caution` Make sure that a dedicated Ledger device is used for baking and not to leave any other app open in screensaver mode while global PIN lock is disabled.
+
+## HWM settings
+
+To avoid double baking, double attestation and double pre-attestation, the application maintains a high water mark (HWM) corresponding to the last level/round encountered during signature requests. The HWMs are displayed on the home screen and are updated after each signature.
+
+For performance reasons, the HWM screen is not updated dynamically. On Nano devices, press both buttons to update.
+
+To make sure HWM values are preserved after a reboot/power_off, the HWM values are saved in non-volatile memory(NVRAM) on ledger device.
+
+Previously `baking_app` would store every new value to NVRAM, thus causing NVRAM burn. NVRAM has limited number of write cycles after which it stops working.
+Therefore, in the new `baking_app` we have added a setting to disable HWM. By default it is enabled.
+
+When HWM setting is disabled, the HWM will be updated in RAM instead of NVRAM on every signing operation (Block/pre-attestation/attestation). Only when you exit the app properly by clicking `Quit`, will the latest HWM value be written to NVRAM.
+To disable HWM,
+```angular2html
+1. Go to settings
+2. On the screeen High Watermark, press both buttons to toggle HWM to Disabled.
+```
+We request every user of `baking_app` to disable HWM setting so that they dont experience NVRAM burn. For additional safety from double baking the users can use `octez-signer` instead of `octez-client`. Octez-signer has inherent HWM tracking and double baking protection.
+
+Even when HWM is disabled, the `baking_app` keeps track of HWM in RAM thus in normal operation of the app, the user is protected from double baking. Only when you reboot/power_off the device abruptly, ` you have to take extra care to make sure you dont double bake. You can achieve this either using octez-signer or reset HWM to the block level/round you have not signed yet.`
+
+## Screensaver
+
+The screen saver is the one provided by Ledger ([Configure screen saver timeout](https://support.ledger.com/hc/en-us/articles/360017152034-Configure-PIN-lock-and-screen-saver?docs=true)).
+
+On Nanos devices, the Ledger screensaver can slow down the baking app. This is why it is deactivated during signings.
+After a signature, a low-cost screensaver will take over. It will switch the screen off after 20 seconds of inactivity.
+Press any button to exit sleep mode. When the sleep mode is exited, the Ledger screen saver will take over again if there are no more signatures.
+
 ## Hacking
 
 See [CONTRIBUTING.md](CONTRIBUTING.md)
@@ -127,6 +157,13 @@ Now you can run ragger tests for any perticular ledger device. Please make sure 
 (env)$ pytest test --device nanosp
 ```
 Replace nanosp with any of the following for respective device: nanos, nanosp, nanox , stax.
+
+These tests are run on Ledger emulator called speculos which emulates the actual ledger device. To run theese test on actual device you have to choose a backend. Run following commands to run these test on device:
+```
+(env)$ pip install ragger[all_backends]
+(env)$ pytest test --device nanosp --backend ledgercomm -s
+```
+Note the `-s` flag which is required when running interactive tests with pytest. You can also choose `ledgerwallet` backend to run tests on device.
 
 
 ### Installing the apps onto your Ledger device without Ledger Live
@@ -455,54 +492,36 @@ The latter will require the correct URL for the Ledger device acquired from:
 $ octez-client list connected ledgers
 ```
 
-## How the app works
-
-### Screen saver
-
-The screen saver is the one provided by Ledger ([Configure screen saver timeout](https://support.ledger.com/hc/en-us/articles/360017152034-Configure-PIN-lock-and-screen-saver?docs=true)).
-
-On Nanos devices, the Ledger screensaver can slow down the baking app. This is why it is deactivated during signings.
-After a signature, a low-cost screensaver will take over. It will switch the screen off after 20 seconds of inactivity.
-Press any button to exit sleep mode. When the sleep mode is exited, the Ledger screen saver will take over again if there are no more signatures.
-
-### High water mark (HWM)
-
-To avoid double baking, double attestation and double pre-attestation, the application maintains a high water mark (HWM) corresponding to the last level/round encountered during signature requests. The HWMs are displayed on the home screen and are updated after each signature.
-
-For performance reasons, the HWM screen is not updated dynamically.
-On Nano devices, press both buttons to update.
-
-
 ## Benchmarking
 The time taken to sign attestations/pre-attestations for baking app can depend on the device used, derivation type etc.
 
 To benchmark signing time on a ledger device, run following commands: (assuming you have completed all the steps in section Loading the app on device and Testing.)
 ```
-$ pip install ragger[all_backends] # Requirement for testing with device.
+(env)$ pip install ragger[all_backends] # Requirement for testing with device.
 ```
 
 Now run either of the following commands
 
 ```
-$ python3 -m pytest test --device nanos --backend ledgercomm -k "test_benchmark_attestation_time"
+(env)$ python3 -m pytest test --device nanos --backend ledgercomm -k "test_benchmark_attestation_time"
 or
-$ python3 -m pytest test --device nanos --backend ledgerwallet -k "test_benchmark_attestation_time"
+(env)$ python3 -m pytest test --device nanos --backend ledgerwallet -k "test_benchmark_attestation_time"
 ```
 The result will be printed in       `Avg_time_for_100_attestations.txt`.
 
 Following is a sample of measurements obtained with this app (Tezos Baking app v2.4.7, Ledger devices - Nanos, Nanos+, System : Ubunut 22.04)
 
 | Device | Derivation Type   | Avg time/signature(milliseconds) |
-|--------|-------------------|-----------------------------------|
-| Nanos+ | SECP256K1_tz2     | 355                               |
-| Nanos+ | SECP256R1_tz3     | 353                               |
-| Nanos+ | ED25519_tz1       | 653                               |
-| Nanos+ | BIP32_ED25519_tz1 | 971                               |
-|        |                   |                                   |
-| Nanos  | SECP256K1_tz2     | 975                               |
-| Nanos  | SECP256R1_tz3     | 976                               |
-| Nanos  | ED25519_tz1       | 1122                              |
-| Nanos  | BIP32_ED25519_tz1 | 1781                              |
+|--------|-------------------|----------------------------------|
+| Nanos+ | SECP256K1_tz2     | 229                              |
+| Nanos+ | SECP256R1_tz3     | 226                              |
+| Nanos+ | ED25519_tz1       | 465                              |
+| Nanos+ | BIP32_ED25519_tz1 | 787                              |
+|        |                   |                                  |
+| Nanos  | SECP256K1_tz2     | 876                              |
+| Nanos  | SECP256R1_tz3     | 670                              |
+| Nanos  | ED25519_tz1       | 670                              |
+| Nanos  | BIP32_ED25519_tz1 | 878                              |
 
 ## Troubleshooting
 
