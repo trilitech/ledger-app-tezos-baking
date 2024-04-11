@@ -44,20 +44,20 @@ tz_exc write_high_water_mark(parsed_baking_data_t const *const in) {
 
     TZ_ASSERT(is_valid_level(in->level), EXC_WRONG_VALUES);
 
-    UPDATE_NVRAM(ram, {
-        // If the chain matches the main chain *or* the main chain is not set, then use 'main' HWM.
-        high_watermark_t volatile *const dest = select_hwm_by_chain(in->chain_id, ram);
-        TZ_ASSERT_NOT_NULL(dest);
+    // If the chain matches the main chain *or* the main chain is not set, then use 'main' HWM.
+    high_watermark_t *dest = select_hwm_by_chain(in->chain_id);
+    TZ_ASSERT_NOT_NULL(dest);
 
-        if ((in->level > dest->highest_level) || (in->round > dest->highest_round)) {
-            dest->had_attestation = false;
-            dest->had_preattestation = false;
-        };
-        dest->highest_level = CUSTOM_MAX(in->level, dest->highest_level);
-        dest->highest_round = in->round;
-        dest->had_attestation |= in->type == BAKING_TYPE_ATTESTATION;
-        dest->had_preattestation |= in->type == BAKING_TYPE_PREATTESTATION;
-    });
+    if ((in->level > dest->highest_level) || (in->round > dest->highest_round)) {
+        dest->had_attestation = false;
+        dest->had_preattestation = false;
+    };
+    dest->highest_level = CUSTOM_MAX(in->level, dest->highest_level);
+    dest->highest_round = in->round;
+    dest->had_attestation |= in->type == BAKING_TYPE_ATTESTATION;
+    dest->had_preattestation |= in->type == BAKING_TYPE_PREATTESTATION;
+
+    UPDATE_NVRAM_VAR(hwm);
 
 end:
     return exc;
@@ -69,14 +69,13 @@ tz_exc authorize_baking(derivation_type_t const derivation_type,
 
     TZ_ASSERT_NOT_NULL(bip32_path);
 
-    TZ_ASSERT(bip32_path->length <= NUM_ELEMENTS(N_data.baking_key.bip32_path.components),
+    TZ_ASSERT(bip32_path->length <= NUM_ELEMENTS(g_hwm.baking_key.bip32_path.components),
               EXC_WRONG_LENGTH);
 
     if (bip32_path->length != 0u) {
-        UPDATE_NVRAM(ram, {
-            ram->baking_key.derivation_type = derivation_type;
-            copy_bip32_path(&ram->baking_key.bip32_path, bip32_path);
-        });
+        g_hwm.baking_key.derivation_type = derivation_type;
+        copy_bip32_path(&g_hwm.baking_key.bip32_path, bip32_path);
+        UPDATE_NVRAM_VAR(baking_key);
     }
 
 end:
@@ -100,8 +99,7 @@ static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
         return false;
     }
 
-    high_watermark_t volatile const *const hwm =
-        select_hwm_by_chain(baking_info->chain_id, &N_data);
+    high_watermark_t *const hwm = select_hwm_by_chain(baking_info->chain_id);
     if (hwm == NULL) {
         return false;
     }
@@ -139,8 +137,8 @@ static bool is_level_authorized(parsed_baking_data_t const *const baking_info) {
 static bool is_path_authorized(derivation_type_t const derivation_type,
                                bip32_path_t const *const bip32_path) {
     return (bip32_path != NULL) && (derivation_type != DERIVATION_TYPE_UNSET) &&
-           (derivation_type == N_data.baking_key.derivation_type) && (bip32_path->length != 0u) &&
-           bip32_paths_eq(bip32_path, (const bip32_path_t *) &N_data.baking_key.bip32_path);
+           (derivation_type == g_hwm.baking_key.derivation_type) && (bip32_path->length != 0u) &&
+           bip32_paths_eq(bip32_path, (const bip32_path_t *) &g_hwm.baking_key.bip32_path);
 }
 
 tz_exc guard_baking_authorized(parsed_baking_data_t const *const baking_info,

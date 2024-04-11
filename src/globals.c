@@ -44,21 +44,19 @@ void clear_apdu_globals(void) {
 
 void init_globals(void) {
     memset(&global, 0, sizeof(global));
+    memcpy(&g_hwm, (const void *) (&N_data), sizeof(g_hwm));
 }
 
 void toggle_hwm(void) {
-    UPDATE_NVRAM(ram, { ram->hwm_disabled = !ram->hwm_disabled; });
+    g_hwm.hwm_disabled = !(g_hwm.hwm_disabled);
+    UPDATE_NVRAM;  // Update the NVRAM data.
 }
 
 // DO NOT TRY TO INIT THIS. This can only be written via an system call.
 // The "N_" is *significant*. It tells the linker to put this in NVRAM.
-nvram_data const N_data_real;
+baking_data const N_data_real;
 
-high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
-                                               nvram_data volatile *const ram) {
-    if (ram == NULL) {
-        return NULL;
-    }
-    return ((chain_id.v == ram->main_chain_id.v) || !ram->main_chain_id.v) ? &ram->hwm.main
-                                                                           : &ram->hwm.test;
+high_watermark_t *select_hwm_by_chain(chain_id_t const chain_id) {
+    return ((chain_id.v == g_hwm.main_chain_id.v) || !g_hwm.main_chain_id.v) ? &g_hwm.hwm.main
+                                                                             : &g_hwm.hwm.test;
 }

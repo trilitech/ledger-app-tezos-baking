@@ -36,14 +36,14 @@
  * @return true
  */
 static bool ok(void) {
-    UPDATE_NVRAM(ram, {
-        ram->hwm.main.highest_level = G.reset_level;
-        ram->hwm.main.highest_round = 0;
-        ram->hwm.main.had_attestation = false;
-        ram->hwm.test.highest_level = G.reset_level;
-        ram->hwm.test.highest_round = 0;
-        ram->hwm.test.had_attestation = false;
-    });
+    g_hwm.hwm.main.highest_level = G.reset_level;
+    g_hwm.hwm.main.highest_round = 0;
+    g_hwm.hwm.main.had_attestation = false;
+    g_hwm.hwm.test.highest_level = G.reset_level;
+    g_hwm.hwm.test.highest_round = 0;
+    g_hwm.hwm.test.had_attestation = false;
+
+    UPDATE_NVRAM;
 
     // Send back the response, do not restart the event loop
     io_send_sw(SW_OK);

@@ -146,18 +146,17 @@ typedef struct {
 
             apdu_hmac_state_t hmac;  ///< state used to handle hmac
         } u;
-
-        /// state used to store baking authorizing data
-        struct {
-            nvram_data new_data;  ///< Staging area for setting N_data
-        } baking_auth;
     } apdu;
+
+    baking_data hwm_data;  ///< baking HWM data in RAM
 } globals_t;
 
 extern globals_t global;
 
-extern nvram_data const N_data_real;
-#define N_data (*(volatile nvram_data *) PIC(&N_data_real))
+#define g_hwm global.hwm_data
+
+extern baking_data const N_data_real;
+#define N_data (*(volatile baking_data *) PIC(&N_data_real))
 
 /**
  * @brief Selects a HWM for a given chain id depending on the ram
@@ -167,24 +166,24 @@ extern nvram_data const N_data_real;
  *        of the ram. Selects the test HWM of the ram otherwise.
  *
  * @param chain_id: chain id
- * @param ram: ram
  * @return high_watermark_t*: selected HWM
  */
-high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
-                                               nvram_data volatile *const ram);
+high_watermark_t *select_hwm_by_chain(chain_id_t const chain_id);
 
 /**
- * @brief Properly updates NVRAM data to prevent any clobbering of data
+ * @brief Updates a single variable in NVRAM baking_data.
  *
- * @param out_name: defines the name of a pointer to the nvram_data struct
- * @param body: defines the code to apply updates
+ * @param variable: defines the name of the variable to be updated in NVRAM
  */
-#define UPDATE_NVRAM(out_name, body)                                                    \
-    ({                                                                                  \
-        nvram_data *const out_name = &global.apdu.baking_auth.new_data;                 \
-        memcpy(&global.apdu.baking_auth.new_data,                                       \
-               (nvram_data const *const) &N_data,                                       \
-               sizeof(global.apdu.baking_auth.new_data));                               \
-        body;                                                                           \
-        nvm_write((void *) &N_data, &global.apdu.baking_auth.new_data, sizeof(N_data)); \
-    })
+#define UPDATE_NVRAM_VAR(variable)                   \
+    if (!N_data_real.hwm_disabled) {                 \
+        nvm_write((void *) &(N_data.variable),       \
+                  &global.hwm_data.variable,         \
+                  sizeof(global.hwm_data.variable)); \
+    }
+
+/**
+ * @brief Properly updates an entire NVRAM struct to prevent any clobbering of data
+ *
+ */
+#define UPDATE_NVRAM nvm_write((void *) &(N_data), &global.hwm_data, sizeof(global.hwm_data));

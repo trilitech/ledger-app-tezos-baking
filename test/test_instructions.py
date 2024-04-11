@@ -74,131 +74,120 @@ def test_review_home(account: Optional[Account],
             test_hwm
         )
 
-    def screen(name):
-        tezos_navigator.assert_screen(name, snap_path=snap_path)
-    def right():
-        backend.right_click()
-        backend.wait_for_screen_change()
-    def left():
-        backend.left_click()
-        backend.wait_for_screen_change()
-    def both():
-        backend.both_click()
-        backend.wait_for_screen_change()
-
     if firmware.is_nano:
-        screen("home_screen")
-        right()
-        screen("version")
-        right()
-        screen("chain_id")
-        right()
+        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.right()
+        tezos_navigator.assert_screen("version", snap_path)
+        tezos_navigator.right()
+        tezos_navigator.assert_screen("chain_id", snap_path)
+        tezos_navigator.right()
         if account is not None and firmware.device == "nanos":
             for i in range(1, account.nanos_screens + 1):
-                screen("public_key_hash_" + str(i))
-                right()
+                tezos_navigator.assert_screen("public_key_hash_" + str(i), snap_path)
+                tezos_navigator.right()
         else:
-            screen("public_key_hash")
-            right()
-        screen("high_watermark")
-        right()
-        screen("settings")
-        right()
-        screen("exit")
-        right()
-        screen("home_screen")
-        left()
-        screen("exit")
-        left()
-        screen("settings")
-        left()
-        screen("high_watermark")
-        left()
+            tezos_navigator.assert_screen("public_key_hash", snap_path)
+            tezos_navigator.right()
+        tezos_navigator.assert_screen("high_watermark", snap_path)
+        tezos_navigator.right()
+        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.right()
+        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.right()
+        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.left()
+        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.left()
+        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.left()
+        tezos_navigator.assert_screen("high_watermark", snap_path)
+        tezos_navigator.left()
         if account is not None and firmware.device == "nanos":
             for i in reversed(range(1, account.nanos_screens + 1)):
-                screen("public_key_hash_" + str(i))
-                left()
+                tezos_navigator.assert_screen("public_key_hash_" + str(i), snap_path)
+                tezos_navigator.left()
         else:
-            screen("public_key_hash")
-            left()
-        screen("chain_id")
-        left()
-        screen("version")
-        right()
-        screen("chain_id")
-        left()
-        screen("version")
-        left()
-        screen("home_screen")
-        left()
-        screen("exit")
-        left()
-        screen("settings")
-        left()
-        screen("high_watermark")
-        right()
+            tezos_navigator.assert_screen("public_key_hash", snap_path)
+            tezos_navigator.left()
+        tezos_navigator.assert_screen("chain_id", snap_path)
+        tezos_navigator.left()
+        tezos_navigator.assert_screen("version", snap_path)
+        tezos_navigator.right()
+        tezos_navigator.assert_screen("chain_id", snap_path)
+        tezos_navigator.left()
+        tezos_navigator.assert_screen("version", snap_path)
+        tezos_navigator.left()
+        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.left()
+        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.left()
+        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.left()
+        tezos_navigator.assert_screen("high_watermark", snap_path)
+        tezos_navigator.right()
         # Check settings menu
-        screen("settings")
-        both()
-        screen("hwm_status_enabled")
-        both()
-        screen("hwm_status_disabled")
-        right()
-        screen("back")
-        both()
-        screen("home_screen")
-        left()
-        screen("exit")
-        right()
-        screen("home_screen")
-        left()
+        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.press_both_buttons()
+        tezos_navigator.assert_screen("hwm_status_enabled", snap_path)
+        tezos_navigator.press_both_buttons()
+        tezos_navigator.assert_screen("hwm_status_disabled", snap_path)
+        tezos_navigator.right()
+        tezos_navigator.assert_screen("back", snap_path)
+        tezos_navigator.press_both_buttons()
+        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.left()
+        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.right()
+        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.left()
     else:
         backend.wait_for_home_screen()
         tezos_navigator.home.settings()
         backend.wait_for_screen_change()
-        screen("app_context")
+        tezos_navigator.assert_screen("app_context", snap_path)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        screen("hwm_status")
+        tezos_navigator.assert_screen("hwm_status", snap_path)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        screen("description")
+        tezos_navigator.assert_screen("description", snap_path)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
-        screen("hwm_status")
+        tezos_navigator.assert_screen("hwm_status", snap_path)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
-        screen("app_context")
+        tezos_navigator.assert_screen("app_context", snap_path)
         tezos_navigator.settings.multi_page_exit()
         backend.wait_for_screen_change()
-        screen("home_screen")
+        tezos_navigator.assert_screen("home_screen", snap_path)
         tezos_navigator.home.settings()
         backend.wait_for_screen_change()
-        screen("app_context")
+        tezos_navigator.assert_screen("app_context", snap_path)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        screen("hwm_status_on")
+        tezos_navigator.assert_screen("hwm_status_on", snap_path)
         tezos_navigator.layout_choice.choose(1)
         backend.wait_for_screen_change()
-        screen("hwm_status_off")
+        tezos_navigator.assert_screen("hwm_status_off", snap_path)
         tezos_navigator.layout_choice.choose(1)
         backend.wait_for_screen_change()
-        screen("hwm_status_on")
+        tezos_navigator.assert_screen("hwm_status_on", snap_path)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        screen("description")
+        tezos_navigator.assert_screen("description", snap_path)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
-        screen("hwm_status_on")
+        tezos_navigator.assert_screen("hwm_status_on", snap_path)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
-        screen("app_context")
+        tezos_navigator.assert_screen("app_context", snap_path)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        screen("hwm_status_on")
+        tezos_navigator.assert_screen("hwm_status_on", snap_path)
         tezos_navigator.settings.multi_page_exit()
         backend.wait_for_screen_change()
-        screen("home_screen")
+        tezos_navigator.assert_screen("home_screen", snap_path)
+
 
 def test_version(client: TezosClient) -> None:
     """Test the VERSION instruction."""
@@ -1225,6 +1214,117 @@ def test_sign_multiple_operation(
                 message
             )
         account.check_signature(signature, bytes(message))
+
+
+def test_sign_when_hwm_disabled(
+        client: TezosClient,
+        backend: BackendInterface,
+        firmware: Firmware,
+        tezos_navigator: TezosNavigator) -> None:
+    """Check that signing, when HWM is disabled, changes the main HWM."""
+
+    account = DEFAULT_ACCOUNT
+    snap_path = Path(f"{account}")
+
+    tezos_navigator.disable_hwm(snap_path)
+
+    tezos_navigator.setup_app_context(
+        account,
+        DEFAULT_CHAIN_ID,  # Chain = 0
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
+    )
+
+    attestation = build_attestation(
+        1, 0,
+        DEFAULT_CHAIN_ID  # Chain = 0
+    )
+
+    client.sign_message(account, attestation)
+
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(1, 0),
+        test_hwm=Hwm(0, 0),
+        snap_path=Path("sign_1_0"))
+
+    attestation = build_attestation(
+        2, 0,
+        "NetXH12AexHqTQa"  # Chain = 1
+    )
+
+    client.sign_message(account, attestation)
+
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(2, 0),
+        test_hwm=Hwm(0, 0),
+        snap_path=Path("sign_2_0"))
+
+    attestation = build_attestation(
+        2, 0,
+        "NetXH12Af5mrXhq"  # Chain = 2
+    )
+
+    with StatusCode.WRONG_VALUES.expected():
+        client.sign_message(account, attestation)
+
+    tezos_navigator.check_app_context(
+        account,
+        chain_id=DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(2, 0),
+        test_hwm=Hwm(0, 0),
+        snap_path=Path("sign_2_0")
+    )
+
+
+@pytest.mark.parametrize("exit_style", ["abruptly", "properly"])
+def test_hwm_disabled_exit(client: TezosClient, tezos_navigator: TezosNavigator, exit_style, backend_name) -> None:
+    """On device test to verify HWM settings operation. Can run the test with hwm setting enabled or disabled.
+       When HWM is disabled, an abrupt power off will result in HWM reset to 0.
+       Whwereas when HWM settings is enabled, the abrupt power off will not
+       reset the HWM. With a proper exit, HWM will always be preserved."""
+    # check if backend is speculos, then return .
+    if backend_name == "speculos":
+        assert True
+        return
+
+    account = DEFAULT_ACCOUNT
+    snap_path = Path(f"{account}")
+
+    hwm_input = input("Is hwm disabled ? (y/n)")
+    hwm_disabled = False
+    if hwm_input.find("y") != -1:
+        hwm_disabled = True
+
+    tezos_navigator.setup_app_context(
+        account,
+        DEFAULT_CHAIN_ID,  # Chain = 0
+        main_hwm = Hwm(0, 0),
+        test_hwm = Hwm(0, 0)
+    )
+    for i in range(1, 11):
+        attestation = build_attestation(i, 0, DEFAULT_CHAIN_ID)
+        client.sign_message(account, attestation)
+    main_hwm = Hwm(10,0)
+    received_main_hwm = tezos_navigator.client.get_main_hwm()
+    assert received_main_hwm == main_hwm, \
+        f"Expected main hmw {main_hwm} but got {received_main_hwm}"
+
+    expected_hwm = Hwm(10,0)
+    if hwm_disabled and exit_style == "abruptly":
+        expected_hwm.highest_level = 0
+    output = "No"
+    output = input(f"""
+                    1. Now switch off the device {exit_style}.
+                    2. Reconnect it to power source.
+                    3. Open the baking app.
+                    4. Check that HWM is {expected_hwm}.
+                    Is it correct? (Yes/No)""")
+    if output.find("y") == -1 and output.find("Y") == -1:
+        assert False, "HWM disabled setting is not working correctly."
 
 
 def test_sign_when_no_chain_setup(

@@ -73,9 +73,8 @@ int handle_get_public_key(buffer_t *cdata,
     TZ_ASSERT_NOT_NULL(cdata);
 
     global.path_with_curve.derivation_type = derivation_type;
-
     if ((cdata->size == 0u) && authorize) {
-        TZ_ASSERT(copy_bip32_path_with_curve(&global.path_with_curve, &N_data.baking_key),
+        TZ_ASSERT(copy_bip32_path_with_curve(&global.path_with_curve, &(g_hwm.baking_key)),
                   EXC_MEMORY_ERROR);
     } else {
         TZ_ASSERT(read_bip32_path(cdata, &global.path_with_curve.bip32_path), EXC_WRONG_VALUES);

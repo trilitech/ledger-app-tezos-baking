@@ -42,18 +42,18 @@
  * @return true
  */
 static bool ok(void) {
-    UPDATE_NVRAM(ram, {
-        copy_bip32_path_with_curve(&ram->baking_key, &global.path_with_curve);
-        ram->main_chain_id = G.main_chain_id;
-        ram->hwm.main.highest_level = G.hwm.main;
-        ram->hwm.main.highest_round = 0;
-        ram->hwm.main.had_attestation = false;
-        ram->hwm.main.had_preattestation = false;
-        ram->hwm.test.highest_level = G.hwm.test;
-        ram->hwm.test.highest_round = 0;
-        ram->hwm.test.had_attestation = false;
-        ram->hwm.test.had_preattestation = false;
-    });
+    copy_bip32_path_with_curve(&(g_hwm.baking_key), &global.path_with_curve);
+    g_hwm.main_chain_id = G.main_chain_id;
+    g_hwm.hwm.main.highest_level = G.hwm.main;
+    g_hwm.hwm.main.highest_round = 0;
+    g_hwm.hwm.main.had_attestation = false;
+    g_hwm.hwm.main.had_preattestation = false;
+    g_hwm.hwm.test.highest_level = G.hwm.test;
+    g_hwm.hwm.test.highest_round = 0;
+    g_hwm.hwm.test.had_attestation = false;
+    g_hwm.hwm.test.had_preattestation = false;
+
+    UPDATE_NVRAM;
 
     provide_pubkey(&global.path_with_curve);
 
@@ -89,7 +89,8 @@ end:
 }
 
 int handle_deauthorize(void) {
-    UPDATE_NVRAM(ram, { memset(&ram->baking_key, 0, sizeof(ram->baking_key)); });
+    memset(&(g_hwm.baking_key), 0, sizeof(g_hwm.baking_key));
+    UPDATE_NVRAM_VAR(baking_key);
 #ifdef HAVE_BAGL
     // Ignore calculation errors
     calculate_idle_screen_authorized_key();
