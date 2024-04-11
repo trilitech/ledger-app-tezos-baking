@@ -28,6 +28,7 @@
 
 #include "operations.h"
 #include "ui.h"
+#include "ui_screensaver.h"
 
 /**
  * @brief Zeros out all globals that can keep track of APDU instruction state
@@ -118,8 +119,12 @@ typedef struct {
         ui_callback_t ok_callback;
         /// Callback function if user rejected prompt.
         ui_callback_t cxl_callback;
-        /// Screensaver is on/off.
-        bool is_blank_screen;
+#ifdef HAVE_BAGL
+        /// If the low-cost display mode is enabled
+        bool low_cost_display_mode;
+        /// Screensaver context
+        ux_screensaver_state_t screensaver_state;
+#endif  // TARGET_NANOS
     } dynamic_display;
 
     bip32_path_with_curve_t path_with_curve;  ///< holds the bip32 path and curve of the current key

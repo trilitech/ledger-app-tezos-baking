@@ -42,6 +42,17 @@ void __attribute__((noreturn)) app_exit(void);
 
 #ifdef HAVE_BAGL
 
+#ifdef TARGET_NANOS
+/**
+ * @brief Sets low-cost display mode
+ *
+ *       Low-cost display stop handling `TICKER_EVENT`
+ *
+ * @param enable: if enable the mode or not
+ */
+void ux_set_low_cost_display_mode(bool enable);
+#endif  // HAVE_BAGL
+
 /**
  * @brief Calculates the chain id for the idle screens
  *

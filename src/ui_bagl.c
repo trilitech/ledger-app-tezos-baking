@@ -32,11 +32,87 @@
 #include "memory.h"
 #include "os_cx.h"  // ui-menu
 #include "to_string.h"
+#include "ui_screensaver.h"
 
 #include <stdbool.h>
 #include <string.h>
 
 #define G_display global.dynamic_display
+
+#ifdef TARGET_NANOS
+#include "io.h"
+
+void ux_set_low_cost_display_mode(bool enable) {
+    if (G_display.low_cost_display_mode != enable) {
+        G_display.low_cost_display_mode = enable;
+        if (G_display.low_cost_display_mode) {
+            ux_screensaver_start_clock();
+        } else {
+            ux_screensaver_stop_clock();
+        }
+    }
+}
+
+uint8_t io_event(uint8_t channel);
+
+/**
+ * Function similar to the one in `lib_standard_app/` except that the
+ * `TICKER_EVENT` handling is not enabled on low-cost display mode.
+ *
+ * Low-cost display mode is deactivated when the button is pressed and
+ * activated during signing because `TICKER_EVENT` handling slows down
+ * the application.
+ *
+ */
+uint8_t io_event(uint8_t channel) {
+    (void) channel;
+
+    switch (G_io_seproxyhal_spi_buffer[0]) {
+        case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
+            ux_set_low_cost_display_mode(false);
+            UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
+            break;
+        case SEPROXYHAL_TAG_STATUS_EVENT:
+            if ((G_io_apdu_media == IO_APDU_MEDIA_USB_HID) &&
+                !(U4BE(G_io_seproxyhal_spi_buffer, 3) &
+                  SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
+                THROW(EXCEPTION_IO_RESET);
+            }
+            __attribute__((fallthrough));
+        case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
+#ifdef HAVE_BAGL
+            UX_DISPLAYED_EVENT({});
+#endif  // HAVE_BAGL
+#ifdef HAVE_NBGL
+            UX_DEFAULT_EVENT();
+#endif  // HAVE_NBGL
+            break;
+#ifdef HAVE_NBGL
+        case SEPROXYHAL_TAG_FINGER_EVENT:
+            UX_FINGER_EVENT(G_io_seproxyhal_spi_buffer);
+            break;
+#endif  // HAVE_NBGL
+        case SEPROXYHAL_TAG_TICKER_EVENT:
+            if (!G_display.low_cost_display_mode) {
+                app_ticker_event_callback();
+                UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
+            } else {
+                ux_screensaver_apply_tick();
+            }
+            break;
+        default:
+            UX_DEFAULT_EVENT();
+            break;
+    }
+
+    if (!io_seproxyhal_spi_is_status_sent()) {
+        io_seproxyhal_general_status();
+    }
+
+    return 1;
+}
+
+#endif  // TARGET_NANOS
 
 static void ui_refresh_idle_hwm_screen(void);
 
@@ -68,7 +144,11 @@ void ui_menu_init(void);   ///> Load main menu page
  *        - Exit screen
  *
  */
+#ifdef TARGET_NANOS
+UX_STEP_CB(ux_app_is_ready_step, nn, ui_start_screensaver(), {"Application", "is ready"});
+#else   // TARGET_NANOS
 UX_STEP_NOCB(ux_app_is_ready_step, nn, {"Application", "is ready"});
+#endif  // TARGET_NANOS
 UX_STEP_NOCB(ux_version_step, bnnn_paging, {"Tezos Baking", APPVERSION});
 UX_STEP_NOCB(ux_chain_id_step, bnnn_paging, {"Chain", home_context.chain_id});
 UX_STEP_NOCB(ux_authorized_key_step, bnnn_paging, {"Public Key Hash", home_context.authorized_key});
