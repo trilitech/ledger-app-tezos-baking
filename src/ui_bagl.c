@@ -69,6 +69,7 @@ uint8_t io_event(uint8_t channel) {
 
     switch (G_io_seproxyhal_spi_buffer[0]) {
         case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
+            // Pressing any button will stop the low-cost display mode.
             ux_set_low_cost_display_mode(false);
             UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
             break;
@@ -80,6 +81,8 @@ uint8_t io_event(uint8_t channel) {
             }
             __attribute__((fallthrough));
         case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
+            // As soon as something is newly displayed, the low-cost display mode stops.
+            ux_set_low_cost_display_mode(false);
 #ifdef HAVE_BAGL
             UX_DISPLAYED_EVENT({});
 #endif  // HAVE_BAGL
