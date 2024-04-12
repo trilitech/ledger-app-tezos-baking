@@ -48,7 +48,7 @@ void ux_set_low_cost_display_mode(bool enable) {
         if (G_display.low_cost_display_mode) {
             ux_screensaver_start_clock();
         } else {
-            ux_screensaver_stop_clock();
+            ux_screensaver_stop();
         }
     }
 }

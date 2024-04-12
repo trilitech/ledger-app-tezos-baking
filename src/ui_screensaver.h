@@ -48,6 +48,12 @@ typedef struct {
 void ui_start_screensaver(void);
 
 /**
+ * @brief Stop using the screensaver
+ *
+ */
+void ux_screensaver_stop(void);
+
+/**
  * @brief Start a timeout before saving screen
  *
  */
