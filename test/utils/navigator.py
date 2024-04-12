@@ -24,15 +24,15 @@ from multiprocessing.pool import ThreadPool
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
-from ragger.firmware.stax.screen import MetaScreen
-from ragger.firmware.stax.layouts import ChoiceList
-from ragger.firmware.stax.use_cases import (
+from ragger.firmware.touch.screen import MetaScreen
+from ragger.firmware.touch.layouts import ChoiceList, TappableCenter
+from ragger.firmware.touch.use_cases import (
     UseCaseHome,
     UseCaseSettings,
     UseCaseReview,
     UseCaseAddressConfirmation
 )
-from ragger.firmware.stax.positions import CENTER
+from ragger.firmware.touch.positions import Position
 from ragger.navigator import Navigator, NavInsID, NavIns
 
 from common import TESTS_ROOT_DIR, EMPTY_PATH
@@ -66,15 +66,23 @@ def send_and_navigate(send: Callable[[], RESPONSE], navigate: Callable[[], None]
 
         return result
 
-class TezosUseCaseAddressConfirmation(UseCaseAddressConfirmation):
+class TezosUseCaseAddressConfirmation(UseCaseAddressConfirmation, metaclass=MetaScreen):
     """Extension of UseCaseAddressConfirmation for our app."""
 
-    # Y-285 = common space shared by buttons under a key displayed on 2 or 3 lines
-    SHOW_QR = (CENTER.x, 285)
+    layout_tappable_center = TappableCenter
 
-    def show_qr(self):
+    tappable_center: TappableCenter
+
+    @property
+    def qr_position(self) -> Position:
+        """Position of the qr code.
+        Y-285 = common space shared by buttons under a key displayed on 2 or 3 lines
+        """
+        return Position(self.tappable_center.positions.x, 285)
+
+    def show_qr(self) -> None:
         """Tap to show qr code."""
-        self.client.finger_touch(*TezosUseCaseAddressConfirmation.SHOW_QR)
+        self.client.finger_touch(*self.qr_position)
 
 
 APP_CONTEXT = Path("app_context")
@@ -86,7 +94,7 @@ class TezosNavigator(metaclass=MetaScreen):
     use_case_home       = UseCaseHome
     use_case_settings   = UseCaseSettings
     use_case_review     = UseCaseReview
-    use_case_provide_pk = UseCaseAddressConfirmation
+    use_case_provide_pk = TezosUseCaseAddressConfirmation
     layout_choice_list = ChoiceList
 
     home:       UseCaseHome
@@ -339,7 +347,7 @@ class TezosNavigator(metaclass=MetaScreen):
             self.navigate_and_compare(
                 navigate_instruction = NavInsID.USE_CASE_ADDRESS_CONFIRMATION_TAP,
                 validation_instructions = [
-                    NavIns(NavInsID.TOUCH, TezosUseCaseAddressConfirmation.SHOW_QR),
+                    NavIns(NavInsID.TOUCH, self.provide_pk.qr_position),
                     NavInsID.USE_CASE_ADDRESS_CONFIRMATION_EXIT_QR,
                     NavInsID.USE_CASE_CHOICE_CONFIRM,
                     NavInsID.USE_CASE_STATUS_DISMISS
