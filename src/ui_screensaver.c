@@ -69,12 +69,17 @@ static void ux_layout_blank_init(unsigned int stack_slot) {
     ux_stack_display(stack_slot);
 }
 
+void ux_screensaver_stop(void) {
+    G_screensaver_state.on = false;
+    ux_screensaver_stop_clock();
+}
+
 /**
  * @brief Exits the blank screen to home screen
  *
  */
 static void return_to_idle(void) {
-    G_screensaver_state.on = false;
+    ux_screensaver_stop();
     ui_initial_screen();
 }
 

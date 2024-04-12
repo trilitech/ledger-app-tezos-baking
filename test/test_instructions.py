@@ -222,7 +222,12 @@ def test_automatic_low_cost_screensaver(firmware: Firmware,
 
     account = DEFAULT_ACCOUNT
 
-    tezos_navigator.authorize_baking(account)
+    tezos_navigator.setup_app_context(
+        account,
+        DEFAULT_CHAIN_ID,
+        Hwm(0, 0),
+        Hwm(0, 0)
+    )
 
     tezos_navigator.assert_screen("home_screen")
 
@@ -256,8 +261,124 @@ def test_automatic_low_cost_screensaver(firmware: Firmware,
 
     time.sleep(30)
 
-    # Low-cost screensaver desactivate after button push
+    # Low-cost screensaver deactivate after button push
     tezos_navigator.assert_screen("home_screen")
+
+def test_automatic_low_cost_screensaver_cancelled_by_display(
+        firmware: Firmware,
+        backend: BackendInterface,
+        client: TezosClient,
+        tezos_navigator: TezosNavigator) -> None:
+    """Test that low-cost screensaver is cancelled by display"""
+
+    if firmware.name != "nanos":
+        pytest.skip("Only on nanos devices")
+
+    account = DEFAULT_ACCOUNT
+
+    tezos_navigator.setup_app_context(
+        account,
+        DEFAULT_CHAIN_ID,
+        Hwm(0, 0),
+        Hwm(0, 0)
+    )
+
+    attestation = build_attestation(
+        op_level=1,
+        op_round=0,
+        chain_id=DEFAULT_CHAIN_ID
+    )
+
+    client.sign_message(account, attestation)
+
+    time.sleep(5)
+
+    # Low-cost screensaver activate after 20s after signing
+    tezos_navigator.assert_screen("home_screen")
+
+    def delayed_authorize_navigate(**kwargs):
+        time.sleep(30)
+
+        # Low-cost screensaver deactivate after something is displayed.
+        backend.wait_for_screen_change()
+        tezos_navigator.assert_screen("first_authorize_screen")
+
+        tezos_navigator.accept_key_navigate(
+            screen_change_before_first_instruction=False,
+            **kwargs
+        )
+
+    tezos_navigator.authorize_baking(
+        account,
+        navigate=delayed_authorize_navigate
+    )
+
+def test_automatic_low_cost_screensaver_exited_by_display(
+        firmware: Firmware,
+        backend: BackendInterface,
+        client: TezosClient,
+        tezos_navigator: TezosNavigator) -> None:
+    """Test that low-cost screensaver is exited by display"""
+
+    if firmware.name != "nanos":
+        pytest.skip("Only on nanos devices")
+
+    account = DEFAULT_ACCOUNT
+
+    tezos_navigator.setup_app_context(
+        account,
+        DEFAULT_CHAIN_ID,
+        Hwm(0, 0),
+        Hwm(0, 0)
+    )
+
+    attestation = build_attestation(
+        op_level=1,
+        op_round=0,
+        chain_id=DEFAULT_CHAIN_ID
+    )
+
+    client.sign_message(account, attestation)
+
+    time.sleep(5)
+
+    # Low-cost screensaver activate after 20s after signing
+    tezos_navigator.assert_screen("home_screen")
+
+    time.sleep(30)
+
+    # Low-cost screensaver has been activated
+    backend.wait_for_screen_change()
+    tezos_navigator.assert_screen("black")
+
+    # Exit the low-cost screensaver by display
+    tezos_navigator.authorize_baking(account, snap_path=Path("authorize"))
+
+    tezos_navigator.assert_screen("home_screen")
+
+    time.sleep(30)
+
+    # Low-cost screensaver deactivate after display
+    tezos_navigator.assert_screen("home_screen")
+
+    attestation = build_attestation(
+        op_level=2,
+        op_round=0,
+        chain_id=DEFAULT_CHAIN_ID
+    )
+
+    client.sign_message(account, attestation)
+
+    time.sleep(5)
+
+    # Low-cost screensaver activate after 20s after signing
+    tezos_navigator.assert_screen("home_screen")
+
+    time.sleep(30)
+
+    # Low-cost screensaver has been activated
+    backend.wait_for_screen_change()
+    tezos_navigator.assert_screen("black")
 
 
 def test_version(client: TezosClient) -> None:
