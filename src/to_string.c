@@ -274,15 +274,11 @@ int microtez_to_string(char *const dest, size_t dest_size, uint64_t number) {
 
         // Eliminate trailing 0s
         char *start = tmp + sizeof(tmp) - DECIMAL_DIGITS;
-        char *end;
-        for (end = tmp + sizeof(tmp) - 1u; end >= start; end--) {
-            if (*end != '0') {
-                end++;
-                break;
-            }
+        size_t length = DECIMAL_DIGITS;
+        while ((length > 0u) && (start[length - 1u] == '0')) {
+            length--;
         }
 
-        size_t length = end - start;
         if ((dest_size - offset) < length) {
             return -1;
         }
