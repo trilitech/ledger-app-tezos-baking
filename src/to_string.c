@@ -161,13 +161,14 @@ static int chain_id_to_string(char *const dest,
     return base58_encode((const uint8_t *) &data, sizeof(data), dest, dest_size);
 }
 
-#define SAFE_STRCPY(dest, size, x) \
-    ({                             \
-        if (size < sizeof(x)) {    \
-            return -1;             \
-        }                          \
-        strlcpy(dest, x, size);    \
-        return sizeof(x);          \
+#define SAFE_STRCPY(dest, dest_size, in) \
+    ({                                   \
+        size_t in_size = strlen(in);     \
+        if (dest_size < in_size) {       \
+            return -1;                   \
+        }                                \
+        strlcpy(dest, in, dest_size);    \
+        return in_size;                  \
     })
 
 int chain_id_to_string_with_aliases(char *const dest,
@@ -302,7 +303,7 @@ int microtez_to_string(char *const dest, size_t dest_size, uint64_t number) {
 }
 
 int hwm_to_string(char *dest, size_t dest_size, high_watermark_t const *const hwm) {
-    if (dest == NULL) {
+    if ((dest == NULL) || (hwm == NULL)) {
         return -1;
     }
     int result = number_to_string(dest, dest_size, hwm->highest_level);
@@ -323,7 +324,7 @@ int hwm_to_string(char *dest, size_t dest_size, high_watermark_t const *const hw
 }
 
 int hwm_status_to_string(char *dest, size_t dest_size, volatile bool const *hwm_disabled) {
-    if ((dest == NULL) || (dest_size < 9u)) {
+    if ((dest == NULL) || (dest_size < 9u) || (hwm_disabled == NULL)) {
         return -1;
     }
     memcpy(dest, *hwm_disabled ? "Disabled" : "Enabled", dest_size);
@@ -332,15 +333,8 @@ int hwm_status_to_string(char *dest, size_t dest_size, volatile bool const *hwm_
 
 int copy_string(char *const dest, size_t const dest_size, char const *const src) {
     if ((dest == NULL) || (src == NULL)) {
-        return false;
-    }
-
-    char const *const src_in = (char const *) PIC(src);
-    // I don't care that we will loop through the string twice, latency is not an issue
-    size_t src_size = strlen(src_in);
-    if (src_size >= dest_size) {
         return -1;
     }
-    strlcpy(dest, src_in, dest_size);
-    return src_size;
+    char const *const src_in = (char const *) PIC(src);
+    SAFE_STRCPY(dest, dest_size, src_in);
 }

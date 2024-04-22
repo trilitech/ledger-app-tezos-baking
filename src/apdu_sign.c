@@ -288,7 +288,7 @@ end:
  * Cdata:
  *   + (max-size) uint8 *: message
  */
-int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
+int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
     tz_exc exc = SW_OK;
 
     TZ_ASSERT_NOT_NULL(cdata);

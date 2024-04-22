@@ -302,6 +302,9 @@ end:
 
 bool parse_operations_final(struct parse_state *const state,
                             struct parsed_operation_group *const out) {
+    if ((state == NULL) || (out == NULL)) {
+        return false;
+    }
     if ((out->operation.tag == OPERATION_TAG_NONE) && !out->has_reveal) {
         return false;
     }
