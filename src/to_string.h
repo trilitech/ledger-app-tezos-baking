@@ -98,13 +98,13 @@ int hwm_to_string(char *dest, size_t dest_size, high_watermark_t const *const hw
 int hwm_status_to_string(char *dest, size_t dest_size, volatile bool const *hwm_disabled);
 
 /**
- * @brief Copies a string in a buffer
+ * @brief Copies a string in a buffer.
  *
- *        `src` may be unrelocated pointer to rodata.
+ *        Returns -1 if the string is too large to fit in the buffer
  *
  * @param dest: output buffer
- * @param dest_size: size of the buffer
- * @param src: input to copy
+ * @param dest_size: size of the output buffer
+ * @param src: string to copy
  * @return int: size of the result, negative integer on failure
  */
 int copy_string(char *const dest, size_t const dest_size, char const *const src);
