@@ -97,7 +97,7 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
             content->type = INFOS_LIST;
             content->infosList.nbInfos = 3;
             content->infosList.infoTypes = bakeInfoTypes;
-            content->infosList.infoContents = bakeInfoContents;
+            content->infosList.infoContents = (const char* const*) bakeInfoContents;
             break;
         case 1:
             switches[HWM_ENABLED_TOKEN_ID].initState = (nbgl_state_t) (!hwm_disabled);
