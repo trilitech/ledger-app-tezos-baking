@@ -87,7 +87,7 @@ cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
     signature_type_t signature_type = derivation_type_to_signature_type(derivation_type);
     cx_curve_t cx_curve = signature_type_to_cx_curve(signature_type);
 
-    public_key->W_len = 65;
+    public_key->W_len = ELLIPTIC_CURVE_PUB_KEY_LENGTH;
     public_key->curve = cx_curve;
 
     // generate corresponding public key
@@ -105,7 +105,7 @@ cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
     if (cx_curve == CX_CURVE_Ed25519) {
         CX_CHECK(
             cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, public_key->W, public_key->W_len));
-        public_key->W_len = 33;
+        public_key->W_len = PUB_KEY_COMPPRESSED_LENGTH;
     }
 
 end:
@@ -151,7 +151,7 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
         case SIGNATURE_TYPE_SECP256R1: {
             memcpy(compressed.W, public_key->W, public_key->W_len);
             compressed.W[0] = 0x02 + (public_key->W[64] & 0x01);
-            compressed.W_len = 33;
+            compressed.W_len = PUB_KEY_COMPPRESSED_LENGTH;
             break;
         }
         default:
