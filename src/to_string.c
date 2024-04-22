@@ -34,14 +34,14 @@
 static int pkh_to_string(char *const dest,
                          size_t const dest_size,
                          signature_type_t const signature_type,
-                         uint8_t const hash[HASH_SIZE]);
+                         uint8_t const hash[KEY_HASH_SIZE]);
 
 tz_exc bip32_path_with_curve_to_pkh_string(char *const out,
                                            size_t const out_size,
                                            bip32_path_with_curve_t const *const key) {
     tz_exc exc = SW_OK;
     cx_err_t error = CX_OK;
-    uint8_t hash[HASH_SIZE];
+    uint8_t hash[KEY_HASH_SIZE];
 
     TZ_ASSERT_NOT_NULL(out);
     TZ_ASSERT_NOT_NULL(key);
@@ -87,7 +87,7 @@ static void compute_hash_checksum(uint8_t out[TEZOS_HASH_CHECKSUM_SIZE],
 static int pkh_to_string(char *const dest,
                          size_t const dest_size,
                          signature_type_t const signature_type,
-                         uint8_t const hash[HASH_SIZE]) {
+                         uint8_t const hash[KEY_HASH_SIZE]) {
     if ((dest == NULL) || (hash == NULL)) {
         return -1;
     }
@@ -95,7 +95,7 @@ static int pkh_to_string(char *const dest,
     // Data to encode
     struct __attribute__((packed)) {
         uint8_t prefix[3];
-        uint8_t hash[HASH_SIZE];
+        uint8_t hash[KEY_HASH_SIZE];
         uint8_t checksum[TEZOS_HASH_CHECKSUM_SIZE];
     } data;
 

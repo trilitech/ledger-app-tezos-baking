@@ -53,7 +53,7 @@ struct operation_group_header {
  */
 struct implicit_contract {
     raw_tezos_header_signature_type_t signature_type;  ///< type of the contract signature
-    uint8_t pkh[HASH_SIZE];                            ///< raw public key hash
+    uint8_t pkh[KEY_HASH_SIZE];                        ///< raw public key hash
 } __attribute__((packed));
 
 /**
@@ -72,7 +72,7 @@ union public_key {
  */
 struct delegation_contents {
     raw_tezos_header_signature_type_t signature_type;  ///< type of the delegate signature
-    uint8_t hash[HASH_SIZE];                           ///< raw delegate
+    uint8_t hash[KEY_HASH_SIZE];                       ///< raw delegate
 } __attribute__((packed));
 
 /**

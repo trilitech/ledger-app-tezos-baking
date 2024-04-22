@@ -147,7 +147,7 @@ end:
 static tz_parser_result parse_implicit(
     parsed_contract_t *const out,
     raw_tezos_header_signature_type_t const *const raw_signature_type,
-    uint8_t const hash[HASH_SIZE]) {
+    uint8_t const hash[KEY_HASH_SIZE]) {
     tz_parser_result res = PARSER_CONTINUE;
 
     out->originated = 0;
@@ -172,7 +172,6 @@ end:
 
 #define NEXT_BYTE (byte)
 
-// TODO: this function cannot parse z values than would not fit in a uint64
 /**
  * @brief Parses a Z number
  *
@@ -285,7 +284,6 @@ static tz_exc parse_operations_init(struct parsed_operation_group *const out,
     TZ_CHECK(compute_pkh(&out->public_key, &out->signing, path_with_curve));
 
     // Start out with source = signing, for reveals
-    // TODO: This is slightly hackish
     memcpy(&out->operation.source, &out->signing, sizeof(out->signing));
 
     state->op_step = 0;

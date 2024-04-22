@@ -134,7 +134,7 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
         return CX_INVALID_PARAMETER;
     }
 
-    if (hash_out_size < HASH_SIZE) {
+    if (hash_out_size < KEY_HASH_SIZE) {
         return CX_INVALID_PARAMETER_SIZE;
     }
 
@@ -161,14 +161,14 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
     cx_err_t error = CX_OK;
     cx_blake2b_t hash_state;
     // cx_blake2b_init takes size in bits.
-    CX_CHECK(cx_blake2b_init_no_throw(&hash_state, HASH_SIZE * 8u));
+    CX_CHECK(cx_blake2b_init_no_throw(&hash_state, KEY_HASH_SIZE * 8u));
 
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &hash_state,
                               CX_LAST,
                               compressed.W,
                               compressed.W_len,
                               hash_out,
-                              HASH_SIZE));
+                              KEY_HASH_SIZE));
 
     if (compressed_out != NULL) {
         memmove(compressed_out, &compressed, sizeof(*compressed_out));

@@ -204,15 +204,14 @@ typedef struct {
                                               no need to track HWM using Ledger.*/
 } baking_data;
 
-#define SIGN_HASH_SIZE 32u  // TODO: Rename or use a different constant.
+#define SIGN_HASH_SIZE 32u
 
-#define PKH_STRING_SIZE 40u  // includes null byte // TODO: use sizeof for this.
+#define PKH_STRING_SIZE 40u  // includes null byte
 #define HWM_STATUS_SIZE 9u   // HWM status takes values Enabled and Disabled.
 #define PROTOCOL_HASH_BASE58_STRING_SIZE \
     sizeof("ProtoBetaBetaBetaBetaBetaBetaBetaBetaBet11111a5ug96")
 
-// TODO: Rename to KEY_HASH_SIZE
-#define HASH_SIZE 20u
+#define KEY_HASH_SIZE 20u
 
 /**
  * @brief This structure represents the content of a parsed baking data
@@ -235,7 +234,7 @@ typedef struct parsed_contract {
     signature_type_t signature_type; /**< 0 in originated case
                                      An implicit contract with signature_type of 0
                                      means not present*/
-    uint8_t hash[HASH_SIZE];         ///< hash of the contract
+    uint8_t hash[KEY_HASH_SIZE];     ///< hash of the contract
 } parsed_contract_t;
 
 /**
