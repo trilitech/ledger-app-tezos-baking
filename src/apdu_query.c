@@ -69,10 +69,12 @@ int handle_query_main_hwm(void) {
 }
 
 int handle_query_auth_key(void) {
+    tz_exc exc = SW_OK;
     uint8_t resp[1u + (MAX_BIP32_PATH * sizeof(uint32_t))] = {0};
     size_t offset = 0;
 
     uint8_t const length = g_hwm.baking_key.bip32_path.length;
+    TZ_ASSERT(length <= NUM_ELEMENTS(g_hwm.baking_key.bip32_path.components), EXC_WRONG_LENGTH);
 
     resp[offset] = length;
     offset++;
@@ -83,21 +85,22 @@ int handle_query_auth_key(void) {
     }
 
     return io_send_response_pointer(resp, offset, SW_OK);
+end:
+    return io_send_apdu_err(exc);
 }
 
 int handle_query_auth_key_with_curve(void) {
+    tz_exc exc = SW_OK;
     uint8_t resp[2u + (MAX_BIP32_PATH * sizeof(uint32_t))] = {0};
     size_t offset = 0;
 
     uint8_t const length = g_hwm.baking_key.bip32_path.length;
+    TZ_ASSERT(length <= NUM_ELEMENTS(g_hwm.baking_key.bip32_path.components), EXC_WRONG_LENGTH);
 
     int derivation_type = unparse_derivation_type(g_hwm.baking_key.derivation_type);
+    TZ_ASSERT(derivation_type >= 0, EXC_REFERENCED_DATA_NOT_FOUND);
 
-    if (derivation_type < 0) {
-        return io_send_apdu_err(EXC_REFERENCED_DATA_NOT_FOUND);
-    }
-
-    resp[offset] = unparse_derivation_type(g_hwm.baking_key.derivation_type);
+    resp[offset] = derivation_type;
     offset++;
 
     resp[offset] = length;
@@ -109,4 +112,6 @@ int handle_query_auth_key_with_curve(void) {
     }
 
     return io_send_response_pointer(resp, offset, SW_OK);
+end:
+    return io_send_apdu_err(exc);
 }

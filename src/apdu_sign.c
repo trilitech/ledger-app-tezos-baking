@@ -97,7 +97,6 @@ static tz_exc blake2b_incremental_hash(uint8_t *const buff,
         *buff_length -= B2B_BLOCKBYTES;
         current += B2B_BLOCKBYTES;
     }
-    // TODO use circular buffer at some point
     memmove(buff, current, *buff_length);
 
 end:
@@ -289,7 +288,7 @@ end:
  * Cdata:
  *   + (max-size) uint8 *: message
  */
-int handle_sign(buffer_t *cdata, bool last, bool with_hash) {
+int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
     tz_exc exc = SW_OK;
 
     TZ_ASSERT_NOT_NULL(cdata);
@@ -375,7 +374,7 @@ static int perform_signature(bool const send_hash) {
 
     TZ_ASSERT(os_global_pin_is_validated() == BOLOS_UX_OK, EXC_SECURITY);
 
-    TZ_ASSERT(write_high_water_mark(&G.parsed_baking_data), EXC_MEMORY_ERROR);
+    TZ_CHECK(write_high_water_mark(&G.parsed_baking_data));
 
     uint8_t resp[SIGN_HASH_SIZE + MAX_SIGNATURE_SIZE] = {0};
     size_t offset = 0;

@@ -16,3 +16,4 @@
 # limitations under the License.
 
 echo "No setup"
+pip install ragger[tests,speculos]

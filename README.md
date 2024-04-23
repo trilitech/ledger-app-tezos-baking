@@ -142,26 +142,23 @@ BOLOS_SDK=$NANOS_SDK make DEBUG=1
 You can replace `NANOS` with `NANOSP`, `NANOX`, `STAX` for the other devices in BOLOS_SDK environmental variable.
 
 ### Testing
-To test the application you need to enable python virtual environment and some dependencies. On any operating system, create a python virtual environment and activate it.
+The application tests are run using same docker container used for building. Inside the docker container run following script,
 ```
-$ sudo apt-get update && sudo apt-get install -y qemu-user-static tesseract-ocr libtesseract-dev python3-pip libgmp-dev libsodium-dev git
-$ python3 -m venv env
-$ source env/bin/activate
-```
-Inside the virtualenv, load the requirements.txt file.
-```
-(env)$ pip install -r test/requirements.txt
+$ apk add gmp-dev libsodium-dev;
+$ python3 -m venv tezos_test_env --system-site-package;
+$ source ./tezos_test_env/bin/activate;
+(tezos_test_env)$ python3 -m pip install -r test/requirements.txt -q ;
 ```
 Now you can run ragger tests for any perticular ledger device. Please make sure you have built the app.elf files for that perticular device first. Then run following command:
 ```
-(env)$ pytest test --device nanosp
+(tezos_test_env)$ python3 -m pytest test --device nanosp
 ```
 Replace nanosp with any of the following for respective device: nanos, nanosp, nanox , stax.
 
 These tests are run on Ledger emulator called speculos which emulates the actual ledger device. To run theese test on actual device you have to choose a backend. Run following commands to run these test on device:
 ```
-(env)$ pip install ragger[all_backends]
-(env)$ pytest test --device nanosp --backend ledgercomm -s
+(tezos_test_env)$ python3 -m pip install ragger[all_backends]
+(tezos_test_env)$ python3 -m pytest test --device nanosp --backend ledgercomm -s
 ```
 Note the `-s` flag which is required when running interactive tests with pytest. You can also choose `ledgerwallet` backend to run tests on device.
 
