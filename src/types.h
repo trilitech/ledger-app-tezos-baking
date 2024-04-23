@@ -109,7 +109,7 @@ typedef struct {
  * @param in: bip32 path copied
  * @return bool: whether the copy was successful or not
  */
-static inline bool copy_bip32_path(bip32_path_t *const out, bip32_path_t volatile const *const in) {
+static inline bool copy_bip32_path(bip32_path_t *const out, bip32_path_t const *const in) {
     if ((out == NULL) || (in == NULL)) {
         return false;
     }
@@ -152,7 +152,7 @@ typedef struct {
  * @return bool: whether the copy was successful or not
  */
 static inline bool copy_bip32_path_with_curve(bip32_path_with_curve_t *const out,
-                                              bip32_path_with_curve_t volatile const *const in) {
+                                              bip32_path_with_curve_t const *const in) {
     if ((out == NULL) || (in == NULL) || !copy_bip32_path(&out->bip32_path, &in->bip32_path)) {
         return false;
     }

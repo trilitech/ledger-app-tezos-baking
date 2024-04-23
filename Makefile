@@ -69,6 +69,4 @@ all: show-app default
 show-app:
 	@echo ">>>>> Building at commit $(COMMIT)"
 
-CFLAGS   += -Wno-incompatible-pointer-types-discards-qualifiers
-
 include $(BOLOS_SDK)/Makefile.standard_app
