@@ -209,6 +209,10 @@ accepted, the signature of the message is returned.
 
 Messages sent in more than one packet will be refused.
 
+If the `message` is a valid `baking message` (`Block` or `Consensus
+operation`), no confirmation screens will be displayed and the
+signature will be automatic.
+
 See [the messages in the specification](signing.md#messages) and the [API](https://tezos.gitlab.io/shell/p2p_api.html).
 
 ##### Input data
@@ -428,4 +432,11 @@ fixed message signed by the key associated with the `path` and `P2`.
 |--------|--------|------|------|
 | `0x80` | `0x0e` | `__` | `__` |
 
-Alias for `SIGN`
+Runs in the same way as `SIGN` except that the value returned, when *P1* is `0x01` or `0x81`, also contains the hash of the signed operation.
+
+#### Output data
+
+| Length       | Description   |
+|--------------|---------------|
+| `32`         | The hash      |
+| `<variable>` | The signature |
