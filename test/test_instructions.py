@@ -1086,6 +1086,44 @@ def test_sign_delegation(
         account.check_signature(signature, bytes(raw_delegation))
 
 
+
+PARAMETERS_SIGN_DELEGATION_FEES = [
+    1,
+    20000,
+    300000000,
+    50000060000,
+    789789789
+]
+
+@pytest.mark.parametrize("fee", PARAMETERS_SIGN_DELEGATION_FEES)
+def test_sign_delegation_fee(
+        fee: int,
+        tezos_navigator: TezosNavigator) -> None:
+    """Test fee display on delegation."""
+
+    account = DEFAULT_ACCOUNT
+    snap_path = Path(f"fee_{fee}")
+
+    tezos_navigator.setup_app_context(
+        account,
+        DEFAULT_CHAIN_ID,
+        main_hwm=Hwm(0, 0),
+        test_hwm=Hwm(0, 0)
+    )
+
+    delegation = Delegation(
+        delegate=account.public_key_hash,
+        source=account.public_key_hash,
+        fee=fee,
+    )
+
+    tezos_navigator.sign_delegation(
+            account,
+            delegation,
+            snap_path=snap_path
+        )
+
+
 PARAMETERS_SIGN_DELEGATION_CONSTRAINTS = [
     (
         DEFAULT_ACCOUNT_2, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT, DEFAULT_ACCOUNT,
