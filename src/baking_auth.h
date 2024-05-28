@@ -79,6 +79,7 @@ bool parse_block(buffer_t *buf, parsed_baking_data_t *const out);
  *
  * @param buf: input buffer containing the consensus operation
  * @param out: baking data output
+ * @param is_attestation: whether its an attestation or pre-attestation.
  * @return bool: returns false if it is invalid
  */
-bool parse_consensus_operation(buffer_t *buf, parsed_baking_data_t *const out);
+bool parse_consensus_operation(buffer_t *buf, parsed_baking_data_t *const out, bool is_attestation);

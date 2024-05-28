@@ -68,6 +68,17 @@ typedef enum {
     BAKING_TYPE_PREATTESTATION
 } baking_type_t;
 
+/**
+ * @brief magic byte of operations
+ * See: https://tezos.gitlab.io/user/key-management.html#signer-requests
+ */
+typedef enum {
+    MAGIC_BYTE_UNSAFE_OP = 0x03u,       /// magic byte of an operation
+    MAGIC_BYTE_BLOCK = 0x11u,           /// magic byte of a block
+    MAGIC_BYTE_PREATTESTATION = 0x12u,  /// magic byte of a pre-attestation
+    MAGIC_BYTE_ATTESTATION = 0x13u,     /// magic byte of an attestation
+} magic_byte_t;
+
 typedef uint32_t level_t;
 typedef uint32_t round_t;
 
