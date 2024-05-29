@@ -121,8 +121,8 @@ Download the source code for application from github repository [App-tezos-bakin
 ### Building
 
 ```
-$ git clone https://github.com/LedgerHQ/app-tezos.git
-$ cd app-tezos
+$ git clone https://github.com/trilitech/ledger-app-tezos-baking.git
+$ cd ledger-app-tezos-baking
 ```
 Then run the following command to enter into docker container provided by Ledger. You will need to have  docker cli installed.
 Use the docker container `ledger-app-dev-tools` provided by Ledger to build the app.
