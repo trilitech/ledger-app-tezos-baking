@@ -186,13 +186,6 @@ static bool sign_reject(void) {
     return true;
 }
 
-/// Magic byte values
-/// See: https://tezos.gitlab.io/user/key-management.html#signer-requests
-#define MAGIC_BYTE_UNSAFE_OP      0x03u  /// magic byte of an operation
-#define MAGIC_BYTE_BLOCK          0x11u  /// magic byte of a block
-#define MAGIC_BYTE_PREATTESTATION 0x12u  /// magic byte of a pre-attestation
-#define MAGIC_BYTE_ATTESTATION    0x13u  /// magic byte of an attestation
-
 /**
  * @brief Carries out final checks before signing
  *
@@ -303,11 +296,18 @@ int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
     TZ_ASSERT(G.packet_index == 1u, EXC_PARSE_ERROR);
 
     TZ_ASSERT(buffer_read_u8(cdata, &G.magic_byte), EXC_PARSE_ERROR);
+    bool is_attestation = false;
 
     switch (G.magic_byte) {
         case MAGIC_BYTE_PREATTESTATION:
+            is_attestation = false;
+            TZ_ASSERT(parse_consensus_operation(cdata, &G.parsed_baking_data, is_attestation),
+                      EXC_PARSE_ERROR);
+            break;
         case MAGIC_BYTE_ATTESTATION:
-            TZ_ASSERT(parse_consensus_operation(cdata, &G.parsed_baking_data), EXC_PARSE_ERROR);
+            is_attestation = true;
+            TZ_ASSERT(parse_consensus_operation(cdata, &G.parsed_baking_data, is_attestation),
+                      EXC_PARSE_ERROR);
             break;
         case MAGIC_BYTE_BLOCK:
             TZ_ASSERT(parse_block(cdata, &G.parsed_baking_data), EXC_PARSE_ERROR);

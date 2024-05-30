@@ -106,7 +106,7 @@ typedef struct {
     blake2b_hash_state_t hash_state;     ///< current blake2b hash state
     uint8_t final_hash[SIGN_HASH_SIZE];  ///< buffer to hold hash of all the message
 
-    uint8_t magic_byte;              ///< current magic byte read
+    magic_byte_t magic_byte;         ///< current magic byte read
     struct parse_state parse_state;  ///< current parser state
 } apdu_sign_state_t;
 

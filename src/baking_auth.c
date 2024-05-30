@@ -216,10 +216,6 @@ bool parse_block(buffer_t *buf, parsed_baking_data_t *const out) {
     return true;
 }
 
-#define TAG_PREATTESTATION  20
-#define TAG_ATTESTATION     21
-#define TAG_ATTESTATION_DAL 23
-
 /**
  * Data:
  *   + (4 bytes)  uint32:  chain id of the block
@@ -230,12 +226,12 @@ bool parse_block(buffer_t *buf, parsed_baking_data_t *const out) {
  *   + (4 bytes)  uint32:  round of the related block
  *   + (32 bytes) uint8 *: hash of the related block
  */
-bool parse_consensus_operation(buffer_t *buf, parsed_baking_data_t *const out) {
-    uint8_t tag;
-
+bool parse_consensus_operation(buffer_t *buf,
+                               parsed_baking_data_t *const out,
+                               bool is_attestation) {
     if (!buffer_read_u32(buf, &out->chain_id.v, BE) ||   // chain id
         !buffer_seek_cur(buf, 32u * sizeof(uint8_t)) ||  // ignore branch
-        !buffer_read_u8(buf, &tag) ||                    // tag
+        !buffer_seek_cur(buf, sizeof(uint8_t)) ||        // ignore tag
         !buffer_seek_cur(buf, sizeof(uint16_t)) ||       // ignore slot
         !buffer_read_u32(buf, &out->level, BE) ||        // level
         !buffer_read_u32(buf, &out->round, BE) ||        // round
@@ -243,20 +239,8 @@ bool parse_consensus_operation(buffer_t *buf, parsed_baking_data_t *const out) {
     ) {
         return false;
     }
-
-    switch (tag) {
-        case TAG_PREATTESTATION:
-            out->type = BAKING_TYPE_PREATTESTATION;
-            break;
-        case TAG_ATTESTATION:
-        case TAG_ATTESTATION_DAL:
-            out->type = BAKING_TYPE_ATTESTATION;
-            break;
-        default:
-            return false;
-    }
+    out->type = is_attestation ? BAKING_TYPE_ATTESTATION : BAKING_TYPE_PREATTESTATION;
 
     out->is_tenderbake = true;
-
     return true;
 }

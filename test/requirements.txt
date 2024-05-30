@@ -1,5 +1,5 @@
 base58
 bip32
 GitPython
-pytezos>=3.11.3
+pytezos==3.11.3
 ragger>=1.18.1
