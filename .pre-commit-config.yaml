@@ -1,0 +1,22 @@
+# To install hooks, run:
+# pre-commit install --hook-type pre-commit
+# pre-commit install --hook-type commit-msg
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v17.0.4
+    hooks:
+    - id: clang-format
+      name: clang-format
+      description: Run `clang-format` on C/C++/CUDA files.
+      entry: clang-format -i
+      language: system
+      files: ^
+      types: [file, c]

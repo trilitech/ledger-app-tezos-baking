@@ -1,3 +1,25 @@
+/* Tezos Ledger application - Global strcuture handling
+
+   Copyright 2024 TriliTech <contact@trili.tech>
+   Copyright 2024 Functori <contact@functori.com>
+   Copyright 2022 Nomadic Labs <contact@nomadic-labs.com>
+   Copyright 2021 Ledger
+   Copyright 2021 Obsidian Systems
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+*/
+
 #pragma once
 
 #include "types.h"
@@ -5,161 +27,170 @@
 #include "bolos_target.h"
 
 #include "operations.h"
+#include "ui.h"
+#include "ui_screensaver.h"
 
-// Zeros out all globals that can keep track of APDU instruction state.
-// Notably this does *not* include UI state.
+/**
+ * @brief Zeros out all globals that can keep track of APDU instruction state
+ *
+ *        Notably this does *not* include UI state
+ *
+ */
 void clear_apdu_globals(void);
 
-void copy_chain(char *out, size_t out_size, void *data);
-void copy_key(char *out, size_t out_size, void *data);
-void copy_hwm(char *out, size_t out_size, void *data);
-// Zeros out all application-specific globals and SDK-specific UI/exchange buffers.
+/**
+ * @brief Zeros out all application-specific globals and SDK-specific UI/exchange buffers
+ *
+ */
 void init_globals(void);
 
-#define MAX_APDU_SIZE 235  // Maximum number of bytes in a single APDU
+/**
+ * @brief Toggle high watermark tracking by Ledger.
+ *
+ * if its off, the responsibility to track watermark for blocks/attestation signed falls on the
+ * signer being used.
+ */
+void toggle_hwm(void);
 
-// Our buffer must accommodate any remainder from hashing and the next message at once.
+/// Maximum number of bytes in a single APDU
+#define MAX_APDU_SIZE 235u
+
+/// Our buffer must accommodate any remainder from hashing and the next message at once.
 #define TEZOS_BUFSIZE (BLAKE2B_BLOCKBYTES + MAX_APDU_SIZE)
 
-#define PRIVATE_KEY_DATA_SIZE 64
+#define PRIVATE_KEY_DATA_SIZE         64u
+#define MAX_SIGNATURE_SIZE            100u
+#define ELLIPTIC_CURVE_PUB_KEY_LENGTH 65u
+#define PUB_KEY_COMPPRESSED_LENGTH    33u
 
-#define MAX_SIGNATURE_SIZE 100
-
-#ifdef BAKING_APP
+/**
+ * @brief This structure represents the state needed to handle HMAC
+ *
+ */
 typedef struct {
-    uint8_t signed_hmac_key[MAX_SIGNATURE_SIZE];
-    uint8_t hashed_signed_hmac_key[CX_SHA512_SIZE];
-    uint8_t hmac[CX_SHA256_SIZE];
+    uint8_t signed_hmac_key[MAX_SIGNATURE_SIZE];     ///< buffer to hold the signed hmac key
+    uint8_t hashed_signed_hmac_key[CX_SHA512_SIZE];  ///< buffer to hold the hashed signed hmac key
+    uint8_t hmac[CX_SHA256_SIZE];                    ///< buffer to hold the hmac result
 } apdu_hmac_state_t;
-#endif
 
+/**
+ * @brief This structure represents the state needed to hash messages
+ *
+ */
 typedef struct {
-    cx_blake2b_t state;
-    bool initialized;
+    cx_blake2b_t state;  ///< blake2b state
+    bool initialized;    ///< if the state has already been initialized
 } blake2b_hash_state_t;
 
+/**
+ * @brief This structure represents the state needed to sign messages
+ *
+ */
 typedef struct {
-    uint8_t packet_index;  // 0-index is the initial setup packet, 1 is first packet to hash, etc.
+    /// 0-index is the initial setup packet, 1 is first packet to hash, etc.
+    uint8_t packet_index;
 
-#ifdef BAKING_APP
+    /// state to hold the current parsed bakind data
     parsed_baking_data_t parsed_baking_data;
-#endif
 
+    /// operation read, used for checks
     struct {
-        bool is_valid;
-        struct parsed_operation_group v;
+        bool is_valid;                    ///< if the parsed operation group is considered as valid
+        struct parsed_operation_group v;  ///< current parsed operation group
     } maybe_ops;
 
+    /// buffer to hold the current message part and the  previous message hash
     uint8_t message_data[TEZOS_BUFSIZE];
-    size_t message_data_length;
-    buffer_t message_data_as_buffer;
+    size_t message_data_length;  ///< length of message data
 
-    blake2b_hash_state_t hash_state;
-    uint8_t final_hash[SIGN_HASH_SIZE];
+    blake2b_hash_state_t hash_state;     ///< current blake2b hash state
+    uint8_t final_hash[SIGN_HASH_SIZE];  ///< buffer to hold hash of all the message
 
-    uint8_t magic_byte;
-    bool hash_only;
-    struct parse_state parse_state;
+    magic_byte_t magic_byte;         ///< current magic byte read
+    struct parse_state parse_state;  ///< current parser state
 } apdu_sign_state_t;
 
-// Used to compute what we need to display on the screen.
-// Title of the screen will be `title` field, and value of
-// the screen will be generated by calling `callback_fn` and providing
-// `data` as one of its parameter.
-struct screen_data {
-    char *title;
-    string_generation_callback callback_fn;
-    void *data;
-};
-
-// State of the dynamic display.
-// Used to keep track on whether we are displaying screens inside the stack,
-// or outside the stack (for example confirmation screens).
-enum e_state {
-    STATIC_SCREEN,
-    DYNAMIC_SCREEN,
-};
-
+/**
+ * @brief This structure holds all structure needed
+ *
+ */
 typedef struct {
+    /// dynamic display state
     struct {
-        struct screen_data screen_stack[MAX_SCREEN_STACK_SIZE];
-        enum e_state current_state;  // State of the dynamic display
-
-        // Size of the screen stack
-        uint8_t screen_stack_size;
-
-        // Current index in the screen_stack.
-        uint8_t formatter_index;
-
-        // Callback function if user accepted prompt.
+        /// Callback function if user accepted prompt.
         ui_callback_t ok_callback;
-        // Callback function if user rejected prompt.
+        /// Callback function if user rejected prompt.
         ui_callback_t cxl_callback;
-
-        // Title to be displayed on the screen.
-        char screen_title[PROMPT_WIDTH + 1];
-        // Value to be displayed on the screen.
-        char screen_value[VALUE_WIDTH + 1];
+#ifdef HAVE_BAGL
+        /// If the low-cost display mode is enabled
+        bool low_cost_display_mode;
+        /// Screensaver context
+        ux_screensaver_state_t screensaver_state;
+#endif  // TARGET_NANOS
     } dynamic_display;
 
-    void *stack_root;
-    apdu_handler handlers[INS_MAX + 1];
-    bip32_path_with_curve_t path_with_curve;
+    bip32_path_with_curve_t path_with_curve;  ///< holds the bip32 path and curve of the current key
 
+    /// apdu handling state
     struct {
         union {
-            apdu_sign_state_t sign;
+            apdu_sign_state_t sign;  ///< state used to handle signing
 
-#ifdef BAKING_APP
+            /// state used to handle reset
             struct {
-                level_t reset_level;
+                level_t reset_level;  ///< requested reset level
             } baking;
 
+            /// state used to handle setup
             struct {
-                chain_id_t main_chain_id;
+                chain_id_t main_chain_id;  ///< requested new main chain id
+                /// requested new HWM information
                 struct {
-                    level_t main;
-                    level_t test;
+                    level_t main;  ///< level requested to be set on main HWM
+                    level_t test;  ///< level requested to be set on test HWM
                 } hwm;
             } setup;
 
-            apdu_hmac_state_t hmac;
-#endif
+            apdu_hmac_state_t hmac;  ///< state used to handle hmac
         } u;
-
-#ifdef BAKING_APP
-        struct {
-            nvram_data new_data;  // Staging area for setting N_data
-        } baking_auth;
-#endif
     } apdu;
+
+    baking_data hwm_data;  ///< baking HWM data in RAM
 } globals_t;
 
 extern globals_t global;
 
-extern unsigned int app_stack_canary;  // From SDK
+#define g_hwm global.hwm_data
 
-extern unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
+extern baking_data const N_data_real;
+#define N_data (*(volatile baking_data *) PIC(&N_data_real))
 
-#ifdef BAKING_APP
-extern nvram_data const N_data_real;
-#define N_data (*(volatile nvram_data *) PIC(&N_data_real))
+/**
+ * @brief Selects a HWM for a given chain id depending on the ram
+ *
+ *        Selects the main HWM of the ram if the main chain of the ram
+ *        is not defined, or if the given chain matches the main chain
+ *        of the ram. Selects the test HWM of the ram otherwise.
+ *
+ * @param chain_id: chain id
+ * @return high_watermark_t*: selected HWM
+ */
+high_watermark_t *select_hwm_by_chain(chain_id_t const chain_id);
 
-void update_baking_idle_screens(void);
-high_watermark_t volatile *select_hwm_by_chain(chain_id_t const chain_id,
-                                               nvram_data volatile *const ram);
+/**
+ * @brief Updates a single variable in NVRAM baking_data.
+ *
+ * @param variable: defines the name of the variable to be updated in NVRAM
+ */
+#define UPDATE_NVRAM_VAR(variable)                   \
+    if (!N_data_real.hwm_disabled) {                 \
+        nvm_write((void *) &(N_data.variable),       \
+                  &global.hwm_data.variable,         \
+                  sizeof(global.hwm_data.variable)); \
+    }
 
-// Properly updates NVRAM data to prevent any clobbering of data.
-// 'out_param' defines the name of a pointer to the nvram_data struct
-// that 'body' can change to apply updates.
-#define UPDATE_NVRAM(out_name, body)                                                    \
-    ({                                                                                  \
-        nvram_data *const out_name = &global.apdu.baking_auth.new_data;                 \
-        memcpy(&global.apdu.baking_auth.new_data,                                       \
-               (nvram_data const *const) & N_data,                                      \
-               sizeof(global.apdu.baking_auth.new_data));                               \
-        body;                                                                           \
-        nvm_write((void *) &N_data, &global.apdu.baking_auth.new_data, sizeof(N_data)); \
-        update_baking_idle_screens();                                                   \
-    })
-#endif
+/**
+ * @brief Properly updates an entire NVRAM struct to prevent any clobbering of data
+ *
+ */
+#define UPDATE_NVRAM nvm_write((void *) &(N_data), &global.hwm_data, sizeof(global.hwm_data));

@@ -1,8 +1,15 @@
 bin
 debug
 build
-src/delegates.h
-
+# python environment used for testing
+env
+# cache files
+*__pycache__*
 #ide
 *.code-workspace
 compile_commands.json
+# Documentation files
+doc/html
+doc/latex
+# Pytest temporary snapshots
+test/snapshots-tmp

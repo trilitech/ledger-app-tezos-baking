@@ -1,0 +1,13 @@
+name: docs
+
+on: [pull_request]
+
+jobs:
+  generate-docs:
+    name: Doxygen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: mattnotmitt/doxygen-action@1.9.8
+        with:
+          doxyfile-path: '.doxygen/Doxyfile'
