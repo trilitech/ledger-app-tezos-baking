@@ -50,9 +50,8 @@ To disable HWM,
 1. Go to settings
 2. On the screeen High Watermark, press both buttons to toggle HWM to Disabled.
 ```
-We request every user of `baking_app` to disable HWM setting so that they dont experience NVRAM burn. For additional safety from double baking the users can use `octez-signer` instead of `octez-client`. Octez-signer has inherent HWM tracking and double baking protection.
-
-Even when HWM is disabled, the `baking_app` keeps track of HWM in RAM thus in normal operation of the app, the user is protected from double baking. Only when you reboot/power_off the device abruptly, ` you have to take extra care to make sure you dont double bake. You can achieve this either using octez-signer or reset HWM to the block level/round you have not signed yet.`
+We request every user of `baking_app` to disable HWM setting so that they dont experience NVRAM burn.
+Even when HWM is disabled, the `baking_app` keeps track of HWM in RAM thus in normal operation of the app, the user is protected from double baking. Only when you reboot/power_off the device abruptly, ` you have to take extra care to make sure you dont double bake. You can achieve this by resetting HWM to the block level/round you have not signed yet before you start baking.`
 
 ## Screensaver
 
@@ -515,9 +514,9 @@ Following is a sample of measurements obtained with this app (Tezos Baking app v
 | Nanos+ | ED25519_tz1       | 465                              |
 | Nanos+ | BIP32_ED25519_tz1 | 787                              |
 |        |                   |                                  |
-| Nanos  | SECP256K1_tz2     | 876                              |
+| Nanos  | SECP256K1_tz2     | 670                              |
 | Nanos  | SECP256R1_tz3     | 670                              |
-| Nanos  | ED25519_tz1       | 670                              |
+| Nanos  | ED25519_tz1       | 876                              |
 | Nanos  | BIP32_ED25519_tz1 | 878                              |
 
 ## Troubleshooting
