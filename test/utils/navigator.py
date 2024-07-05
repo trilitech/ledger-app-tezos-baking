@@ -25,14 +25,17 @@ from multiprocessing.pool import ThreadPool
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.firmware.touch.screen import MetaScreen
-from ragger.firmware.touch.layouts import ChoiceList, TappableCenter
+from ragger.firmware.touch.layouts import ChoiceList
 from ragger.firmware.touch.use_cases import (
     UseCaseHome,
     UseCaseSettings,
     UseCaseReview,
     UseCaseAddressConfirmation
 )
-from ragger.firmware.touch.positions import Position
+from ragger.firmware.touch.positions import (
+    Position,
+    STAX_CENTER
+)
 from ragger.navigator import Navigator, NavInsID, NavIns
 
 from common import TESTS_ROOT_DIR, EMPTY_PATH
@@ -66,19 +69,15 @@ def send_and_navigate(send: Callable[[], RESPONSE], navigate: Callable[[], None]
 
         return result
 
-class TezosUseCaseAddressConfirmation(UseCaseAddressConfirmation, metaclass=MetaScreen):
+class TezosUseCaseAddressConfirmation(UseCaseAddressConfirmation):
     """Extension of UseCaseAddressConfirmation for our app."""
-
-    layout_tappable_center = TappableCenter
-
-    tappable_center: TappableCenter
 
     @property
     def qr_position(self) -> Position:
         """Position of the qr code.
         Y-285 = common space shared by buttons under a key displayed on 2 or 3 lines
         """
-        return Position(self.tappable_center.positions.x, 285)
+        return Position(STAX_CENTER.x, 285)
 
     def show_qr(self) -> None:
         """Tap to show qr code."""
