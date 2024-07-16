@@ -38,7 +38,9 @@ from ragger.firmware.touch.positions import (
     STAX_BUTTON_LOWER_LEFT,
     STAX_BUTTON_ABOVE_LOWER_MIDDLE,
     STAX_BUTTON_LOWER_RIGHT,
-    STAX_BUTTON_LOWER_MIDDLE
+    STAX_BUTTON_LOWER_MIDDLE,
+    FLEX_BUTTON_LOWER_LEFT,
+    FLEX_BUTTON_ABOVE_LOWER_MIDDLE
 )
 from ragger.navigator import Navigator, NavInsID, NavIns
 
@@ -89,24 +91,36 @@ class UseCaseReview(OriginalUseCaseReview):
     # Fixed in Ragger v1.21.0
     def tap(self) -> None:
         """Tap on screen."""
-        self.client.finger_touch(*STAX_BUTTON_LOWER_RIGHT)
+        if self.firmware == Firmware.STAX:
+            self.client.finger_touch(*STAX_BUTTON_LOWER_RIGHT)
+        if self.firmware == Firmware.FLEX:
+            super().tap()
 
     # Fixed in Ragger v1.21.0
     def previous(self) -> None:
         """Tap on screen."""
-        self.client.finger_touch(*STAX_BUTTON_LOWER_MIDDLE)
+        if self.firmware == Firmware.STAX:
+            self.client.finger_touch(*STAX_BUTTON_LOWER_MIDDLE)
+        if self.firmware == Firmware.FLEX:
+            super().previous()
 
     # Fixed in Ragger v1.21.0
     def reject(self) -> None:
         """Tap on reject button."""
-        self.client.finger_touch(*STAX_BUTTON_LOWER_LEFT)
+        if self.firmware == Firmware.STAX:
+            self.client.finger_touch(*STAX_BUTTON_LOWER_LEFT)
+        if self.firmware == Firmware.FLEX:
+            super().reject()
 
 class UseCaseAddressConfirmation(OriginalUseCaseAddressConfirmation):
     """Extension of UseCaseAddressConfirmation for our app."""
 
     _center: Center
 
-    QR_POSITION = Position(STAX_BUTTON_LOWER_LEFT.x, STAX_BUTTON_ABOVE_LOWER_MIDDLE.y)
+    QR_POSITIONS = {
+        Firmware.STAX: Position(STAX_BUTTON_LOWER_LEFT.x, STAX_BUTTON_ABOVE_LOWER_MIDDLE.y),
+        Firmware.FLEX: Position(FLEX_BUTTON_LOWER_LEFT.x, FLEX_BUTTON_ABOVE_LOWER_MIDDLE.y)
+    }
 
     def __init__(self, client: BackendInterface, firmware: Firmware):
         super().__init__(client, firmware)
@@ -119,7 +133,7 @@ class UseCaseAddressConfirmation(OriginalUseCaseAddressConfirmation):
     @property
     def qr_position(self) -> Position:
         """Position of the qr code."""
-        return UseCaseAddressConfirmation.QR_POSITION
+        return UseCaseAddressConfirmation.QR_POSITIONS[self.firmware]
 
     def show_qr(self) -> None:
         """Tap to show qr code."""
@@ -128,7 +142,11 @@ class UseCaseAddressConfirmation(OriginalUseCaseAddressConfirmation):
     # Fixed in Ragger v1.21.0
     def cancel(self) -> None:
         """Tap on cancel button."""
-        self.client.finger_touch(*STAX_BUTTON_LOWER_LEFT)
+        if self.firmware == Firmware.STAX:
+            self.client.finger_touch(*STAX_BUTTON_LOWER_LEFT)
+        if self.firmware == Firmware.FLEX:
+            super().cancel()
+
 
 class UseCaseSettings(OriginalUseCaseSettings):
     """Extension of UseCaseSettings for our app."""
@@ -151,7 +169,10 @@ class UseCaseSettings(OriginalUseCaseSettings):
     STAX_BUTTON_LOWER_MIDDLE_RIGHT = Position(266, 615)
     def previous(self) -> None:
         """Tap on cancel button."""
-        self.client.finger_touch(*UseCaseSettings.STAX_BUTTON_LOWER_MIDDLE_RIGHT)
+        if self.firmware == Firmware.STAX:
+            self.client.finger_touch(*UseCaseSettings.STAX_BUTTON_LOWER_MIDDLE_RIGHT)
+        if self.firmware == Firmware.FLEX:
+            super().previous()
 
 APP_CONTEXT = Path("app_context")
 
