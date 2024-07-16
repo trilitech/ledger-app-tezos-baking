@@ -28,9 +28,9 @@ from ragger.firmware.touch.screen import MetaScreen
 from ragger.firmware.touch.layouts import ChoiceList
 from ragger.firmware.touch.use_cases import (
     UseCaseHome,
-    UseCaseSettings,
-    UseCaseReview,
-    UseCaseAddressConfirmation
+    UseCaseSettings as OriginalUseCaseSettings,
+    UseCaseAddressConfirmation as OriginalUseCaseAddressConfirmation,
+    UseCaseReview
 )
 from ragger.firmware.touch.positions import (
     Position,
@@ -69,7 +69,7 @@ def send_and_navigate(send: Callable[[], RESPONSE], navigate: Callable[[], None]
 
         return result
 
-class TezosUseCaseAddressConfirmation(UseCaseAddressConfirmation):
+class UseCaseAddressConfirmation(OriginalUseCaseAddressConfirmation):
     """Extension of UseCaseAddressConfirmation for our app."""
 
     @property
@@ -83,6 +83,23 @@ class TezosUseCaseAddressConfirmation(UseCaseAddressConfirmation):
         """Tap to show qr code."""
         self.client.finger_touch(*self.qr_position)
 
+class UseCaseSettings(OriginalUseCaseSettings):
+    """Extension of UseCaseSettings for our app."""
+
+    _toggle_list: ChoiceList
+
+    def __init__(self, client: BackendInterface, firmware: Firmware):
+        super().__init__(client, firmware)
+        self._toggle_list = ChoiceList(client, firmware)
+
+    def toggle_hwm_status(self):
+        """Toggle the expert_mode switch."""
+        self._toggle_list.choose(1)
+
+    def exit(self) -> None:
+        """Exits settings."""
+        self.multi_page_exit()
+
 
 APP_CONTEXT = Path("app_context")
 
@@ -93,14 +110,12 @@ class TezosNavigator(metaclass=MetaScreen):
     use_case_home       = UseCaseHome
     use_case_settings   = UseCaseSettings
     use_case_review     = UseCaseReview
-    use_case_provide_pk = TezosUseCaseAddressConfirmation
-    layout_choice_list = ChoiceList
+    use_case_provide_pk = UseCaseAddressConfirmation
 
     home:       UseCaseHome
     settings:   UseCaseSettings
     review:     UseCaseReview
-    provide_pk: TezosUseCaseAddressConfirmation
-    layout_choice: ChoiceList
+    provide_pk: UseCaseAddressConfirmation
 
     backend:   BackendInterface
     firmware:  Firmware
@@ -124,7 +139,6 @@ class TezosNavigator(metaclass=MetaScreen):
         self.firmware  = firmware
         self.client    = client
         self.navigator = navigator
-        self.layout_choice = ChoiceList(backend, firmware)
 
         self._golden_run        = golden_run
         self._root_dir          = TESTS_ROOT_DIR
@@ -257,7 +271,7 @@ class TezosNavigator(metaclass=MetaScreen):
             self.settings.next()
             self.backend.wait_for_screen_change()
             self.assert_screen("description", snap_path=snap_path)
-            self.settings.multi_page_exit()
+            self.settings.exit()
             self.backend.wait_for_screen_change()
             self.assert_screen("home_screen", snap_path=snap_path)
 
@@ -293,7 +307,7 @@ class TezosNavigator(metaclass=MetaScreen):
             self.backend.wait_for_screen_change()
             self.assert_screen("home_screen", snap_path=snap_path)
         else:
-            self.settings.multi_page_exit()
+            self.settings.exit()
             self.backend.wait_for_screen_change()
             self.assert_screen("home_screen", snap_path=snap_path)
 
@@ -329,7 +343,7 @@ class TezosNavigator(metaclass=MetaScreen):
             self.backend.wait_for_screen_change()
             self.assert_screen("home_screen", snap_path=snap_path)
         else:
-            self.settings.multi_page_exit()
+            self.settings.exit()
             self.backend.wait_for_screen_change()
             self.assert_screen("home_screen", snap_path=snap_path)
 
@@ -544,9 +558,9 @@ class TezosNavigator(metaclass=MetaScreen):
             self.settings.next()
             self.backend.wait_for_screen_change()
             self.assert_screen("hwm_status_on",snap_path)
-            self.layout_choice.choose(1)
+            self.settings.toggle_hwm_status()
             self.backend.wait_for_screen_change()
             self.assert_screen("hwm_status_off",snap_path)
-            self.settings.multi_page_exit()
+            self.settings.exit()
             self.backend.wait_for_screen_change()
             self.assert_screen("home_screen",snap_path)
