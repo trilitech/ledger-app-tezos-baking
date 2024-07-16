@@ -24,17 +24,21 @@ from multiprocessing.pool import ThreadPool
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
+from ragger.firmware.touch.element import Center
 from ragger.firmware.touch.screen import MetaScreen
 from ragger.firmware.touch.layouts import ChoiceList
 from ragger.firmware.touch.use_cases import (
     UseCaseHome,
     UseCaseSettings as OriginalUseCaseSettings,
     UseCaseAddressConfirmation as OriginalUseCaseAddressConfirmation,
-    UseCaseReview
+    UseCaseReview as OriginalUseCaseReview
 )
 from ragger.firmware.touch.positions import (
     Position,
-    STAX_CENTER
+    STAX_BUTTON_LOWER_LEFT,
+    STAX_BUTTON_ABOVE_LOWER_MIDDLE,
+    STAX_BUTTON_LOWER_RIGHT,
+    STAX_BUTTON_LOWER_MIDDLE
 )
 from ragger.navigator import Navigator, NavInsID, NavIns
 
@@ -69,19 +73,62 @@ def send_and_navigate(send: Callable[[], RESPONSE], navigate: Callable[[], None]
 
         return result
 
+class UseCaseReview(OriginalUseCaseReview):
+    """Extension of UseCaseReview for our app."""
+
+    _center: Center
+
+    def __init__(self, client: BackendInterface, firmware: Firmware):
+        super().__init__(client, firmware)
+        self._center = Center(client, firmware)
+
+    def next(self) -> None:
+        """Pass to the next screen."""
+        self._center.swipe_left()
+
+    # Fixed in Ragger v1.21.0
+    def tap(self) -> None:
+        """Tap on screen."""
+        self.client.finger_touch(*STAX_BUTTON_LOWER_RIGHT)
+
+    # Fixed in Ragger v1.21.0
+    def previous(self) -> None:
+        """Tap on screen."""
+        self.client.finger_touch(*STAX_BUTTON_LOWER_MIDDLE)
+
+    # Fixed in Ragger v1.21.0
+    def reject(self) -> None:
+        """Tap on reject button."""
+        self.client.finger_touch(*STAX_BUTTON_LOWER_LEFT)
+
 class UseCaseAddressConfirmation(OriginalUseCaseAddressConfirmation):
     """Extension of UseCaseAddressConfirmation for our app."""
 
+    _center: Center
+
+    QR_POSITION = Position(STAX_BUTTON_LOWER_LEFT.x, STAX_BUTTON_ABOVE_LOWER_MIDDLE.y)
+
+    def __init__(self, client: BackendInterface, firmware: Firmware):
+        super().__init__(client, firmware)
+        self._center = Center(client, firmware)
+
+    def next(self) -> None:
+        """Pass to the next screen."""
+        self._center.swipe_left()
+
     @property
     def qr_position(self) -> Position:
-        """Position of the qr code.
-        Y-285 = common space shared by buttons under a key displayed on 2 or 3 lines
-        """
-        return Position(STAX_CENTER.x, 285)
+        """Position of the qr code."""
+        return UseCaseAddressConfirmation.QR_POSITION
 
     def show_qr(self) -> None:
         """Tap to show qr code."""
         self.client.finger_touch(*self.qr_position)
+
+    # Fixed in Ragger v1.21.0
+    def cancel(self) -> None:
+        """Tap on cancel button."""
+        self.client.finger_touch(*STAX_BUTTON_LOWER_LEFT)
 
 class UseCaseSettings(OriginalUseCaseSettings):
     """Extension of UseCaseSettings for our app."""
@@ -100,6 +147,11 @@ class UseCaseSettings(OriginalUseCaseSettings):
         """Exits settings."""
         self.multi_page_exit()
 
+    # Fixed in Ragger v1.21.0
+    STAX_BUTTON_LOWER_MIDDLE_RIGHT = Position(266, 615)
+    def previous(self) -> None:
+        """Tap on cancel button."""
+        self.client.finger_touch(*UseCaseSettings.STAX_BUTTON_LOWER_MIDDLE_RIGHT)
 
 APP_CONTEXT = Path("app_context")
 
@@ -358,7 +410,7 @@ class TezosNavigator(metaclass=MetaScreen):
             )
         else:
             self.navigate_and_compare(
-                navigate_instruction = NavInsID.USE_CASE_ADDRESS_CONFIRMATION_TAP,
+                navigate_instruction = NavInsID.SWIPE_CENTER_TO_LEFT,
                 validation_instructions = [
                     NavIns(NavInsID.TOUCH, self.provide_pk.qr_position),
                     NavInsID.USE_CASE_ADDRESS_CONFIRMATION_EXIT_QR,
@@ -404,7 +456,7 @@ class TezosNavigator(metaclass=MetaScreen):
             )
         else:
             self.navigate_and_compare(
-                navigate_instruction = NavInsID.USE_CASE_REVIEW_TAP,
+                navigate_instruction = NavInsID.SWIPE_CENTER_TO_LEFT,
                 validation_instructions = [
                     NavInsID.USE_CASE_CHOICE_CONFIRM,
                     NavInsID.USE_CASE_STATUS_DISMISS
@@ -436,7 +488,7 @@ class TezosNavigator(metaclass=MetaScreen):
             )
         else:
             self.navigate_and_compare(
-                navigate_instruction = NavInsID.USE_CASE_REVIEW_TAP,
+                navigate_instruction = NavInsID.SWIPE_CENTER_TO_LEFT,
                 validation_instructions = [
                     NavInsID.USE_CASE_CHOICE_CONFIRM,
                     NavInsID.USE_CASE_STATUS_DISMISS
@@ -476,7 +528,7 @@ class TezosNavigator(metaclass=MetaScreen):
             )
         else:
             self.navigate_and_compare(
-                navigate_instruction = NavInsID.USE_CASE_REVIEW_TAP,
+                navigate_instruction = NavInsID.SWIPE_CENTER_TO_LEFT,
                 validation_instructions = [
                     NavInsID.USE_CASE_CHOICE_CONFIRM,
                     NavInsID.USE_CASE_STATUS_DISMISS
