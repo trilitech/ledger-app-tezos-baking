@@ -139,7 +139,7 @@ To enable debugging and log output, use
 ```
 BOLOS_SDK=$NANOS_SDK make DEBUG=1
 ```
-You can replace `NANOS` with `NANOSP`, `NANOX`, `STAX` for the other devices in BOLOS_SDK environmental variable.
+You can replace `NANOS` with `NANOSP`, `NANOX`, `STAX`, `FLEX` for the other devices in BOLOS_SDK environmental variable.
 
 ### Testing
 The application tests are run using same docker container used for building. Inside the docker container run following script,
@@ -153,7 +153,7 @@ Now you can run ragger tests for any perticular ledger device. Please make sure 
 ```
 (tezos_test_env)$ python3 -m pytest test --device nanosp
 ```
-Replace nanosp with any of the following for respective device: nanos, nanosp, nanox , stax.
+Replace nanosp with any of the following for respective device: nanos, nanosp, nanox , stax , flex.
 
 These tests are run on Ledger emulator called speculos which emulates the actual ledger device. To run theese test on actual device you have to choose a backend. Run following commands to run these test on device:
 ```
@@ -225,7 +225,7 @@ as you continue. You may want to read the rest of these instructions before you
 begin installing, as you will need to confirm and verify a few things during the
 process.
 
-Make sure you have built the appropriate device files by following the 'Building' section. We will be using the `app.apdu` and `app.elf` from `build/<device>` directory.  Here `<device>` can take values nanos, nanos2 (for Nanosp), nanox and stax.
+Make sure you have built the appropriate device files by following the 'Building' section. We will be using the `app.apdu` and `app.elf` from `build/<device>` directory.  Here `<device>` can take values nanos, nanos2 (for Nanosp), nanox, stax and flex.
 ```
 $ python3 -m ledgerblue.runScript  --scp --fileName build/<device>/bin/app.apdu --elfFile build/<device>/bin/app.elf
 ```
