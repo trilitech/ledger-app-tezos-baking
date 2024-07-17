@@ -157,7 +157,7 @@ def test_review_home(account: Optional[Account],
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen("app_context", snap_path)
-        tezos_navigator.settings.multi_page_exit()
+        tezos_navigator.settings.exit()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen("home_screen", snap_path)
         tezos_navigator.home.settings()
@@ -166,10 +166,10 @@ def test_review_home(account: Optional[Account],
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen("hwm_status_on", snap_path)
-        tezos_navigator.layout_choice.choose(1)
+        tezos_navigator.settings.toggle_hwm_status()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen("hwm_status_off", snap_path)
-        tezos_navigator.layout_choice.choose(1)
+        tezos_navigator.settings.toggle_hwm_status()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen("hwm_status_on", snap_path)
         tezos_navigator.settings.next()
@@ -184,7 +184,7 @@ def test_review_home(account: Optional[Account],
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen("hwm_status_on", snap_path)
-        tezos_navigator.settings.multi_page_exit()
+        tezos_navigator.settings.exit()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen("home_screen", snap_path)
 
@@ -513,7 +513,7 @@ def test_deauthorize(firmware: Firmware,
         client.deauthorize()
 
         if firmware.is_nano:
-            # No update for Stax
+            # No update for Stax or flex
             backend.wait_for_screen_change()
         if firmware.device == "nanos":
             # Wait blink
@@ -759,7 +759,7 @@ def test_sign_preattestation(
         tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
 
         if firmware.is_nano:
-            # No update for Stax
+            # No update for Stax or flex
             backend.both_click()
             backend.wait_for_screen_change()
         tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
@@ -816,7 +816,7 @@ def test_sign_attestation(
         tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
 
         if firmware.is_nano:
-            # No update for Stax
+            # No update for Stax or flex
             backend.both_click()
             backend.wait_for_screen_change()
         tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
@@ -873,7 +873,7 @@ def test_sign_attestation_dal(
         tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
 
         if firmware.is_nano:
-            # No update for Stax
+            # No update for Stax or flex
             backend.both_click()
             backend.wait_for_screen_change()
         tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)
@@ -930,7 +930,7 @@ def test_sign_block(
         tezos_navigator.assert_screen("hwm_before_sign", snap_path=snap_path)
 
         if firmware.is_nano:
-            # No update for Stax
+            # No update for Stax or flex
             backend.both_click()
             backend.wait_for_screen_change()
         tezos_navigator.assert_screen("hwm_after_sign", snap_path=snap_path)

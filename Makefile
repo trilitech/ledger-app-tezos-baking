@@ -58,6 +58,7 @@ ICON_NANOS  = icons/nanos_app_tezos.gif
 ICON_NANOX  = icons/nanox_app_tezos.gif
 ICON_NANOSP = $(ICON_NANOX)
 ICON_STAX   = icons/stax_app_tezos.gif
+ICON_FLEX   = icons/flex_app_tezos.gif
 
 ################
 # Default rule #
