@@ -37,18 +37,22 @@
 
 #include "nbgl_use_case.h"
 
-static const char* const infoTypes[] = {"Version", "Developer", "Copyright"};
-static const char* const infoContents[] = {APPVERSION, "Ledger", "(c) 2023 Ledger"};
+typedef enum {
+    CHAIN_IDX = 0,
+    PKH_IDX,
+    HWM_IDX,
+    VERSION_IDX,
+    DEVELOPER_IDX,
+    COPYRIGHT_IDX,
+    INFO_NB
+} tz_infoIndex_t;
+
+static const char* const infoTypes[INFO_NB] =
+    {"Chain", "Public Key Hash", "High Watermark", "Version", "Developer", "Copyright"};
 
 #define MAX_LENGTH 200
-static char* bakeInfoContents[3];
-static char buffer[3][MAX_LENGTH];
-
-static const char* const bakeInfoTypes[] = {
-    "Chain",
-    "Public Key Hash",
-    "High Watermark",
-};
+static const char* infoContents[INFO_NB];
+static char infoContentsBridge[INFO_NB][MAX_LENGTH];
 
 enum {
     HWM_ENABLED_TOKEN = FIRST_USER_TOKEN
@@ -74,30 +78,46 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
 
     tz_exc exc = SW_OK;
 
-    bakeInfoContents[0] = buffer[0];
-    bakeInfoContents[1] = buffer[1];
-    bakeInfoContents[2] = buffer[2];
-    const bool hwm_disabled = g_hwm.hwm_disabled;
-
-    TZ_ASSERT(
-        chain_id_to_string_with_aliases(buffer[0], sizeof(buffer[0]), &g_hwm.main_chain_id) >= 0,
-        EXC_WRONG_LENGTH);
-
-    if (g_hwm.baking_key.bip32_path.length == 0u) {
-        TZ_ASSERT(copy_string(buffer[1], sizeof(buffer[1]), "No Key Authorized"), EXC_WRONG_LENGTH);
-    } else {
-        TZ_CHECK(
-            bip32_path_with_curve_to_pkh_string(buffer[1], sizeof(buffer[1]), &g_hwm.baking_key));
+    for (tz_infoIndex_t idx = 0; idx < INFO_NB; idx++) {
+        infoContents[idx] = infoContentsBridge[idx];
     }
 
-    TZ_ASSERT(hwm_to_string(buffer[2], sizeof(buffer[2]), &g_hwm.hwm.main) >= 0, EXC_WRONG_LENGTH);
+    const bool hwm_disabled = g_hwm.hwm_disabled;
+
+    TZ_ASSERT(chain_id_to_string_with_aliases(infoContentsBridge[CHAIN_IDX],
+                                              MAX_LENGTH,
+                                              &g_hwm.main_chain_id) >= 0,
+              EXC_WRONG_LENGTH);
+
+    if (g_hwm.baking_key.bip32_path.length == 0u) {
+        TZ_ASSERT(copy_string(infoContentsBridge[PKH_IDX], MAX_LENGTH, "No Key Authorized"),
+                  EXC_WRONG_LENGTH);
+    } else {
+        TZ_CHECK(bip32_path_with_curve_to_pkh_string(infoContentsBridge[PKH_IDX],
+                                                     MAX_LENGTH,
+                                                     &g_hwm.baking_key));
+    }
+
+    TZ_ASSERT(hwm_to_string(infoContentsBridge[HWM_IDX], MAX_LENGTH, &g_hwm.hwm.main) >= 0,
+              EXC_WRONG_LENGTH);
+
+    TZ_ASSERT(copy_string(infoContentsBridge[VERSION_IDX], MAX_LENGTH, APPVERSION) >= 0,
+              EXC_WRONG_LENGTH);
+
+    TZ_ASSERT(copy_string(infoContentsBridge[DEVELOPER_IDX], MAX_LENGTH, "Ledger") >= 0,
+              EXC_WRONG_LENGTH);
+
+    TZ_ASSERT(copy_string(infoContentsBridge[COPYRIGHT_IDX], MAX_LENGTH, "(c) 2023 Ledger") >= 0,
+              EXC_WRONG_LENGTH);
 
     switch (page) {
         case 0:
             content->type = INFOS_LIST;
+	    // Only the 3 first info are displayed on the first page
+	    // will be removed in the next commit
             content->infosList.nbInfos = 3;
-            content->infosList.infoTypes = bakeInfoTypes;
-            content->infosList.infoContents = (const char* const*) bakeInfoContents;
+            content->infosList.infoTypes = infoTypes;
+            content->infosList.infoContents = (const char* const*) infoContents;
             break;
         case 1:
             switches[HWM_ENABLED_TOKEN_ID].initState = (nbgl_state_t) (!hwm_disabled);
@@ -111,9 +131,13 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
             break;
         case 2:
             content->type = INFOS_LIST;
-            content->infosList.nbInfos = 3;
-            content->infosList.infoTypes = infoTypes;
-            content->infosList.infoContents = infoContents;
+	    // Only the 3 last info are displayed on the third page
+	    // will be removed in the next commit
+            content->infosList.nbInfos = 3; // INFO_NB - 3
+	    // + 3 because information for page 2 starts at infoTypes[3]
+	    // will be removed in the next commit
+            content->infosList.infoTypes = infoTypes + 3;
+            content->infosList.infoContents = (const char* const*) infoContents + 3;
             break;
         default:
             return false;
