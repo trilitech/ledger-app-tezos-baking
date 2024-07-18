@@ -502,8 +502,7 @@ def test_authorize_baking(account: Account, tezos_navigator: TezosNavigator) -> 
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(0, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=snap_path
+        test_hwm=Hwm(0, 0)
     )
 
 
@@ -635,8 +634,7 @@ def test_setup_app_context(account: Account, tezos_navigator: TezosNavigator) ->
         account,
         chain_id=main_chain_id,
         main_hwm=main_hwm,
-        test_hwm=test_hwm,
-        snap_path=snap_path
+        test_hwm=test_hwm
     )
 
 
@@ -778,8 +776,8 @@ def test_sign_preattestation(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        snap_path=snap_path    )
+        test_hwm=Hwm(0, 0)
+    )
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -835,8 +833,8 @@ def test_sign_attestation(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        snap_path=snap_path)
+        test_hwm=Hwm(0, 0)
+    )
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -892,8 +890,8 @@ def test_sign_attestation_dal(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        snap_path=snap_path)
+        test_hwm=Hwm(0, 0)
+    )
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -949,8 +947,8 @@ def test_sign_block(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        snap_path=snap_path)
+        test_hwm=Hwm(0, 0)
+    )
 
 
 def test_sign_block_at_reset_level(client: TezosClient, tezos_navigator: TezosNavigator) -> None:
@@ -1477,9 +1475,8 @@ def test_sign_when_hwm_disabled(
     """Check that signing, when HWM is disabled, changes the main HWM."""
 
     account = DEFAULT_ACCOUNT
-    snap_path = Path(f"{account}")
 
-    tezos_navigator.disable_hwm(snap_path)
+    tezos_navigator.disable_hwm()
 
     tezos_navigator.setup_app_context(
         account,
@@ -1499,8 +1496,8 @@ def test_sign_when_hwm_disabled(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(1, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_1_0"))
+        test_hwm=Hwm(0, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1513,8 +1510,8 @@ def test_sign_when_hwm_disabled(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(2, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_2_0"))
+        test_hwm=Hwm(0, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1528,8 +1525,7 @@ def test_sign_when_hwm_disabled(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(2, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_2_0")
+        test_hwm=Hwm(0, 0)
     )
 
 
@@ -1604,8 +1600,8 @@ def test_sign_when_no_chain_setup(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(1, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_1_0"))
+        test_hwm=Hwm(0, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1618,8 +1614,8 @@ def test_sign_when_no_chain_setup(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(2, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_2_0"))
+        test_hwm=Hwm(0, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1633,8 +1629,7 @@ def test_sign_when_no_chain_setup(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(2, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_2_0")
+        test_hwm=Hwm(0, 0)
     )
 
 
@@ -1664,8 +1659,8 @@ def test_sign_when_chain_is_setup(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_1_0"))
+        test_hwm=Hwm(0, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1678,8 +1673,8 @@ def test_sign_when_chain_is_setup(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
-        test_hwm=Hwm(2, 0),
-        snap_path=Path("sign_2_0"))
+        test_hwm=Hwm(2, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1693,8 +1688,7 @@ def test_sign_when_chain_is_setup(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
-        test_hwm=Hwm(2, 0),
-        snap_path=Path("sign_2_0")
+        test_hwm=Hwm(2, 0)
     )
 
 

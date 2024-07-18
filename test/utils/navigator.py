@@ -156,8 +156,6 @@ class UseCaseSettings(OriginalUseCaseSettings):
         """Exits settings."""
         self.multi_page_exit()
 
-APP_CONTEXT = Path("app_context")
-
 
 class TezosNavigator(metaclass=MetaScreen):
     """Class representing the tezos app navigator."""
@@ -262,9 +260,7 @@ class TezosNavigator(metaclass=MetaScreen):
                           account: Optional[Account],
                           chain_id: str,
                           main_hwm: Hwm,
-                          test_hwm: Hwm,
-                          snap_path: Path = Path(""),
-                          backend_name = "speculos") -> None:
+                          test_hwm: Hwm) -> None:
         """Check that the app context."""
 
         received_chain_id, received_main_hwm, received_test_hwm = self.client.get_all_hwm()
@@ -289,60 +285,10 @@ class TezosNavigator(metaclass=MetaScreen):
                 f"Expected signature scheme {account.sig_scheme.name} "\
                 f"but got {received_sig_scheme.name}"
 
-        if backend_name != "speculos":
-            return
-
-        snap_path = snap_path / APP_CONTEXT
-        if self.firmware.is_nano:
-            self.backend.wait_for_home_screen()
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen(NanoFixedScreen.HOME_VERSION)
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("chain_id", snap_path=snap_path)
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-            if account is not None and self.firmware.device == "nanos":
-                for i in range(1, account.nanos_screens + 1):
-                    self.assert_screen("public_key_hash_" + str(i), snap_path=snap_path)
-                    self.backend.right_click()
-                    self.backend.wait_for_screen_change()
-            else:
-                self.assert_screen("public_key_hash", snap_path=snap_path)
-                self.backend.right_click()
-                self.backend.wait_for_screen_change()
-            self.assert_screen("high_watermark", snap_path=snap_path)
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen(NanoFixedScreen.HOME_SETTINGS)
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen(NanoFixedScreen.HOME_QUIT)
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen(NanoFixedScreen.HOME_WELCOME)
-        else:
-            self.assert_screen(TouchFixedScreen.HOME)
-            self.home.settings()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("app_context", snap_path=snap_path)
-            self.settings.next()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("hwm_status", snap_path=snap_path)
-            self.settings.next()
-            self.backend.wait_for_screen_change()
-            self.assert_screen(TouchFixedScreen.SETTINGS_DESCRIPTION)
-            self.settings.exit()
-            self.backend.wait_for_screen_change()
-            self.assert_screen(TouchFixedScreen.HOME)
-
     @contextmanager
-    def goto_home_public_key(self, snap_path: Path = Path("")) -> Generator[None, None, None]:
+    def goto_home_public_key(self) -> Generator[None, None, None]:
         """Action from authorized key screen."""
 
-        snap_path = snap_path / APP_CONTEXT
-
         if self.firmware.is_nano:
             self.backend.wait_for_home_screen()
             self.backend.right_click()
@@ -350,7 +296,7 @@ class TezosNavigator(metaclass=MetaScreen):
             self.assert_screen(NanoFixedScreen.HOME_VERSION)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
-            self.assert_screen("chain_id", snap_path=snap_path)
+            # chain_id
             self.backend.right_click()
             self.backend.wait_for_screen_change()
         else:
@@ -363,7 +309,7 @@ class TezosNavigator(metaclass=MetaScreen):
         if self.firmware.is_nano:
             self.backend.left_click()
             self.backend.wait_for_screen_change()
-            self.assert_screen("chain_id", snap_path=snap_path)
+            # chain_id
             self.backend.left_click()
             self.backend.wait_for_screen_change()
             self.assert_screen(NanoFixedScreen.HOME_VERSION)
@@ -598,7 +544,7 @@ class TezosNavigator(metaclass=MetaScreen):
         self.backend.both_click()
         self.backend.wait_for_screen_change()
 
-    def disable_hwm(self, snap_path: Path) -> None:
+    def disable_hwm(self) -> None:
         """Disables HWM settings by navigating on the screen starting from home_screen"""
         if self.firmware.is_nano:
             self.assert_screen(NanoFixedScreen.HOME_WELCOME)
@@ -618,7 +564,7 @@ class TezosNavigator(metaclass=MetaScreen):
             self.backend.wait_for_home_screen()
             self.home.settings()
             self.backend.wait_for_screen_change()
-            self.assert_screen("app_context",snap_path)
+            # app_context
             self.settings.next()
             self.backend.wait_for_screen_change()
             self.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
