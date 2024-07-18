@@ -303,6 +303,9 @@ class TezosNavigator(metaclass=MetaScreen):
             self.assert_screen(TouchFixedScreen.HOME)
             self.home.settings()
             self.backend.wait_for_screen_change()
+            # hwm_status
+            self.settings.next()
+            self.backend.wait_for_screen_change()
 
         yield
 
@@ -338,6 +341,9 @@ class TezosNavigator(metaclass=MetaScreen):
         else:
             self.assert_screen(TouchFixedScreen.HOME)
             self.home.settings()
+            self.backend.wait_for_screen_change()
+            # hwm_status
+            self.settings.next()
             self.backend.wait_for_screen_change()
 
         yield
@@ -563,9 +569,6 @@ class TezosNavigator(metaclass=MetaScreen):
         else:
             self.backend.wait_for_home_screen()
             self.home.settings()
-            self.backend.wait_for_screen_change()
-            # app_context
-            self.settings.next()
             self.backend.wait_for_screen_change()
             self.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
             self.settings.toggle_hwm_status()

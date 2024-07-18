@@ -112,14 +112,6 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
 
     switch (page) {
         case 0:
-            content->type = INFOS_LIST;
-	    // Only the 3 first info are displayed on the first page
-	    // will be removed in the next commit
-            content->infosList.nbInfos = 3;
-            content->infosList.infoTypes = infoTypes;
-            content->infosList.infoContents = (const char* const*) infoContents;
-            break;
-        case 1:
             switches[HWM_ENABLED_TOKEN_ID].initState = (nbgl_state_t) (!hwm_disabled);
             switches[HWM_ENABLED_TOKEN_ID].text = "High Watermark";
             switches[HWM_ENABLED_TOKEN_ID].subText = "Track high watermark\n in Ledger";
@@ -128,6 +120,14 @@ static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
             content->type = SWITCHES_LIST;
             content->switchesList.nbSwitches = SETTINGS_SWITCHES_NB;
             content->switchesList.switches = (nbgl_layoutSwitch_t*) switches;
+            break;
+        case 1:
+            content->type = INFOS_LIST;
+	    // Only the 3 first info are displayed on the first page
+	    // will be removed in the next commit
+            content->infosList.nbInfos = 3;
+            content->infosList.infoTypes = infoTypes;
+            content->infosList.infoContents = (const char* const*) infoContents;
             break;
         case 2:
             content->type = INFOS_LIST;
