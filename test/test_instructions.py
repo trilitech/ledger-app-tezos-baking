@@ -158,13 +158,31 @@ def test_review_home(account: Optional[Account],
         tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("app_context", snap_path)
+        if tezos_navigator.firmware == Firmware.STAX:
+            # chain_id + pkh + hwm
+            tezos_navigator.assert_screen("app_context", snap_path)
+        elif tezos_navigator.firmware == Firmware.FLEX:
+            # chain_id + pkh
+            tezos_navigator.assert_screen("app_context_1", snap_path)
+            tezos_navigator.settings.next()
+            backend.wait_for_screen_change()
+            # hwm + version
+            tezos_navigator.assert_screen("app_context_2", snap_path)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_DESCRIPTION)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("app_context", snap_path)
+        if tezos_navigator.firmware == Firmware.STAX:
+            # chain_id + pkh + hwm
+            tezos_navigator.assert_screen("app_context", snap_path)
+        elif tezos_navigator.firmware == Firmware.FLEX:
+            # hwm + version
+            tezos_navigator.assert_screen("app_context_2", snap_path)
+            tezos_navigator.settings.previous()
+            backend.wait_for_screen_change()
+            # chain_id + pkh
+            tezos_navigator.assert_screen("app_context_1", snap_path)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
@@ -179,13 +197,31 @@ def test_review_home(account: Optional[Account],
         tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_DISABLED)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("app_context", snap_path)
+        if tezos_navigator.firmware == Firmware.STAX:
+            # chain_id + pkh + hwm
+            tezos_navigator.assert_screen("app_context", snap_path)
+        elif tezos_navigator.firmware == Firmware.FLEX:
+            # chain_id + pkh
+            tezos_navigator.assert_screen("app_context_1", snap_path)
+            tezos_navigator.settings.next()
+            backend.wait_for_screen_change()
+            # hwm + version
+            tezos_navigator.assert_screen("app_context_2", snap_path)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_DESCRIPTION)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("app_context", snap_path)
+        if tezos_navigator.firmware == Firmware.STAX:
+            # chain_id + pkh + hwm
+            tezos_navigator.assert_screen("app_context", snap_path)
+        elif tezos_navigator.firmware == Firmware.FLEX:
+            # hwm + version
+            tezos_navigator.assert_screen("app_context_2", snap_path)
+            tezos_navigator.settings.previous()
+            backend.wait_for_screen_change()
+            # chain_id + pkh
+            tezos_navigator.assert_screen("app_context_1", snap_path)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_DISABLED)

@@ -307,6 +307,8 @@ class TezosNavigator(metaclass=MetaScreen):
             self.settings.next()
             self.backend.wait_for_screen_change()
 
+        # Stax: chain_id + pkh + hwm
+        # Flex: chain_id + pkh
         yield
 
         if self.firmware.is_nano:
@@ -345,7 +347,13 @@ class TezosNavigator(metaclass=MetaScreen):
             # hwm_status
             self.settings.next()
             self.backend.wait_for_screen_change()
+            if self.firmware == Firmware.FLEX:
+                # chain_id + pkh
+                self.settings.next()
+                self.backend.wait_for_screen_change()
 
+        # Stax: chain_id + pkh + hwm
+        # Flex: hwm + version
         yield
 
         if self.firmware.is_nano:
