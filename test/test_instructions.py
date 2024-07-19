@@ -403,7 +403,6 @@ def test_git(client: TezosClient) -> None:
 
 
 def test_ledger_screensaver(firmware: Firmware,
-                            backend: BackendInterface,
                             client: TezosClient,
                             tezos_navigator: TezosNavigator,
                             backend_name) -> None:
@@ -429,7 +428,7 @@ def test_ledger_screensaver(firmware: Firmware,
         main_hwm,
         test_hwm
     )
-    for i in range(120):
+    for _ in range(120):
         lvl += 1
         attestation = build_attestation(
             op_level=lvl,
@@ -466,7 +465,7 @@ def test_benchmark_attestation_time(account: Account, client: TezosClient, tezos
     )
     st = time.time()
     # Run test for 100 times.
-    for i in range(100):
+    for _ in range(100):
         lvl += 1
         attestation = build_attestation(
             op_level=lvl,
@@ -1463,8 +1462,6 @@ def test_sign_multiple_operation(
 
 def test_sign_when_hwm_disabled(
         client: TezosClient,
-        backend: BackendInterface,
-        firmware: Firmware,
         tezos_navigator: TezosNavigator) -> None:
     """Check that signing, when HWM is disabled, changes the main HWM."""
 
@@ -1537,7 +1534,6 @@ def test_hwm_disabled_exit(client: TezosClient, tezos_navigator: TezosNavigator,
         return
 
     account = DEFAULT_ACCOUNT
-    snap_path = Path(f"{account}")
 
     hwm_input = input("Is hwm disabled ? (y/n)")
     hwm_disabled = False
