@@ -43,7 +43,12 @@ from utils.message import (
     Block,
     DEFAULT_CHAIN_ID
 )
-from utils.navigator import TezosNavigator, send_and_navigate
+from utils.navigator import (
+    TezosNavigator,
+    NanoFixedScreen,
+    TouchFixedScreen,
+    send_and_navigate
+)
 from common import (
     DEFAULT_ACCOUNT,
     DEFAULT_ACCOUNT_2,
@@ -75,9 +80,9 @@ def test_review_home(account: Optional[Account],
         )
 
     if firmware.is_nano:
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("version", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_VERSION)
         tezos_navigator.right()
         tezos_navigator.assert_screen("chain_id", snap_path)
         tezos_navigator.right()
@@ -90,15 +95,15 @@ def test_review_home(account: Optional[Account],
             tezos_navigator.right()
         tezos_navigator.assert_screen("high_watermark", snap_path)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_SETTINGS)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_QUIT)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_QUIT)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_SETTINGS)
         tezos_navigator.left()
         tezos_navigator.assert_screen("high_watermark", snap_path)
         tezos_navigator.left()
@@ -111,40 +116,40 @@ def test_review_home(account: Optional[Account],
             tezos_navigator.left()
         tezos_navigator.assert_screen("chain_id", snap_path)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("version", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_VERSION)
         tezos_navigator.right()
         tezos_navigator.assert_screen("chain_id", snap_path)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("version", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_VERSION)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_QUIT)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_SETTINGS)
         tezos_navigator.left()
         tezos_navigator.assert_screen("high_watermark", snap_path)
         tezos_navigator.right()
         # Check settings menu
-        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_SETTINGS)
         tezos_navigator.press_both_buttons()
-        tezos_navigator.assert_screen("hwm_status_enabled", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.press_both_buttons()
-        tezos_navigator.assert_screen("hwm_status_disabled", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_HMW_DISABLED)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("back", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_BACK)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("hwm_status_disabled", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_HMW_DISABLED)
         tezos_navigator.press_both_buttons()
-        tezos_navigator.assert_screen("hwm_status_enabled", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("back", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_BACK)
         tezos_navigator.press_both_buttons()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_QUIT)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
         tezos_navigator.left()
     else:
         backend.wait_for_home_screen()
@@ -153,46 +158,46 @@ def test_review_home(account: Optional[Account],
         tezos_navigator.assert_screen("app_context", snap_path)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("description", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_DESCRIPTION)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen("app_context", snap_path)
         tezos_navigator.settings.exit()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.HOME)
         tezos_navigator.home.settings()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen("app_context", snap_path)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status_on", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.settings.toggle_hwm_status()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status_off", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_DISABLED)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("description", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_DESCRIPTION)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status_off", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_DISABLED)
         tezos_navigator.settings.toggle_hwm_status()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status_on", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen("app_context", snap_path)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status_on", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.settings.exit()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.HOME)
 
 
 def test_low_cost_screensaver(firmware: Firmware,
@@ -208,14 +213,14 @@ def test_low_cost_screensaver(firmware: Firmware,
         backend.left_click,
         backend.right_click,
     ]
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
     for click in all_click:
         backend.both_click()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("black")
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
         click()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("home_screen")
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
 def test_automatic_low_cost_screensaver(firmware: Firmware,
                                         backend: BackendInterface,
@@ -235,12 +240,12 @@ def test_automatic_low_cost_screensaver(firmware: Firmware,
         Hwm(0, 0)
     )
 
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver activate only after signing
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     attestation = build_attestation(
         op_level=1,
@@ -253,22 +258,22 @@ def test_automatic_low_cost_screensaver(firmware: Firmware,
     time.sleep(5)
 
     # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver has been activated
     backend.wait_for_screen_change()
-    tezos_navigator.assert_screen("black")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
 
     backend.both_click()
     backend.wait_for_screen_change()
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver deactivate after button push
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
 def test_automatic_low_cost_screensaver_cancelled_by_display(
         firmware: Firmware,
@@ -300,7 +305,7 @@ def test_automatic_low_cost_screensaver_cancelled_by_display(
     time.sleep(5)
 
     # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     def delayed_authorize_navigate(**kwargs):
         time.sleep(30)
@@ -349,23 +354,23 @@ def test_automatic_low_cost_screensaver_exited_by_display(
     time.sleep(5)
 
     # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver has been activated
     backend.wait_for_screen_change()
-    tezos_navigator.assert_screen("black")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
 
     # Exit the low-cost screensaver by display
     tezos_navigator.authorize_baking(account, snap_path=Path("authorize"))
 
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver deactivate after display
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     attestation = build_attestation(
         op_level=2,
@@ -378,13 +383,13 @@ def test_automatic_low_cost_screensaver_exited_by_display(
     time.sleep(5)
 
     # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver has been activated
     backend.wait_for_screen_change()
-    tezos_navigator.assert_screen("black")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
 
 
 def test_version(client: TezosClient) -> None:
