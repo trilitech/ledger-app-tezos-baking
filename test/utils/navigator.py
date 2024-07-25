@@ -88,30 +88,6 @@ class UseCaseReview(OriginalUseCaseReview):
         """Pass to the next screen."""
         self._center.swipe_left()
 
-    # Fixed in Ragger v1.21.0
-    def tap(self) -> None:
-        """Tap on screen."""
-        if self.firmware == Firmware.STAX:
-            self.client.finger_touch(*STAX_BUTTON_LOWER_RIGHT)
-        if self.firmware == Firmware.FLEX:
-            super().tap()
-
-    # Fixed in Ragger v1.21.0
-    def previous(self) -> None:
-        """Tap on screen."""
-        if self.firmware == Firmware.STAX:
-            self.client.finger_touch(*STAX_BUTTON_LOWER_MIDDLE)
-        if self.firmware == Firmware.FLEX:
-            super().previous()
-
-    # Fixed in Ragger v1.21.0
-    def reject(self) -> None:
-        """Tap on reject button."""
-        if self.firmware == Firmware.STAX:
-            self.client.finger_touch(*STAX_BUTTON_LOWER_LEFT)
-        if self.firmware == Firmware.FLEX:
-            super().reject()
-
 class UseCaseAddressConfirmation(OriginalUseCaseAddressConfirmation):
     """Extension of UseCaseAddressConfirmation for our app."""
 
@@ -139,14 +115,6 @@ class UseCaseAddressConfirmation(OriginalUseCaseAddressConfirmation):
         """Tap to show qr code."""
         self.client.finger_touch(*self.qr_position)
 
-    # Fixed in Ragger v1.21.0
-    def cancel(self) -> None:
-        """Tap on cancel button."""
-        if self.firmware == Firmware.STAX:
-            self.client.finger_touch(*STAX_BUTTON_LOWER_LEFT)
-        if self.firmware == Firmware.FLEX:
-            super().cancel()
-
 
 class UseCaseSettings(OriginalUseCaseSettings):
     """Extension of UseCaseSettings for our app."""
@@ -164,15 +132,6 @@ class UseCaseSettings(OriginalUseCaseSettings):
     def exit(self) -> None:
         """Exits settings."""
         self.multi_page_exit()
-
-    # Fixed in Ragger v1.21.0
-    STAX_BUTTON_LOWER_MIDDLE_RIGHT = Position(266, 615)
-    def previous(self) -> None:
-        """Tap on cancel button."""
-        if self.firmware == Firmware.STAX:
-            self.client.finger_touch(*UseCaseSettings.STAX_BUTTON_LOWER_MIDDLE_RIGHT)
-        if self.firmware == Firmware.FLEX:
-            super().previous()
 
 APP_CONTEXT = Path("app_context")
 
