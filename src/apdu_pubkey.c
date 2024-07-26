@@ -1,94 +1,104 @@
+/* Tezos Ledger application - Public key APDU instruction handling
+
+   Copyright 2024 TriliTech <contact@trili.tech>
+   Copyright 2024 Functori <contact@functori.com>
+   Copyright 2023 Ledger
+   Copyright 2019 Obsidian Systems
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+*/
+
 #include "apdu_pubkey.h"
 
 #include "apdu.h"
 #include "cx.h"
 #include "globals.h"
 #include "keys.h"
-#include "protocol.h"
 #include "to_string.h"
 #include "ui.h"
-#ifdef BAKING_APP
+#include "ui_pubkey.h"
 #include "baking_auth.h"
-#endif  // BAKING_APP
 
 #include <string.h>
 
+/**
+ * @brief Sends apdu response with the public key
+ *
+ * @return true
+ */
 static bool pubkey_ok(void) {
-    cx_ecfp_public_key_t public_key = {0};
-    generate_public_key(&public_key,
-                        global.path_with_curve.derivation_type,
-                        &global.path_with_curve.bip32_path);
-    delayed_send(provide_pubkey(G_io_apdu_buffer, &public_key));
+    provide_pubkey(&global.path_with_curve);
     return true;
 }
 
-#ifdef BAKING_APP
+/**
+ * @brief Authorizes the public key
+ *
+ *        Sends apdu response with the public key
+ *
+ * @return true
+ */
 static bool baking_ok(void) {
-    authorize_baking(global.path_with_curve.derivation_type, &global.path_with_curve.bip32_path);
-    pubkey_ok();
-    return true;
+    tz_exc exc = SW_OK;
+
+    TZ_CHECK(authorize_baking(global.path_with_curve.derivation_type,
+                              &global.path_with_curve.bip32_path));
+    return pubkey_ok();
+
+end:
+    return io_send_apdu_err(exc);
 }
-#endif
 
-#ifdef BAKING_APP
-char const *const *get_baking_prompts() {
-    static const char *const baking_prompts[] = {
-        PROMPT("Authorize Baking"),
-        PROMPT("Public Key Hash"),
-        NULL,
-    };
-    return baking_prompts;
-}
-#endif
+/**
+ * Cdata:
+ *   + Bip32 path: public key path
+ */
+int handle_get_public_key(buffer_t *cdata,
+                          derivation_type_t derivation_type,
+                          bool authorize,
+                          bool prompt) {
+    tz_exc exc = SW_OK;
 
-size_t handle_apdu_get_public_key(uint8_t instruction, volatile uint32_t *flags) {
-    uint8_t *dataBuffer = G_io_apdu_buffer + OFFSET_CDATA;
+    TZ_ASSERT_NOT_NULL(cdata);
 
-    if (G_io_apdu_buffer[OFFSET_P1] != 0) THROW(EXC_WRONG_PARAM);
-
-    // do not expose pks without prompt through U2F (permissionless legacy comm in browser)
-    if (instruction == INS_GET_PUBLIC_KEY) require_permissioned_comm();
-
-    global.path_with_curve.derivation_type = parse_derivation_type(G_io_apdu_buffer[OFFSET_CURVE]);
-
-    size_t const cdata_size = G_io_apdu_buffer[OFFSET_LC];
-
-#ifdef BAKING_APP
-    if (cdata_size == 0 && instruction == INS_AUTHORIZE_BAKING) {
-        copy_bip32_path_with_curve(&global.path_with_curve, &N_data.baking_key);
+    global.path_with_curve.derivation_type = derivation_type;
+    if ((cdata->size == 0u) && authorize) {
+        TZ_ASSERT(copy_bip32_path_with_curve(&global.path_with_curve, &(g_hwm.baking_key)),
+                  EXC_MEMORY_ERROR);
     } else {
-#endif
-        read_bip32_path(&global.path_with_curve.bip32_path, dataBuffer, cdata_size);
-#ifdef BAKING_APP
-        if (global.path_with_curve.bip32_path.length == 0) THROW(EXC_WRONG_LENGTH_FOR_INS);
+        TZ_ASSERT(read_bip32_path(cdata, &global.path_with_curve.bip32_path), EXC_WRONG_VALUES);
     }
-#endif
 
-    cx_ecfp_public_key_t public_key = {0};
-    generate_public_key(&public_key,
-                        global.path_with_curve.derivation_type,
-                        &global.path_with_curve.bip32_path);
+    TZ_ASSERT(cdata->size == cdata->offset, EXC_WRONG_LENGTH);
 
-    if (instruction == INS_GET_PUBLIC_KEY) {
-        return provide_pubkey(G_io_apdu_buffer, &public_key);
+    if (!prompt) {
+        return provide_pubkey(&global.path_with_curve);
     } else {
-        // instruction == INS_PROMPT_PUBLIC_KEY || instruction == INS_AUTHORIZE_BAKING
+        // INS_PROMPT_PUBLIC_KEY || INS_AUTHORIZE_BAKING
         ui_callback_t cb;
         bool bake;
-#ifdef BAKING_APP
-        if (instruction == INS_AUTHORIZE_BAKING) {
+        if (authorize) {
             cb = baking_ok;
             bake = true;
         } else {
-#endif
             // INS_PROMPT_PUBLIC_KEY
             cb = pubkey_ok;
             bake = false;
-#ifdef BAKING_APP
         }
-#endif
-        prompt_address(bake, cb, delay_reject);
-        *flags = IO_ASYNCH_REPLY;
-        return 0;
+        return prompt_pubkey(bake, cb, reject);
     }
+
+end:
+    return io_send_apdu_err(exc);
 }

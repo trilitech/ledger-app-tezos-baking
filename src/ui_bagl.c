@@ -1,3 +1,24 @@
+/* Tezos Ledger application - Common BAGL UI functions
+
+   Copyright 2024 TriliTech <contact@trili.tech>
+   Copyright 2024 Functori <contact@functori.com>
+   Copyright 2023 Ledger
+   Copyright 2019 Obsidian Systems
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+*/
+
 #ifdef HAVE_BAGL
 #include "bolos_target.h"
 
@@ -11,251 +32,284 @@
 #include "memory.h"
 #include "os_cx.h"  // ui-menu
 #include "to_string.h"
+#include "ui_screensaver.h"
 
 #include <stdbool.h>
 #include <string.h>
 
-#define G global.ui
+#define G_display global.dynamic_display
 
-void display_next_state(bool is_left_ux_step);
+#ifdef TARGET_NANOS
+#include "io.h"
 
-#ifdef BAKING_APP
-void calculate_baking_idle_screens_data(void) {
-    push_ui_callback("Tezos Baking", copy_string, VERSION);
-    push_ui_callback("Chain", copy_chain, &N_data.main_chain_id);
-    push_ui_callback("Public Key Hash", copy_key, &N_data.baking_key);
-    push_ui_callback("High Watermark", copy_hwm, &N_data.hwm.main);
-}
-
-void update_baking_idle_screens(void) {
-    init_screen_stack();
-    calculate_baking_idle_screens_data();
-    ui_refresh();
-}
-#endif  // BAKING_APP
-
-// User MUST call `init_screen_stack()` before the first call to this function.
-void push_ui_callback(char *title, string_generation_callback cb, void *data) {
-    if (global.dynamic_display.formatter_index + 1 >= MAX_SCREEN_STACK_SIZE) {
-        THROW(0x6124);
+void ux_set_low_cost_display_mode(bool enable) {
+    if (G_display.low_cost_display_mode != enable) {
+        G_display.low_cost_display_mode = enable;
+        if (G_display.low_cost_display_mode) {
+            ux_screensaver_start_clock();
+        } else {
+            ux_screensaver_stop();
+        }
     }
-    struct screen_data *fmt =
-        &global.dynamic_display.screen_stack[global.dynamic_display.formatter_index];
-
-    fmt->title = title;
-    fmt->callback_fn = cb;
-    fmt->data = data;
-    global.dynamic_display.formatter_index++;
-    global.dynamic_display.screen_stack_size++;
 }
 
-void init_screen_stack() {
-    explicit_bzero(&global.dynamic_display.screen_stack,
-                   sizeof(global.dynamic_display.screen_stack));
-    global.dynamic_display.formatter_index = 0;
-    global.dynamic_display.screen_stack_size = 0;
-    global.dynamic_display.current_state = STATIC_SCREEN;
+uint8_t io_event(uint8_t channel);
+
+/**
+ * Function similar to the one in `lib_standard_app/` except that the
+ * `TICKER_EVENT` handling is not enabled on low-cost display mode.
+ *
+ * Low-cost display mode is deactivated when the button is pressed and
+ * activated during signing because `TICKER_EVENT` handling slows down
+ * the application.
+ *
+ */
+uint8_t io_event(uint8_t channel) {
+    (void) channel;
+
+    switch (G_io_seproxyhal_spi_buffer[0]) {
+        case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
+            // Pressing any button will stop the low-cost display mode.
+            ux_set_low_cost_display_mode(false);
+            UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
+            break;
+        case SEPROXYHAL_TAG_STATUS_EVENT:
+            if ((G_io_apdu_media == IO_APDU_MEDIA_USB_HID) &&
+                !(U4BE(G_io_seproxyhal_spi_buffer, 3) &
+                  SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
+                THROW(EXCEPTION_IO_RESET);
+            }
+            __attribute__((fallthrough));
+        case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
+            // As soon as something is newly displayed, the low-cost display mode stops.
+            ux_set_low_cost_display_mode(false);
+#ifdef HAVE_BAGL
+            UX_DISPLAYED_EVENT({});
+#endif  // HAVE_BAGL
+#ifdef HAVE_NBGL
+            UX_DEFAULT_EVENT();
+#endif  // HAVE_NBGL
+            break;
+#ifdef HAVE_NBGL
+        case SEPROXYHAL_TAG_FINGER_EVENT:
+            UX_FINGER_EVENT(G_io_seproxyhal_spi_buffer);
+            break;
+#endif  // HAVE_NBGL
+        case SEPROXYHAL_TAG_TICKER_EVENT:
+            if (!G_display.low_cost_display_mode) {
+                app_ticker_event_callback();
+                UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
+            } else {
+                ux_screensaver_apply_tick();
+            }
+            break;
+        default:
+            UX_DEFAULT_EVENT();
+            break;
+    }
+
+    if (!io_seproxyhal_spi_is_status_sent()) {
+        io_seproxyhal_general_status();
+    }
+
+    return 1;
 }
 
-UX_STEP_INIT(ux_init_upper_border, NULL, NULL, { display_next_state(true); });
-UX_STEP_NOCB(ux_variable_display,
-             bnnn_paging,
-             {
-                 .title = global.dynamic_display.screen_title,
-                 .text = global.dynamic_display.screen_value,
-             });
-UX_STEP_INIT(ux_init_lower_border, NULL, NULL, { display_next_state(false); });
+#endif  // TARGET_NANOS
 
-UX_STEP_NOCB(ux_app_is_ready_step,
-             nn,
-             {
-                 "Application",
-                 "is ready",
-             });
+static void ui_refresh_idle_hwm_screen(void);
 
-UX_STEP_CB(ux_idle_quit_step,
-           pb,
-           exit_app(),
-           {
-               &C_icon_dashboard_x,
-               "Quit",
-           });
+/**
+ * @brief This structure represents a context needed for home screens navigation
+ *
+ */
+typedef struct {
+    char chain_id[CHAIN_ID_BASE58_STRING_SIZE];
+    char authorized_key[PKH_STRING_SIZE];
+    char hwm[MAX_INT_DIGITS + 1u + MAX_INT_DIGITS + 1u];
+    char hwm_status[HWM_STATUS_SIZE];
+} HomeContext_t;
+
+/// Current home context
+static HomeContext_t home_context;
+
+void ui_settings(void);    ///> Initialize settings page
+void ui_toggle_hwm(void);  ///> Toggle HWM settings
+void ui_menu_init(void);   ///> Load main menu page
+/**
+ * @brief Idle flow
+ *
+ *        - Home screen
+ *        - Version screen
+ *        - Chain-id screen
+ *        - Public key hash screen
+ *        - High Watermark screen
+ *        - Exit screen
+ *
+ */
+#ifdef TARGET_NANOS
+UX_STEP_CB(ux_app_is_ready_step, nn, ui_start_screensaver(), {"Application", "is ready"});
+#else   // TARGET_NANOS
+UX_STEP_NOCB(ux_app_is_ready_step, nn, {"Application", "is ready"});
+#endif  // TARGET_NANOS
+UX_STEP_NOCB(ux_version_step, bnnn_paging, {"Tezos Baking", APPVERSION});
+UX_STEP_NOCB(ux_chain_id_step, bnnn_paging, {"Chain", home_context.chain_id});
+UX_STEP_NOCB(ux_authorized_key_step, bnnn_paging, {"Public Key Hash", home_context.authorized_key});
+UX_STEP_CB(ux_settings_step, pb, ui_settings(), {&C_icon_coggle, "Settings"});
+UX_STEP_CB(ux_hwm_step,
+           bnnn_paging,
+           ui_refresh_idle_hwm_screen(),
+           {"High Watermark", home_context.hwm});
+UX_STEP_CB(ux_idle_quit_step, pb, app_exit(), {&C_icon_dashboard_x, "Quit"});
 
 UX_FLOW(ux_idle_flow,
         &ux_app_is_ready_step,
-
-        &ux_init_upper_border,
-        &ux_variable_display,
-        &ux_init_lower_border,
-
+        &ux_version_step,
+        &ux_chain_id_step,
+        &ux_authorized_key_step,
+        &ux_hwm_step,
+        &ux_settings_step,
         &ux_idle_quit_step,
         FLOW_LOOP);
 
-static void prompt_response(bool const accepted) {
-    ui_initial_screen();
-    if (accepted) {
-        global.dynamic_display.ok_callback();
+void ui_menu_init(void) {
+    ux_flow_init(0, ux_idle_flow, NULL);
+}
+
+UX_STEP_CB(ux_hwm_info, bn, ui_toggle_hwm(), {"High Watermark", home_context.hwm_status});
+UX_STEP_CB(ux_menu_back_step, pb, ui_menu_init(), {&C_icon_back, "Back"});
+
+// FLOW for the about submenu:
+// #1 screen: app info
+// #2 screen: back button to main menu
+UX_FLOW(ux_settings_flow, &ux_hwm_info, &ux_menu_back_step, FLOW_LOOP);
+
+void ui_settings(void) {
+    hwm_status_to_string(home_context.hwm_status,
+                         sizeof(home_context.hwm_status),
+                         &g_hwm.hwm_disabled);
+    ux_flow_init(0, ux_settings_flow, NULL);
+}
+
+void ui_toggle_hwm(void) {
+    toggle_hwm();
+    ui_settings();
+}
+
+tz_exc calculate_idle_screen_chain_id(void) {
+    tz_exc exc = SW_OK;
+
+    memset(&home_context.chain_id, 0, sizeof(home_context.chain_id));
+
+    TZ_ASSERT(chain_id_to_string_with_aliases(home_context.chain_id,
+                                              sizeof(home_context.chain_id),
+                                              &g_hwm.main_chain_id) >= 0,
+              EXC_WRONG_LENGTH);
+
+end:
+    return exc;
+}
+
+tz_exc calculate_idle_screen_authorized_key(void) {
+    tz_exc exc = SW_OK;
+
+    memset(&home_context.authorized_key, 0, sizeof(home_context.authorized_key));
+
+    if (g_hwm.baking_key.bip32_path.length == 0u) {
+        TZ_ASSERT(copy_string(home_context.authorized_key,
+                              sizeof(home_context.authorized_key),
+                              "No Key Authorized"),
+                  EXC_WRONG_LENGTH);
     } else {
-        global.dynamic_display.cxl_callback();
+        TZ_CHECK(bip32_path_with_curve_to_pkh_string(home_context.authorized_key,
+                                                     sizeof(home_context.authorized_key),
+                                                     &g_hwm.baking_key));
     }
+
+end:
+    return exc;
 }
 
-UX_STEP_CB(ux_prompt_flow_accept_step, pb, prompt_response(true), {&C_icon_validate_14, "Accept"});
+tz_exc calculate_idle_screen_hwm(void) {
+    tz_exc exc = SW_OK;
 
-UX_STEP_CB(ux_prompt_flow_reject_step, pb, prompt_response(false), {&C_icon_crossmark, "Reject"});
+    memset(&home_context.hwm, 0, sizeof(home_context.hwm));
 
-UX_STEP_NOCB(ux_eye_step,
-             nn,
-             {
-                 "Review",
-                 "Request",
-             });
+    TZ_ASSERT(hwm_to_string(home_context.hwm, sizeof(home_context.hwm), &g_hwm.hwm.main) >= 0,
+              EXC_WRONG_LENGTH);
 
-UX_FLOW(ux_confirm_flow,
-        &ux_eye_step,
-
-        &ux_init_upper_border,
-        &ux_variable_display,
-        &ux_init_lower_border,
-
-        &ux_prompt_flow_reject_step,
-        &ux_prompt_flow_accept_step);
-
-#define G_display global.dynamic_display
-
-void clear_data() {
-    explicit_bzero(&G_display.screen_title, sizeof(G_display.screen_title));
-    explicit_bzero(&G_display.screen_value, sizeof(G_display.screen_value));
+end:
+    return exc;
 }
 
-// Fills the screen with the data in the `screen_stack` pointed by the index
-// `G_display.formatter_index`. Fills the `screen_title` by copying the `.title` field and fills the
-// `screen_value` by computing `callback_fn` with the `.data` field as a parameter
-void set_screen_data() {
-    struct screen_data *fmt = &G_display.screen_stack[G_display.formatter_index];
-    if (fmt->title == NULL) {
-        // Avoid seg faulting for bad reasons...
-        G_display.formatter_index = 0;
-        fmt = &G_display.screen_stack[0];
-    }
-    clear_data();
-    copy_string((char *) G_display.screen_title, sizeof(G_display.screen_title), fmt->title);
-    fmt->callback_fn(G_display.screen_value, sizeof(G_display.screen_value), fmt->data);
-}
+tz_exc calculate_baking_idle_screens_data(void) {
+    tz_exc exc = SW_OK;
 
-/*
- * Enables coherent behavior on bnnn_paging when there are multiple
- * screens.
- */
-void update_layout() {
-    G_ux.flow_stack[G_ux.stack_count - 1].prev_index =
-        G_ux.flow_stack[G_ux.stack_count - 1].index - 2;
-    G_ux.flow_stack[G_ux.stack_count - 1].index--;
-    ux_flow_relayout();
-}
+    TZ_CHECK(calculate_idle_screen_chain_id());
 
-void display_next_state(bool is_left_ux_step) {
-    if (is_left_ux_step) {  // We're called from the LEFT ux step
-        if (G_display.current_state == STATIC_SCREEN) {
-            // The previous screen was a static screen, so we're now entering the stack (from the
-            // start of the stack).
+    TZ_CHECK(calculate_idle_screen_authorized_key());
 
-            // Since we're in the stack, set the state to DYNAMIC_SCREEN.
-            G_display.current_state = DYNAMIC_SCREEN;
-            // We're just entering the stack so the `formatter_index` is set to 0.
-            G_display.formatter_index = 0;
-            // Update the screen data.
-            set_screen_data();
-            // Move to the next step, which will display the screen.
-            ux_flow_next();
-        } else {
-            // The previous screen was NOT a static screen, so we were already in the stack.
-            if (G_display.formatter_index == 0) {
-                // If `formatter_index` is 0 then we need to exit the dynamic display.
+    TZ_CHECK(calculate_idle_screen_hwm());
 
-                // Update the current_state accordingly.
-                G_display.current_state = STATIC_SCREEN;
-                // Don't need to update the screen data, simply display the ux_flow_prev() which
-                // will be a static screen.
-                ux_flow_prev();
-            } else {
-                // The user is still browsing the stack: simply decrement `formatter_index` and
-                // update `screen_data`.
-                G_display.formatter_index--;
-                set_screen_data();
-                ux_flow_next();
-            }
-        }
-    } else {
-        // We're called from the RIGHT ux step.
-        if (G_display.current_state == STATIC_SCREEN) {
-            // We're called from a static screen, so we're now entering the stack (from the end of
-            // the stack).
-
-            // Update the current_state.
-            G_display.current_state = DYNAMIC_SCREEN;
-            // We're starting the stack from the end, so the index is the size - 1.
-            G_display.formatter_index = G_display.screen_stack_size - 1;
-            // Update the screen data.
-            set_screen_data();
-            // Since we're called from the RIGHT ux step, if we wish to display
-            // the data we need to call ux_flow_PREV and not `ux_flow_NEXT`.
-            ux_flow_prev();
-        } else {
-            // We're being called from a dynamic screen, so the user was already browsing the stack.
-            // The user wants to go to the next screen so increment the index.
-            G_display.formatter_index++;
-            if (G_display.formatter_index == G_display.screen_stack_size) {
-                // Index is equal to stack size, so time to exit the stack and display the static
-                // screens.
-
-                // Make sure we update the state accordingly.
-                G_display.current_state = STATIC_SCREEN;
-                ux_flow_next();
-            } else {
-                // We're just browsing the stack so update the screen and display it.
-                set_screen_data();
-                // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s
-                // weird behaviour.
-                update_layout();
-            }
-        }
-    }
+end:
+    return exc;
 }
 
 void ui_initial_screen(void) {
+    tz_exc exc = SW_OK;
+
     // reserve a display stack slot if none yet
     if (G_ux.stack_count == 0) {
         ux_stack_push();
     }
 
-    init_screen_stack();
-#ifdef BAKING_APP
-    calculate_baking_idle_screens_data();
-#else
-    push_ui_callback("Tezos Wallet", copy_string, VERSION);
-#endif
+    TZ_CHECK(calculate_baking_idle_screens_data());
 
-    ux_idle_screen(NULL, NULL);
+    ui_menu_init();
+    return;
+end:
+    TZ_EXC_PRINT(exc);
 }
 
-void ux_prepare_display(ui_callback_t ok_c, ui_callback_t cxl_c) {
-    global.dynamic_display.screen_stack_size = global.dynamic_display.formatter_index;
-    global.dynamic_display.formatter_index = 0;
-    global.dynamic_display.current_state = STATIC_SCREEN;
-
-    if (ok_c) global.dynamic_display.ok_callback = ok_c;
-    if (cxl_c) global.dynamic_display.cxl_callback = cxl_c;
+/**
+ * @brief Refreshes the idle HWM screen
+ *
+ *        Used to update the HWM by pushing both buttons
+ *
+ */
+static void ui_refresh_idle_hwm_screen(void) {
+    ux_flow_init(0, ux_idle_flow, &ux_hwm_step);
 }
 
-void ux_confirm_screen(ui_callback_t ok_c, ui_callback_t cxl_c) {
-    ux_prepare_display(ok_c, cxl_c);
-    ux_flow_init(0, ux_confirm_flow, NULL);
-    THROW(ASYNC_EXCEPTION);
+void ux_prepare_confirm_callbacks(ui_callback_t ok_c, ui_callback_t cxl_c) {
+    if (ok_c) {
+        G_display.ok_callback = ok_c;
+    }
+    if (cxl_c) {
+        G_display.cxl_callback = cxl_c;
+    }
 }
 
-void ux_idle_screen(ui_callback_t ok_c, ui_callback_t cxl_c) {
-    ux_prepare_display(ok_c, cxl_c);
-    ux_flow_init(0, ux_idle_flow, NULL);
+/**
+ * @brief Callback called on accept or cancel
+ *
+ * @param accepted: true if accepted, false if cancelled
+ */
+static void prompt_response(bool const accepted) {
+    if (accepted) {
+        G_display.ok_callback();
+    } else {
+        G_display.cxl_callback();
+    }
+    ui_initial_screen();
 }
+
+UX_STEP_CB(ux_prompt_flow_reject_step, pb, prompt_response(false), {&C_icon_crossmark, "Reject"});
+UX_STEP_CB(ux_prompt_flow_accept_step, pb, prompt_response(true), {&C_icon_validate_14, "Accept"});
+UX_STEP_NOCB(ux_eye_step, nn, {"Review", "Request"});
+
+void refresh_screens(void) {
+    ux_stack_redisplay();
+}
+
 #endif  // HAVE_BAGL

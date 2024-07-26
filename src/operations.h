@@ -1,3 +1,25 @@
+/* Tezos Ledger application - Operation parsing
+
+   Copyright 2024 TriliTech <contact@trili.tech>
+   Copyright 2024 Functori <contact@functori.com>
+   Copyright 2023 Ledger
+   Copyright 2022 Nomadic Labs <contact@nomadic-labs.com>
+   Copyright 2020 Obsidian Systems
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+*/
+
 #pragma once
 
 #include <stddef.h>
@@ -5,141 +27,139 @@
 #include <stdint.h>
 
 #include "keys.h"
-#include "protocol.h"
 
 #include "cx.h"
 #include "types.h"
 
-typedef bool (*is_operation_allowed_t)(enum operation_tag);
-
-// Wire format that gets parsed into `signature_type`.
+/**
+ * @brief Wire format that gets parsed into `signature_type`
+ *
+ */
 typedef struct {
-    uint8_t v;
+    uint8_t v;  ///< value of the type of header signature
 } __attribute__((packed)) raw_tezos_header_signature_type_t;
 
+/**
+ * @brief Wire representation of operation group header
+ *
+ */
 struct operation_group_header {
-    uint8_t magic_byte;
-    uint8_t hash[32];
+    uint8_t hash[32];  ///< hash of the operation
 } __attribute__((packed));
 
+/**
+ * @brief Wire representation of implicit contract
+ *
+ */
 struct implicit_contract {
-    raw_tezos_header_signature_type_t signature_type;
-    uint8_t pkh[HASH_SIZE];
+    raw_tezos_header_signature_type_t signature_type;  ///< type of the contract signature
+    uint8_t pkh[KEY_HASH_SIZE];                        ///< raw public key hash
 } __attribute__((packed));
 
-struct contract {
-    uint8_t originated;
-    union {
-        struct implicit_contract implicit;
-        struct {
-            uint8_t pkh[HASH_SIZE];
-            uint8_t padding;
-        } originated;
-    } u;
+/**
+ * @brief Wire representation of implicit contract
+ *
+ */
+union public_key {
+    uint8_t edpk[32];  ///< raw public key for a edpk key
+    uint8_t sppk[33];  ///< raw public key for a sppk key
+    uint8_t p2pk[33];  ///< raw public key for a p2pk key
 } __attribute__((packed));
 
+/**
+ * @brief Wire representation of delegation
+ *
+ */
 struct delegation_contents {
-    raw_tezos_header_signature_type_t signature_type;
-    uint8_t hash[HASH_SIZE];
+    raw_tezos_header_signature_type_t signature_type;  ///< type of the delegate signature
+    uint8_t hash[KEY_HASH_SIZE];                       ///< raw delegate
 } __attribute__((packed));
 
-struct proposal_contents {
-    int32_t period;
-    size_t num_bytes;
-    uint8_t hash[PROTOCOL_HASH_SIZE];
-} __attribute__((packed));
-
-struct ballot_contents {
-    int32_t period;
-    uint8_t proposal[PROTOCOL_HASH_SIZE];
-    int8_t ballot;
-} __attribute__((packed));
-
-typedef struct {
-    uint8_t v[HASH_SIZE];
-} __attribute__((packed)) hash_t;
-
+/**
+ * @brief This structure represents the state of a Z parser
+ *
+ */
 struct int_subparser_state {
-    uint32_t lineno;  // Has to be in _all_ members of the subparser union.
-    uint64_t value;   // Still need to fix this.
-    uint8_t shift;
+    uint32_t lineno;  ///< line number
+                      ///< Has to be in _all_ members of the subparser union.
+    uint64_t value;   ///< Read value
+                      /// Still need to fix this.
+    uint8_t shift;    ///< Z shift
 };
 
+/**
+ * @brief This structure represents the state of a wire type parser
+ *
+ *        Allows to read data using wire representation types
+ *
+ *        Fills body using raw and an increasing fill_idx
+ *
+ */
 struct nexttype_subparser_state {
-    uint32_t lineno;
+    uint32_t lineno;  ///< line number
+
+    /// union of all wire structure
     union {
-        raw_tezos_header_signature_type_t sigtype;
+        raw_tezos_header_signature_type_t sigtype;  ///< wire signature_type
 
-        struct operation_group_header ogh;
+        struct operation_group_header ogh;  ///< wire operation group header
 
-        struct implicit_contract ic;
-        struct contract c;
+        struct implicit_contract ic;  ///< wire implicit contract
 
-        struct delegation_contents dc;
-        struct proposal_contents pc;
-        struct ballot_contents bc;
+        struct delegation_contents dc;  ///< wire delegation content
 
-        hash_t ht;
+        // Required to read Reveal public key
+        union public_key pk;  ///< wire public key
 
-        uint16_t i16;
-        uint32_t i32;
-        uint64_t i64;
-
-        uint8_t raw[1];
-        uint8_t key[64];  // FIXME: check key length for non-tz1.
-        uint8_t text_pkh[HASH_SIZE_B58];
+        uint8_t raw[1];  ///< raw array to fill the body
     } body;
-    uint32_t fill_idx;
+    uint32_t fill_idx;  ///< current fill index
 };
 
-struct michelson_address_subparser_state {
-    uint32_t lineno;
-    uint8_t address_step;
-    uint8_t micheline_type;
-    uint32_t addr_length;
-    hash_t key_hash;
-    parsed_contract_t result;  // Not neccessarily optimal, but easy.
-    struct nexttype_subparser_state subsub_state;
-    raw_tezos_header_signature_type_t signature_type;
-};
-
+/**
+ * @brief This structure represents the union of all subparsers
+ *
+ */
 union subparser_state {
-    struct int_subparser_state integer;
-    struct nexttype_subparser_state nexttype;
-    struct michelson_address_subparser_state michelson_address;
+    struct int_subparser_state integer;        ///< state of a n integer parser
+    struct nexttype_subparser_state nexttype;  ///< state of a wire type parser
 };
 
+/**
+ * @brief This structure represents the parsing state
+ *
+ */
 struct parse_state {
-    int16_t op_step;
-    union subparser_state subparser_state;
-    enum operation_tag tag;
-    uint32_t argument_length;
-    uint16_t michelson_op;
-    uint16_t contract_code;
-
-    // Places to stash textual base58-encoded PKHes.
-    char base58_pkh1[HASH_SIZE_B58];
-    char base58_pkh2[HASH_SIZE_B58];
+    int16_t op_step;                        ///< current parsing step
+    union subparser_state subparser_state;  ///< state of subparser
+    enum operation_tag tag;                 ///< current operation tag
 };
 
-// Allows arbitrarily many "REVEAL" operations but only one operation of any other type,
-// which is the one it puts into the group.
-bool parse_operations(struct parsed_operation_group *const out,
-                      uint8_t const *const data,
-                      size_t length,
-                      derivation_type_t curve,
-                      bip32_path_t const *const bip32_path,
-                      is_operation_allowed_t is_operation_allowed);
+/**
+ * @brief Parses a group of operation
+ *
+ *        Allows arbitrarily many "REVEAL" operations but only one
+ *        operation of any other type, which is the one it puts into
+ *        the group.
+ *
+ *        Some checks are carried out during the parsing using a key using a key
+ *
+ * @param buf: input operation
+ * @param out: parsing output
+ * @param curve: curve of the key
+ * @param path_with_curve: bip32 path and curve of the key
+ * @return tz_exc: exception, SW_OK if none
+ */
+tz_exc parse_operations(buffer_t *buf,
+                        struct parsed_operation_group *const out,
+                        bip32_path_with_curve_t const *const path_with_curve);
 
-void parse_operations_init(struct parsed_operation_group *const out,
-                           derivation_type_t derivation_type,
-                           bip32_path_t const *const bip32_path,
-                           struct parse_state *const state);
-
+/**
+ * @brief Checks parsing has been completed successfully
+ *
+ * @param state: parsing state
+ * @param out: parsing output
+ * @return bool: returns true on success
+ */
 bool parse_operations_final(struct parse_state *const state,
                             struct parsed_operation_group *const out);
-
-bool parse_operations_packet(struct parsed_operation_group *const out,
-                             uint8_t const *const data,
-                             size_t length,
-                             is_operation_allowed_t is_operation_allowed);
