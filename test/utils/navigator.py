@@ -21,6 +21,7 @@ import time
 
 from contextlib import contextmanager
 from multiprocessing.pool import ThreadPool
+from enum import Enum
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
@@ -74,6 +75,28 @@ def send_and_navigate(send: Callable[[], RESPONSE], navigate: Callable[[], None]
             time.sleep(0.1)
 
         return result
+
+class FixedScreen(str, Enum):
+    """Class representing screens that have fixed display."""
+
+class NanoFixedScreen(FixedScreen):
+    """FixedScreen for Nano devices."""
+    HOME_WELCOME   = "welcome"
+    HOME_VERSION   = "version"
+    HOME_SETTINGS  = "settings"
+    HOME_QUIT      = "exit"
+    HOME_BLACK     = "black_screen"
+    SETTINGS_HMW_DISABLED = "hwm_status_disabled"
+    SETTINGS_HMW_ENABLED  = "hwm_status_enabled"
+    SETTINGS_BACK         = "back"
+
+class TouchFixedScreen(FixedScreen):
+    """FixedScreen for Touch devices."""
+    HOME = "home"
+    SETTINGS_HMW_DISABLED  = "hwm_status_disabled"
+    SETTINGS_HMW_ENABLED   = "hwm_status_enabled"
+    SETTINGS_DESCRIPTION   = "description"
+
 
 class UseCaseReview(OriginalUseCaseReview):
     """Extension of UseCaseReview for our app."""
@@ -133,8 +156,6 @@ class UseCaseSettings(OriginalUseCaseSettings):
         """Exits settings."""
         self.multi_page_exit()
 
-APP_CONTEXT = Path("app_context")
-
 
 class TezosNavigator(metaclass=MetaScreen):
     """Class representing the tezos app navigator."""
@@ -157,8 +178,6 @@ class TezosNavigator(metaclass=MetaScreen):
     _golden_run:        bool
     _root_dir:          Path
     _test_name:         str
-    _snapshots_dir:     Path
-    _tmp_snapshots_dir: Path
 
     def __init__(self,
                  backend: BackendInterface,
@@ -175,10 +194,14 @@ class TezosNavigator(metaclass=MetaScreen):
         self._golden_run        = golden_run
         self._root_dir          = TESTS_ROOT_DIR
         self._test_name         = test_name
-        self._snapshots_dir     = \
-            self._root_dir / "snapshots" / self.firmware.name / self._test_name
-        self._tmp_snapshots_dir = \
-            self._root_dir / "snapshots-tmp" / self.firmware.name / self._test_name
+
+    @property
+    def _snapshots_dir(self) -> Path:
+        return self._root_dir / "snapshots" / self.firmware.name
+
+    @property
+    def _tmp_snapshots_dir(self) -> Path:
+        return self._root_dir / "snapshots-tmp" / self.firmware.name
 
     def navigate_and_compare(self,
                              snap_path: Optional[Union[Path, str]] = None,
@@ -210,11 +233,16 @@ class TezosNavigator(metaclass=MetaScreen):
         return can_navigate or can_navigate_until
 
     def assert_screen(self,
-                      name: str,
+                      screen: Union[FixedScreen, str],
                       snap_path: Path = Path("")) -> None:
         """Assert the current screen is the golden snap_path."""
 
-        snap_path = snap_path / f"{name}.png"
+        if isinstance(screen, FixedScreen):
+            snap_path = Path("")
+        else:
+            snap_path = Path(self._test_name) / snap_path
+
+        snap_path = snap_path / f"{screen}.png"
         golden_path = self._snapshots_dir / snap_path
         if not golden_path.parent.is_dir() and self._golden_run:
             golden_path.parent.mkdir(parents=True)
@@ -232,9 +260,7 @@ class TezosNavigator(metaclass=MetaScreen):
                           account: Optional[Account],
                           chain_id: str,
                           main_hwm: Hwm,
-                          test_hwm: Hwm,
-                          snap_path: Path = Path(""),
-                          backend_name = "speculos") -> None:
+                          test_hwm: Hwm) -> None:
         """Check that the app context."""
 
         received_chain_id, received_main_hwm, received_test_hwm = self.client.get_all_hwm()
@@ -259,125 +285,91 @@ class TezosNavigator(metaclass=MetaScreen):
                 f"Expected signature scheme {account.sig_scheme.name} "\
                 f"but got {received_sig_scheme.name}"
 
-        if backend_name != "speculos":
-            return
+    @contextmanager
+    def goto_home_public_key(self) -> Generator[None, None, None]:
+        """Action from authorized key screen."""
 
-        snap_path = snap_path / APP_CONTEXT
         if self.firmware.is_nano:
             self.backend.wait_for_home_screen()
             self.backend.right_click()
             self.backend.wait_for_screen_change()
-            self.assert_screen("version", snap_path=snap_path)
+            self.assert_screen(NanoFixedScreen.HOME_VERSION)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
-            self.assert_screen("chain_id", snap_path=snap_path)
+            # chain_id
             self.backend.right_click()
             self.backend.wait_for_screen_change()
-            if account is not None and self.firmware.device == "nanos":
-                for i in range(1, account.nanos_screens + 1):
-                    self.assert_screen("public_key_hash_" + str(i), snap_path=snap_path)
-                    self.backend.right_click()
-                    self.backend.wait_for_screen_change()
-            else:
-                self.assert_screen("public_key_hash", snap_path=snap_path)
-                self.backend.right_click()
+        else:
+            self.assert_screen(TouchFixedScreen.HOME)
+            self.home.settings()
+            self.backend.wait_for_screen_change()
+            # hwm_status
+            self.settings.next()
+            self.backend.wait_for_screen_change()
+
+        # Stax: chain_id + pkh + hwm
+        # Flex: chain_id + pkh
+        yield
+
+        if self.firmware.is_nano:
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
+            # chain_id
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen(NanoFixedScreen.HOME_VERSION)
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen(NanoFixedScreen.HOME_WELCOME)
+        else:
+            self.settings.exit()
+            self.backend.wait_for_screen_change()
+            self.assert_screen(TouchFixedScreen.HOME)
+
+    @contextmanager
+    def goto_home_hwm(self) -> Generator[None, None, None]:
+        """Action from authorized key screen."""
+
+        if self.firmware.is_nano:
+            self.backend.wait_for_home_screen()
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen(NanoFixedScreen.HOME_QUIT)
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
+            self.assert_screen(NanoFixedScreen.HOME_SETTINGS)
+            self.backend.left_click()
+            self.backend.wait_for_screen_change()
+        else:
+            self.assert_screen(TouchFixedScreen.HOME)
+            self.home.settings()
+            self.backend.wait_for_screen_change()
+            # hwm_status
+            self.settings.next()
+            self.backend.wait_for_screen_change()
+            if self.firmware == Firmware.FLEX:
+                # chain_id + pkh
+                self.settings.next()
                 self.backend.wait_for_screen_change()
-            self.assert_screen("high_watermark", snap_path=snap_path)
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("settings", snap_path=snap_path)
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("exit", snap_path=snap_path)
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("home_screen", snap_path=snap_path)
-        else:
-            self.assert_screen("home_screen", snap_path=snap_path)
-            self.home.settings()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("app_context", snap_path=snap_path)
-            self.settings.next()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("hwm_status", snap_path=snap_path)
-            self.settings.next()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("description", snap_path=snap_path)
-            self.settings.exit()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("home_screen", snap_path=snap_path)
 
-    @contextmanager
-    def goto_home_public_key(self, snap_path: Path = Path("")) -> Generator[None, None, None]:
-        snap_path = snap_path / APP_CONTEXT
-
-        if self.firmware.is_nano:
-            self.backend.wait_for_home_screen()
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("version", snap_path=snap_path)
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("chain_id", snap_path=snap_path)
-            self.backend.right_click()
-            self.backend.wait_for_screen_change()
-        else:
-            self.assert_screen("home_screen", snap_path=snap_path)
-            self.home.settings()
-            self.backend.wait_for_screen_change()
-
-        yield
-
-        if self.firmware.is_nano:
-            self.backend.left_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("chain_id", snap_path=snap_path)
-            self.backend.left_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("version", snap_path=snap_path)
-            self.backend.left_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("home_screen", snap_path=snap_path)
-        else:
-            self.settings.exit()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("home_screen", snap_path=snap_path)
-
-    @contextmanager
-    def goto_home_hwm(self, snap_path: Path = Path("")) -> Generator[None, None, None]:
-        snap_path = snap_path / APP_CONTEXT
-
-        if self.firmware.is_nano:
-            self.backend.wait_for_home_screen()
-            self.backend.left_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("exit", snap_path=snap_path)
-            self.backend.left_click()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("settings", snap_path=snap_path)
-            self.backend.left_click()
-            self.backend.wait_for_screen_change()
-        else:
-            self.assert_screen("home_screen", snap_path=snap_path)
-            self.home.settings()
-            self.backend.wait_for_screen_change()
-
+        # Stax: chain_id + pkh + hwm
+        # Flex: hwm + version
         yield
 
         if self.firmware.is_nano:
             self.backend.right_click()
             self.backend.wait_for_screen_change()
-            self.assert_screen("settings", snap_path=snap_path)
+            self.assert_screen(NanoFixedScreen.HOME_SETTINGS)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
-            self.assert_screen("exit", snap_path=snap_path)
+            self.assert_screen(NanoFixedScreen.HOME_QUIT)
             self.backend.right_click()
             self.backend.wait_for_screen_change()
-            self.assert_screen("home_screen", snap_path=snap_path)
+            self.assert_screen(NanoFixedScreen.HOME_WELCOME)
         else:
             self.settings.exit()
             self.backend.wait_for_screen_change()
-            self.assert_screen("home_screen", snap_path=snap_path)
+            self.assert_screen(TouchFixedScreen.HOME)
 
     def accept_key_navigate(self, **kwargs):
         """Navigate until accept key"""
@@ -566,33 +558,30 @@ class TezosNavigator(metaclass=MetaScreen):
         self.backend.both_click()
         self.backend.wait_for_screen_change()
 
-    def disable_hwm(self, snap_path: Path) -> None:
+    def disable_hwm(self) -> None:
         """Disables HWM settings by navigating on the screen starting from home_screen"""
         if self.firmware.is_nano:
-            self.assert_screen("home_screen",snap_path)
+            self.assert_screen(NanoFixedScreen.HOME_WELCOME)
             self.left()
-            self.assert_screen("quit",snap_path)
+            self.assert_screen(NanoFixedScreen.HOME_QUIT)
             self.left()
-            self.assert_screen("Settings",snap_path)
+            self.assert_screen(NanoFixedScreen.HOME_SETTINGS)
             self.press_both_buttons()
-            self.assert_screen("hwm_enabled",snap_path)
+            self.assert_screen(NanoFixedScreen.SETTINGS_HMW_ENABLED)
             self.press_both_buttons()
-            self.assert_screen("hwm_disabled",snap_path)
+            self.assert_screen(NanoFixedScreen.SETTINGS_HMW_DISABLED)
             self.right()
-            self.assert_screen("back",snap_path)
+            self.assert_screen(NanoFixedScreen.SETTINGS_BACK)
             self.press_both_buttons()
-            self.assert_screen("home_screen",snap_path)
+            self.assert_screen(NanoFixedScreen.HOME_WELCOME)
         else:
             self.backend.wait_for_home_screen()
             self.home.settings()
             self.backend.wait_for_screen_change()
-            self.assert_screen("app_context",snap_path)
-            self.settings.next()
-            self.backend.wait_for_screen_change()
-            self.assert_screen("hwm_status_on",snap_path)
+            self.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
             self.settings.toggle_hwm_status()
             self.backend.wait_for_screen_change()
-            self.assert_screen("hwm_status_off",snap_path)
+            self.assert_screen(TouchFixedScreen.SETTINGS_HMW_DISABLED)
             self.settings.exit()
             self.backend.wait_for_screen_change()
-            self.assert_screen("home_screen",snap_path)
+            self.assert_screen(TouchFixedScreen.HOME)

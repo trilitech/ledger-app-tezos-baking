@@ -43,7 +43,12 @@ from utils.message import (
     Block,
     DEFAULT_CHAIN_ID
 )
-from utils.navigator import TezosNavigator, send_and_navigate
+from utils.navigator import (
+    TezosNavigator,
+    NanoFixedScreen,
+    TouchFixedScreen,
+    send_and_navigate
+)
 from common import (
     DEFAULT_ACCOUNT,
     DEFAULT_ACCOUNT_2,
@@ -75,9 +80,9 @@ def test_review_home(account: Optional[Account],
         )
 
     if firmware.is_nano:
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("version", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_VERSION)
         tezos_navigator.right()
         tezos_navigator.assert_screen("chain_id", snap_path)
         tezos_navigator.right()
@@ -90,15 +95,15 @@ def test_review_home(account: Optional[Account],
             tezos_navigator.right()
         tezos_navigator.assert_screen("high_watermark", snap_path)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_SETTINGS)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_QUIT)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_QUIT)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_SETTINGS)
         tezos_navigator.left()
         tezos_navigator.assert_screen("high_watermark", snap_path)
         tezos_navigator.left()
@@ -111,82 +116,121 @@ def test_review_home(account: Optional[Account],
             tezos_navigator.left()
         tezos_navigator.assert_screen("chain_id", snap_path)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("version", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_VERSION)
         tezos_navigator.right()
         tezos_navigator.assert_screen("chain_id", snap_path)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("version", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_VERSION)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_QUIT)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_SETTINGS)
         tezos_navigator.left()
         tezos_navigator.assert_screen("high_watermark", snap_path)
         tezos_navigator.right()
         # Check settings menu
-        tezos_navigator.assert_screen("settings", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_SETTINGS)
         tezos_navigator.press_both_buttons()
-        tezos_navigator.assert_screen("hwm_status_enabled", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.press_both_buttons()
-        tezos_navigator.assert_screen("hwm_status_disabled", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_HMW_DISABLED)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("back", snap_path)
-        tezos_navigator.press_both_buttons()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_BACK)
         tezos_navigator.left()
-        tezos_navigator.assert_screen("exit", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_HMW_DISABLED)
+        tezos_navigator.press_both_buttons()
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.right()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(NanoFixedScreen.SETTINGS_BACK)
+        tezos_navigator.press_both_buttons()
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
+        tezos_navigator.left()
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_QUIT)
+        tezos_navigator.right()
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
         tezos_navigator.left()
     else:
         backend.wait_for_home_screen()
         tezos_navigator.home.settings()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("app_context", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status", snap_path)
+        if tezos_navigator.firmware == Firmware.STAX:
+            # chain_id + pkh + hwm
+            tezos_navigator.assert_screen("app_context", snap_path)
+        elif tezos_navigator.firmware == Firmware.FLEX:
+            # chain_id + pkh
+            tezos_navigator.assert_screen("app_context_1", snap_path)
+            tezos_navigator.settings.next()
+            backend.wait_for_screen_change()
+            # hwm + version
+            tezos_navigator.assert_screen("app_context_2", snap_path)
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("description", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_DESCRIPTION)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status", snap_path)
+        if tezos_navigator.firmware == Firmware.STAX:
+            # chain_id + pkh + hwm
+            tezos_navigator.assert_screen("app_context", snap_path)
+        elif tezos_navigator.firmware == Firmware.FLEX:
+            # hwm + version
+            tezos_navigator.assert_screen("app_context_2", snap_path)
+            tezos_navigator.settings.previous()
+            backend.wait_for_screen_change()
+            # chain_id + pkh
+            tezos_navigator.assert_screen("app_context_1", snap_path)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("app_context", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.settings.exit()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.HOME)
         tezos_navigator.home.settings()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("app_context", snap_path)
-        tezos_navigator.settings.next()
-        backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status_on", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.settings.toggle_hwm_status()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status_off", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_DISABLED)
+        tezos_navigator.settings.next()
+        backend.wait_for_screen_change()
+        if tezos_navigator.firmware == Firmware.STAX:
+            # chain_id + pkh + hwm
+            tezos_navigator.assert_screen("app_context", snap_path)
+        elif tezos_navigator.firmware == Firmware.FLEX:
+            # chain_id + pkh
+            tezos_navigator.assert_screen("app_context_1", snap_path)
+            tezos_navigator.settings.next()
+            backend.wait_for_screen_change()
+            # hwm + version
+            tezos_navigator.assert_screen("app_context_2", snap_path)
+        tezos_navigator.settings.next()
+        backend.wait_for_screen_change()
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_DESCRIPTION)
+        tezos_navigator.settings.previous()
+        backend.wait_for_screen_change()
+        if tezos_navigator.firmware == Firmware.STAX:
+            # chain_id + pkh + hwm
+            tezos_navigator.assert_screen("app_context", snap_path)
+        elif tezos_navigator.firmware == Firmware.FLEX:
+            # hwm + version
+            tezos_navigator.assert_screen("app_context_2", snap_path)
+            tezos_navigator.settings.previous()
+            backend.wait_for_screen_change()
+            # chain_id + pkh
+            tezos_navigator.assert_screen("app_context_1", snap_path)
+        tezos_navigator.settings.previous()
+        backend.wait_for_screen_change()
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_DISABLED)
         tezos_navigator.settings.toggle_hwm_status()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status_on", snap_path)
-        tezos_navigator.settings.next()
-        backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("description", snap_path)
-        tezos_navigator.settings.previous()
-        backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status_on", snap_path)
-        tezos_navigator.settings.previous()
-        backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("app_context", snap_path)
-        tezos_navigator.settings.next()
-        backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("hwm_status_on", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_HMW_ENABLED)
         tezos_navigator.settings.exit()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("home_screen", snap_path)
+        tezos_navigator.assert_screen(TouchFixedScreen.HOME)
 
 
 def test_low_cost_screensaver(firmware: Firmware,
@@ -202,14 +246,14 @@ def test_low_cost_screensaver(firmware: Firmware,
         backend.left_click,
         backend.right_click,
     ]
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
     for click in all_click:
         backend.both_click()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("black")
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
         click()
         backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("home_screen")
+        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
 def test_automatic_low_cost_screensaver(firmware: Firmware,
                                         backend: BackendInterface,
@@ -229,12 +273,12 @@ def test_automatic_low_cost_screensaver(firmware: Firmware,
         Hwm(0, 0)
     )
 
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver activate only after signing
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     attestation = build_attestation(
         op_level=1,
@@ -247,22 +291,22 @@ def test_automatic_low_cost_screensaver(firmware: Firmware,
     time.sleep(5)
 
     # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver has been activated
     backend.wait_for_screen_change()
-    tezos_navigator.assert_screen("black")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
 
     backend.both_click()
     backend.wait_for_screen_change()
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver deactivate after button push
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
 def test_automatic_low_cost_screensaver_cancelled_by_display(
         firmware: Firmware,
@@ -294,7 +338,7 @@ def test_automatic_low_cost_screensaver_cancelled_by_display(
     time.sleep(5)
 
     # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     def delayed_authorize_navigate(**kwargs):
         time.sleep(30)
@@ -343,23 +387,23 @@ def test_automatic_low_cost_screensaver_exited_by_display(
     time.sleep(5)
 
     # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver has been activated
     backend.wait_for_screen_change()
-    tezos_navigator.assert_screen("black")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
 
     # Exit the low-cost screensaver by display
     tezos_navigator.authorize_baking(account, snap_path=Path("authorize"))
 
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver deactivate after display
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     attestation = build_attestation(
         op_level=2,
@@ -372,19 +416,19 @@ def test_automatic_low_cost_screensaver_exited_by_display(
     time.sleep(5)
 
     # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen("home_screen")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
 
     time.sleep(30)
 
     # Low-cost screensaver has been activated
     backend.wait_for_screen_change()
-    tezos_navigator.assert_screen("black")
+    tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
 
 
 def test_version(client: TezosClient) -> None:
     """Test the VERSION instruction."""
 
-    expected_version = Version(Version.AppKind.BAKING, 2, 4, 7)
+    expected_version = Version(Version.AppKind.BAKING, 2, 5, 0)
 
     version = client.version()
 
@@ -403,7 +447,6 @@ def test_git(client: TezosClient) -> None:
 
 
 def test_ledger_screensaver(firmware: Firmware,
-                            backend: BackendInterface,
                             client: TezosClient,
                             tezos_navigator: TezosNavigator,
                             backend_name) -> None:
@@ -429,7 +472,7 @@ def test_ledger_screensaver(firmware: Firmware,
         main_hwm,
         test_hwm
     )
-    for i in range(120):
+    for _ in range(120):
         lvl += 1
         attestation = build_attestation(
             op_level=lvl,
@@ -466,7 +509,7 @@ def test_benchmark_attestation_time(account: Account, client: TezosClient, tezos
     )
     st = time.time()
     # Run test for 100 times.
-    for i in range(100):
+    for _ in range(100):
         lvl += 1
         attestation = build_attestation(
             op_level=lvl,
@@ -492,8 +535,7 @@ def test_authorize_baking(account: Account, tezos_navigator: TezosNavigator) -> 
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(0, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=snap_path
+        test_hwm=Hwm(0, 0)
     )
 
 
@@ -625,8 +667,7 @@ def test_setup_app_context(account: Account, tezos_navigator: TezosNavigator) ->
         account,
         chain_id=main_chain_id,
         main_hwm=main_hwm,
-        test_hwm=test_hwm,
-        snap_path=snap_path
+        test_hwm=test_hwm
     )
 
 
@@ -768,8 +809,8 @@ def test_sign_preattestation(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        snap_path=snap_path    )
+        test_hwm=Hwm(0, 0)
+    )
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -825,8 +866,8 @@ def test_sign_attestation(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        snap_path=snap_path)
+        test_hwm=Hwm(0, 0)
+    )
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -882,8 +923,8 @@ def test_sign_attestation_dal(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        snap_path=snap_path)
+        test_hwm=Hwm(0, 0)
+    )
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -939,8 +980,8 @@ def test_sign_block(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 2),
-        test_hwm=Hwm(0, 0),
-        snap_path=snap_path)
+        test_hwm=Hwm(0, 0)
+    )
 
 
 def test_sign_block_at_reset_level(client: TezosClient, tezos_navigator: TezosNavigator) -> None:
@@ -1463,15 +1504,12 @@ def test_sign_multiple_operation(
 
 def test_sign_when_hwm_disabled(
         client: TezosClient,
-        backend: BackendInterface,
-        firmware: Firmware,
         tezos_navigator: TezosNavigator) -> None:
     """Check that signing, when HWM is disabled, changes the main HWM."""
 
     account = DEFAULT_ACCOUNT
-    snap_path = Path(f"{account}")
 
-    tezos_navigator.disable_hwm(snap_path)
+    tezos_navigator.disable_hwm()
 
     tezos_navigator.setup_app_context(
         account,
@@ -1491,8 +1529,8 @@ def test_sign_when_hwm_disabled(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(1, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_1_0"))
+        test_hwm=Hwm(0, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1505,8 +1543,8 @@ def test_sign_when_hwm_disabled(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(2, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_2_0"))
+        test_hwm=Hwm(0, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1520,8 +1558,7 @@ def test_sign_when_hwm_disabled(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(2, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_2_0")
+        test_hwm=Hwm(0, 0)
     )
 
 
@@ -1537,7 +1574,6 @@ def test_hwm_disabled_exit(client: TezosClient, tezos_navigator: TezosNavigator,
         return
 
     account = DEFAULT_ACCOUNT
-    snap_path = Path(f"{account}")
 
     hwm_input = input("Is hwm disabled ? (y/n)")
     hwm_disabled = False
@@ -1597,8 +1633,8 @@ def test_sign_when_no_chain_setup(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(1, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_1_0"))
+        test_hwm=Hwm(0, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1611,8 +1647,8 @@ def test_sign_when_no_chain_setup(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(2, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_2_0"))
+        test_hwm=Hwm(0, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1626,8 +1662,7 @@ def test_sign_when_no_chain_setup(
         account,
         chain_id=DEFAULT_CHAIN_ID,
         main_hwm=Hwm(2, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_2_0")
+        test_hwm=Hwm(0, 0)
     )
 
 
@@ -1657,8 +1692,8 @@ def test_sign_when_chain_is_setup(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
-        test_hwm=Hwm(0, 0),
-        snap_path=Path("sign_1_0"))
+        test_hwm=Hwm(0, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1671,8 +1706,8 @@ def test_sign_when_chain_is_setup(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
-        test_hwm=Hwm(2, 0),
-        snap_path=Path("sign_2_0"))
+        test_hwm=Hwm(2, 0)
+    )
 
     attestation = build_attestation(
         2, 0,
@@ -1686,8 +1721,7 @@ def test_sign_when_chain_is_setup(
         account,
         chain_id=main_chain_id,
         main_hwm=Hwm(1, 0),
-        test_hwm=Hwm(2, 0),
-        snap_path=Path("sign_2_0")
+        test_hwm=Hwm(2, 0)
     )
 
 

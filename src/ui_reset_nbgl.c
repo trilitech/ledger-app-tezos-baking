@@ -35,6 +35,16 @@
 #include "nbgl_use_case.h"
 #define G global.apdu.u.baking
 
+#define MAX_LENGTH (MAX_INT_DIGITS + 1u)
+
+/**
+ * @brief Index of values for the reset flow
+ */
+typedef enum {
+    LEVEL_IDX = 0,
+    RESET_TAG_VALUE_NB
+} ResetTagValueIndex_t;
+
 /**
  * @brief This structure represents a context needed for reset screens navigation
  *
@@ -42,10 +52,9 @@
 typedef struct {
     ui_callback_t ok_cb;   /// accept callback
     ui_callback_t cxl_cb;  /// cancel callback
-    nbgl_layoutTagValue_t tagValuePair[1];
+    nbgl_layoutTagValue_t tagValuePair[RESET_TAG_VALUE_NB];
     nbgl_layoutTagValueList_t tagValueList;
-    nbgl_pageInfoLongPress_t infoLongPress;
-    char buffer[MAX_INT_DIGITS + 1u];  /// value buffer
+    char tagValueRef[RESET_TAG_VALUE_NB][MAX_LENGTH];
 } ResetContext_t;
 
 /// Current reset context
@@ -59,7 +68,7 @@ static ResetContext_t reset_context;
 static void confirmation_callback(bool confirm) {
     if (confirm) {
         reset_context.ok_cb();
-        nbgl_useCaseStatus("RESET\nCONFIRMED", true, ui_initial_screen);
+        nbgl_useCaseStatus("Reset confirmed", true, ui_initial_screen);
     } else {
         reset_context.cxl_cb();
         nbgl_useCaseStatus("Reset cancelled", false, ui_initial_screen);
@@ -74,23 +83,59 @@ static void cancel_callback(void) {
     confirmation_callback(false);
 }
 
+typedef enum {
+    CONFIRM_TOKEN = FIRST_USER_TOKEN
+} tz_resetToken_t;
+
 /**
- * @brief Draws a confirmation page
+ * @brief Callback called during reset flow
  *
  */
-static void confirm_reset_page(void) {
-    reset_context.tagValueList.pairs = reset_context.tagValuePair;
-
-    reset_context.infoLongPress.icon = &C_tezos;
-    reset_context.infoLongPress.longPressText = "Approve";
-    reset_context.infoLongPress.tuneId = TUNE_TAP_CASUAL;
-    reset_context.infoLongPress.text = "Confirm HWM reset";
-
-    nbgl_useCaseStaticReviewLight(&reset_context.tagValueList,
-                                  &reset_context.infoLongPress,
-                                  "Cancel",
-                                  confirmation_callback);
+static void resetCallback(tz_resetToken_t token, uint8_t index, int page) {
+    UNUSED(index);
+    UNUSED(page);
+    if (token == CONFIRM_TOKEN) {
+        confirmation_callback(true);
+    }
 }
+
+#define RESET_CONTENT_NB 3
+
+// clang-format off
+static const nbgl_content_t resetContentList[RESET_CONTENT_NB] = {
+  {
+    .type = CENTERED_INFO,
+    .content.centeredInfo = {
+      .text1 = "Reset HWM",
+      .text3 = "Swipe to review",
+      .icon  = &C_tezos,
+      .style = LARGE_CASE_GRAY_INFO,
+    }
+  },
+  {
+    .type = TAG_VALUE_LIST,
+    .content.tagValueList = {
+      .pairs   = reset_context.tagValuePair,
+      .nbPairs = RESET_TAG_VALUE_NB,
+    }
+  },
+  {
+    .type = INFO_BUTTON,
+    .content.infoButton = {
+      .text        = "Confirm HWM reset",
+      .icon        = &C_tezos,
+      .buttonText  = "Approve",
+      .buttonToken = CONFIRM_TOKEN
+    },
+    .contentActionCallback = (nbgl_contentActionCallback_t) resetCallback
+  }
+};
+
+static const nbgl_genericContents_t resetContents = {
+  .contentsList = resetContentList,
+  .nbContents = RESET_CONTENT_NB
+};
+// clang-format on
 
 int prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     tz_exc exc = SW_OK;
@@ -99,20 +144,17 @@ int prompt_reset(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     reset_context.cxl_cb = cxl_cb;
 
     TZ_ASSERT(
-        number_to_string(reset_context.buffer, sizeof(reset_context.buffer), G.reset_level) >= 0,
+        number_to_string(reset_context.tagValueRef[LEVEL_IDX], MAX_LENGTH, G.reset_level) >= 0,
         EXC_WRONG_LENGTH);
 
-    reset_context.tagValuePair[0].item = "Reset level";
-    reset_context.tagValuePair[0].value = reset_context.buffer;
+    reset_context.tagValuePair[LEVEL_IDX].item = "Reset level";
+    reset_context.tagValuePair[LEVEL_IDX].value = reset_context.tagValueRef[LEVEL_IDX];
 
-    reset_context.tagValueList.nbPairs = 1;
+    reset_context.tagValueList.nbPairs = RESET_TAG_VALUE_NB;
+    reset_context.tagValueList.pairs = reset_context.tagValuePair;
 
-    nbgl_useCaseReviewStart(&C_tezos,
-                            "Reset HWM",
-                            NULL,
-                            "Cancel",
-                            confirm_reset_page,
-                            cancel_callback);
+    nbgl_useCaseGenericReview(&resetContents, "Cancel", cancel_callback);
+
     return 0;
 
 end:

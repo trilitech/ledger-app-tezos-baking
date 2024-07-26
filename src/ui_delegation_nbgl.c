@@ -38,7 +38,14 @@
 
 #define MAX_LENGTH 100
 
-#define PARSE_ERROR() THROW(EXC_PARSE_ERROR)
+/**
+ * @brief Index of values for the delegation flow
+ */
+typedef enum {
+    ADDRESS_IDX = 0,
+    FEE_IDX,
+    DELEGATION_TAG_VALUE_NB
+} DelegationTagValueIndex_t;
 
 /**
  * @brief This structure represents a context needed for delegation screens navigation
@@ -47,34 +54,13 @@
 typedef struct {
     ui_callback_t ok_cb;   /// accept callback
     ui_callback_t cxl_cb;  /// cancel callback
-    nbgl_layoutTagValue_t tagValuePair[6];
+    nbgl_layoutTagValue_t tagValuePair[DELEGATION_TAG_VALUE_NB];
     nbgl_layoutTagValueList_t tagValueList;
-    nbgl_pageInfoLongPress_t infoLongPress;
-    const char* confirmed_status;
-    const char* cancelled_status;
-    char buffer[6][MAX_LENGTH];
+    char tagValueRef[DELEGATION_TAG_VALUE_NB][MAX_LENGTH];
 } DelegationContext_t;
 
 /// Current delegation context
 static DelegationContext_t delegation_context;
-
-/**
- * @brief Callback called when delegation is rejected
- *
- */
-static void cancel_callback(void) {
-    nbgl_useCaseStatus(delegation_context.cancelled_status, false, ui_initial_screen);
-    delegation_context.cxl_cb();
-}
-
-/**
- * @brief Callback called when delegation is approved
- *
- */
-static void approve_callback(void) {
-    nbgl_useCaseStatus(delegation_context.confirmed_status, true, ui_initial_screen);
-    delegation_context.ok_cb();
-}
 
 /**
  * @brief Callback called when delegation is accepted or cancelled
@@ -83,25 +69,12 @@ static void approve_callback(void) {
  */
 static void confirmation_callback(bool confirm) {
     if (confirm) {
-        approve_callback();
+        nbgl_useCaseStatus("Delegation confirmed", true, ui_initial_screen);
+        delegation_context.ok_cb();
     } else {
-        cancel_callback();
+        nbgl_useCaseStatus("Delegate registration\ncancelled", false, ui_initial_screen);
+        delegation_context.cxl_cb();
     }
-}
-
-/**
- * @brief Draws a confirmation page
- *
- */
-static void confirm_delegation_page(void) {
-    delegation_context.infoLongPress.icon = &C_tezos;
-    delegation_context.infoLongPress.longPressText = "Approve";
-    delegation_context.infoLongPress.tuneId = TUNE_TAP_CASUAL;
-
-    nbgl_useCaseStaticReviewLight(&delegation_context.tagValueList,
-                                  &delegation_context.infoLongPress,
-                                  "Cancel",
-                                  confirmation_callback);
 }
 
 int prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
@@ -112,35 +85,32 @@ int prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     delegation_context.ok_cb = ok_cb;
     delegation_context.cxl_cb = cxl_cb;
 
-    TZ_CHECK(bip32_path_with_curve_to_pkh_string(delegation_context.buffer[0],
-                                                 sizeof(delegation_context.buffer[0]),
+    TZ_CHECK(bip32_path_with_curve_to_pkh_string(delegation_context.tagValueRef[ADDRESS_IDX],
+                                                 MAX_LENGTH,
                                                  &global.path_with_curve));
 
-    TZ_ASSERT(microtez_to_string(delegation_context.buffer[1],
-                                 sizeof(delegation_context.buffer[1]),
+    TZ_ASSERT(microtez_to_string(delegation_context.tagValueRef[FEE_IDX],
+                                 MAX_LENGTH,
                                  G.maybe_ops.v.total_fee) >= 0,
               EXC_WRONG_LENGTH);
 
-    delegation_context.tagValuePair[0].item = "Address";
-    delegation_context.tagValuePair[0].value = delegation_context.buffer[0];
+    delegation_context.tagValuePair[ADDRESS_IDX].item = "Address";
+    delegation_context.tagValuePair[ADDRESS_IDX].value =
+        delegation_context.tagValueRef[ADDRESS_IDX];
 
-    delegation_context.tagValuePair[1].item = "Fee";
-    delegation_context.tagValuePair[1].value = delegation_context.buffer[1];
+    delegation_context.tagValuePair[FEE_IDX].item = "Fee";
+    delegation_context.tagValuePair[FEE_IDX].value = delegation_context.tagValueRef[FEE_IDX];
 
-    delegation_context.tagValueList.nbPairs = 2;
+    delegation_context.tagValueList.nbPairs = DELEGATION_TAG_VALUE_NB;
     delegation_context.tagValueList.pairs = delegation_context.tagValuePair;
 
-    delegation_context.infoLongPress.text = "Confirm delegate\nregistration";
-
-    delegation_context.confirmed_status = "DELEGATE\nCONFIRMED";
-    delegation_context.cancelled_status = "Delegate registration\ncancelled";
-
-    nbgl_useCaseReviewStart(&C_tezos,
+    nbgl_useCaseReviewLight(TYPE_OPERATION,
+                            &delegation_context.tagValueList,
+                            &C_tezos,
                             "Register delegate",
                             NULL,
-                            "Cancel",
-                            confirm_delegation_page,
-                            cancel_callback);
+                            "Confirm delegate registration",
+                            confirmation_callback);
     return 0;
 
 end:

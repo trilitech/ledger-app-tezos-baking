@@ -49,42 +49,18 @@ typedef struct {
 static AddressContext_t address_context;
 
 /**
- * @brief Callback called when address is rejected
- *
- */
-static void cancel_callback(void) {
-    address_context.cxl_cb();
-    nbgl_useCaseStatus("Address rejected", false, ui_initial_screen);
-}
-
-/**
- * @brief Callback called when address is approved
- *
- */
-static void approve_callback(void) {
-    address_context.ok_cb();
-    nbgl_useCaseStatus("ADDRESS\nVERIFIED", true, ui_initial_screen);
-}
-
-/**
  * @brief Callback called when address is approved or cancelled
  *
  * @param confirm: true if approved, false if cancelled
  */
 static void confirmation_callback(bool confirm) {
     if (confirm) {
-        approve_callback();
+        address_context.ok_cb();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_VERIFIED, ui_initial_screen);
     } else {
-        cancel_callback();
+        address_context.cxl_cb();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_REJECTED, ui_initial_screen);
     }
-}
-
-/**
- * @brief Draws an address confirmation page
- *
- */
-static void verify_address_page(void) {
-    nbgl_useCaseAddressConfirmation(address_context.buffer, confirmation_callback);
 }
 
 int prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
@@ -103,7 +79,12 @@ int prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
     } else {
         text = "Verify Tezos\naddress";
     }
-    nbgl_useCaseReviewStart(&C_tezos, text, NULL, "Cancel", verify_address_page, cancel_callback);
+    nbgl_useCaseAddressReview(address_context.buffer,
+                              NULL,
+                              &C_tezos,
+                              text,
+                              NULL,
+                              confirmation_callback);
     return 0;
 
 end:

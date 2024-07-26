@@ -1,3 +1,17 @@
+# v2.5.0
+
+## Whats new?
+ - Support Flex device
+ - UI/UX standardisation
+
+# v2.4.8
+
+## Whats new?
+ - Addition of a customised, low-cost screen saver when signing the baking operations
+ - IO standardisation
+ - Crypto standardisation
+ - Code documentation
+
 # v2.4.7
 
 ## Whats new?

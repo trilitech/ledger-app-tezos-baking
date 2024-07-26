@@ -38,16 +38,26 @@
 #define MAX_LENGTH 100
 
 /**
+ * @brief Index of values for the setup flow
+ */
+typedef enum {
+    ADDRESS_IDX = 0,
+    CHAIN_IDX,
+    MAIN_HWM_IDX,
+    TEST_HWM_IDX,
+    SETUP_TAG_VALUE_NB
+} SetupTagValueIndex_t;
+
+/**
  * @brief This structure represents a context needed for setup screens navigation
  *
  */
 typedef struct {
     ui_callback_t ok_cb;   /// accept callback
     ui_callback_t cxl_cb;  /// cancel callback
-    nbgl_layoutTagValue_t tagValuePair[4];
+    nbgl_layoutTagValue_t tagValuePair[SETUP_TAG_VALUE_NB];
     nbgl_layoutTagValueList_t tagValueList;
-    nbgl_pageInfoLongPress_t infoLongPress;
-    char buffer[4][MAX_LENGTH];  /// values buffers
+    char tagValueRef[SETUP_TAG_VALUE_NB][MAX_LENGTH];
 } SetupContext_t;
 
 /// Current setup context
@@ -61,7 +71,7 @@ static SetupContext_t setup_context;
 static void confirmation_callback(bool confirm) {
     if (confirm) {
         setup_context.ok_cb();
-        nbgl_useCaseStatus("SETUP\nCONFIRMED", true, ui_initial_screen);
+        nbgl_useCaseStatus("Setup confirmed", true, ui_initial_screen);
     } else {
         setup_context.cxl_cb();
         nbgl_useCaseStatus("Setup cancelled", false, ui_initial_screen);
@@ -76,21 +86,59 @@ static void cancel_callback(void) {
     confirmation_callback(false);
 }
 
+typedef enum {
+    CONFIRM_TOKEN = FIRST_USER_TOKEN
+} tz_setupToken_t;
+
 /**
- * @brief Draws a confirmation page
+ * @brief Callback called during setup flow
  *
  */
-static void confirm_setup_page(void) {
-    setup_context.infoLongPress.icon = &C_tezos;
-    setup_context.infoLongPress.longPressText = "Approve";
-    setup_context.infoLongPress.tuneId = TUNE_TAP_CASUAL;
-    setup_context.infoLongPress.text = "Confirm baking setup";
-
-    nbgl_useCaseStaticReviewLight(&setup_context.tagValueList,
-                                  &setup_context.infoLongPress,
-                                  "Cancel",
-                                  confirmation_callback);
+static void setupCallback(tz_setupToken_t token, uint8_t index, int page) {
+    UNUSED(index);
+    UNUSED(page);
+    if (token == CONFIRM_TOKEN) {
+        confirmation_callback(true);
+    }
 }
+
+#define SETUP_CONTENT_NB 3
+
+// clang-format off
+static const nbgl_content_t setupContentList[SETUP_CONTENT_NB] = {
+  {
+    .type = CENTERED_INFO,
+    .content.centeredInfo = {
+      .text1 = "Setup baking",
+      .text3 = "Swipe to review",
+      .icon  = &C_tezos,
+      .style = LARGE_CASE_GRAY_INFO,
+    }
+  },
+  {
+    .type = TAG_VALUE_LIST,
+    .content.tagValueList = {
+      .pairs   = setup_context.tagValuePair,
+      .nbPairs = SETUP_TAG_VALUE_NB,
+    }
+  },
+  {
+    .type = INFO_BUTTON,
+    .content.infoButton = {
+      .text        = "Confirm baking setup",
+      .icon        = &C_tezos,
+      .buttonText  = "Approve",
+      .buttonToken = CONFIRM_TOKEN
+    },
+    .contentActionCallback = (nbgl_contentActionCallback_t) setupCallback
+  }
+};
+
+static const nbgl_genericContents_t setupContents = {
+  .contentsList = setupContentList,
+  .nbContents = SETUP_CONTENT_NB
+};
+// clang-format on
 
 int prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     tz_exc exc = SW_OK;
@@ -98,46 +146,40 @@ int prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     setup_context.ok_cb = ok_cb;
     setup_context.cxl_cb = cxl_cb;
 
-    TZ_CHECK(bip32_path_with_curve_to_pkh_string(setup_context.buffer[0],
-                                                 sizeof(setup_context.buffer[0]),
+    TZ_CHECK(bip32_path_with_curve_to_pkh_string(setup_context.tagValueRef[ADDRESS_IDX],
+                                                 MAX_LENGTH,
                                                  &global.path_with_curve));
 
-    TZ_ASSERT(chain_id_to_string_with_aliases(setup_context.buffer[1],
-                                              sizeof(setup_context.buffer[1]),
+    TZ_ASSERT(chain_id_to_string_with_aliases(setup_context.tagValueRef[CHAIN_IDX],
+                                              MAX_LENGTH,
                                               &G.main_chain_id) >= 0,
               EXC_WRONG_LENGTH);
 
     TZ_ASSERT(
-        number_to_string(setup_context.buffer[2], sizeof(setup_context.buffer[2]), G.hwm.main) >= 0,
+        number_to_string(setup_context.tagValueRef[MAIN_HWM_IDX], MAX_LENGTH, G.hwm.main) >= 0,
         EXC_WRONG_LENGTH);
 
     TZ_ASSERT(
-        number_to_string(setup_context.buffer[3], sizeof(setup_context.buffer[3]), G.hwm.test) >= 0,
+        number_to_string(setup_context.tagValueRef[TEST_HWM_IDX], MAX_LENGTH, G.hwm.test) >= 0,
         EXC_WRONG_LENGTH);
 
-    setup_context.tagValuePair[0].item = "Address";
-    setup_context.tagValuePair[0].value = setup_context.buffer[0];
+    setup_context.tagValuePair[ADDRESS_IDX].item = "Address";
+    setup_context.tagValuePair[ADDRESS_IDX].value = setup_context.tagValueRef[ADDRESS_IDX];
 
-    setup_context.tagValuePair[1].item = "Chain";
-    setup_context.tagValuePair[1].value = setup_context.buffer[1];
+    setup_context.tagValuePair[CHAIN_IDX].item = "Chain";
+    setup_context.tagValuePair[CHAIN_IDX].value = setup_context.tagValueRef[CHAIN_IDX];
 
-    setup_context.tagValuePair[2].item = "Main Chain HWM";
-    setup_context.tagValuePair[2].value = setup_context.buffer[2];
+    setup_context.tagValuePair[MAIN_HWM_IDX].item = "Main Chain HWM";
+    setup_context.tagValuePair[MAIN_HWM_IDX].value = setup_context.tagValueRef[MAIN_HWM_IDX];
 
-    setup_context.tagValuePair[3].item = "Test Chain HWM";
-    setup_context.tagValuePair[3].value = setup_context.buffer[3];
+    setup_context.tagValuePair[TEST_HWM_IDX].item = "Test Chain HWM";
+    setup_context.tagValuePair[TEST_HWM_IDX].value = setup_context.tagValueRef[TEST_HWM_IDX];
 
-    setup_context.tagValueList.nbPairs = 4;
+    setup_context.tagValueList.nbPairs = SETUP_TAG_VALUE_NB;
     setup_context.tagValueList.pairs = setup_context.tagValuePair;
 
-    setup_context.infoLongPress.text = "Confirm baking setup";
+    nbgl_useCaseGenericReview(&setupContents, "Cancel", cancel_callback);
 
-    nbgl_useCaseReviewStart(&C_tezos,
-                            "Setup baking",
-                            NULL,
-                            "Cancel",
-                            confirm_setup_page,
-                            cancel_callback);
     return 0;
 
 end:

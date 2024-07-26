@@ -37,127 +37,157 @@
 
 #include "nbgl_use_case.h"
 
-static const char* const infoTypes[] = {"Version", "Developer", "Copyright"};
-static const char* const infoContents[] = {APPVERSION, "Ledger", "(c) 2023 Ledger"};
+//  -----------------------------------------------------------
+//  -------------------------- INFO ---------------------------
+//  -----------------------------------------------------------
+
+typedef enum {
+    CHAIN_IDX = 0,
+    PKH_IDX,
+    HWM_IDX,
+    VERSION_IDX,
+    DEVELOPER_IDX,
+    COPYRIGHT_IDX,
+    INFO_NB
+} tz_infoIndex_t;
+
+static const char* const infoTypes[INFO_NB] =
+    {"Chain", "Public Key Hash", "High Watermark", "Version", "Developer", "Copyright"};
 
 #define MAX_LENGTH 200
-static char* bakeInfoContents[3];
-static char buffer[3][MAX_LENGTH];
+static const char* infoContents[INFO_NB];
+static char infoContentsBridge[INFO_NB][MAX_LENGTH];
 
-static const char* const bakeInfoTypes[] = {
-    "Chain",
-    "Public Key Hash",
-    "High Watermark",
-};
-
-enum {
-    HWM_ENABLED_TOKEN = FIRST_USER_TOKEN
-};
-enum {
-    HWM_ENABLED_TOKEN_ID = 0,
-    SETTINGS_SWITCHES_NB
-};
-
-static nbgl_layoutSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
+static const nbgl_contentInfoList_t infoList = {.nbInfos = INFO_NB,
+                                                .infoTypes = infoTypes,
+                                                .infoContents = infoContents};
 
 /**
- * @brief Callback to fill the settings page content
- *
- * @param page: page of the settings
- * @param content: content to fill
- * @return bool: if the page is not out of bounds
+ * @brief Initializes info values
  */
-static bool navigation_cb_baking(uint8_t page, nbgl_pageContent_t* content) {
-    if (page > 2u) {
-        return false;
-    }
-
+static void initInfo(void) {
     tz_exc exc = SW_OK;
 
-    bakeInfoContents[0] = buffer[0];
-    bakeInfoContents[1] = buffer[1];
-    bakeInfoContents[2] = buffer[2];
-    const bool hwm_disabled = g_hwm.hwm_disabled;
+    for (tz_infoIndex_t idx = 0; idx < INFO_NB; idx++) {
+        infoContents[idx] = infoContentsBridge[idx];
+    }
 
-    TZ_ASSERT(
-        chain_id_to_string_with_aliases(buffer[0], sizeof(buffer[0]), &g_hwm.main_chain_id) >= 0,
-        EXC_WRONG_LENGTH);
+    TZ_ASSERT(chain_id_to_string_with_aliases(infoContentsBridge[CHAIN_IDX],
+                                              MAX_LENGTH,
+                                              &g_hwm.main_chain_id) >= 0,
+              EXC_WRONG_LENGTH);
 
     if (g_hwm.baking_key.bip32_path.length == 0u) {
-        TZ_ASSERT(copy_string(buffer[1], sizeof(buffer[1]), "No Key Authorized"), EXC_WRONG_LENGTH);
+        TZ_ASSERT(copy_string(infoContentsBridge[PKH_IDX], MAX_LENGTH, "No Key Authorized"),
+                  EXC_WRONG_LENGTH);
     } else {
-        TZ_CHECK(
-            bip32_path_with_curve_to_pkh_string(buffer[1], sizeof(buffer[1]), &g_hwm.baking_key));
+        TZ_CHECK(bip32_path_with_curve_to_pkh_string(infoContentsBridge[PKH_IDX],
+                                                     MAX_LENGTH,
+                                                     &g_hwm.baking_key));
     }
 
-    TZ_ASSERT(hwm_to_string(buffer[2], sizeof(buffer[2]), &g_hwm.hwm.main) >= 0, EXC_WRONG_LENGTH);
+    TZ_ASSERT(hwm_to_string(infoContentsBridge[HWM_IDX], MAX_LENGTH, &g_hwm.hwm.main) >= 0,
+              EXC_WRONG_LENGTH);
 
-    switch (page) {
-        case 0:
-            content->type = INFOS_LIST;
-            content->infosList.nbInfos = 3;
-            content->infosList.infoTypes = bakeInfoTypes;
-            content->infosList.infoContents = (const char* const*) bakeInfoContents;
-            break;
-        case 1:
-            switches[HWM_ENABLED_TOKEN_ID].initState = (nbgl_state_t) (!hwm_disabled);
-            switches[HWM_ENABLED_TOKEN_ID].text = "High Watermark";
-            switches[HWM_ENABLED_TOKEN_ID].subText = "Track high watermark\n in Ledger";
-            switches[HWM_ENABLED_TOKEN_ID].token = HWM_ENABLED_TOKEN;
-            switches[HWM_ENABLED_TOKEN_ID].tuneId = TUNE_TAP_CASUAL;
-            content->type = SWITCHES_LIST;
-            content->switchesList.nbSwitches = SETTINGS_SWITCHES_NB;
-            content->switchesList.switches = (nbgl_layoutSwitch_t*) switches;
-            break;
-        case 2:
-            content->type = INFOS_LIST;
-            content->infosList.nbInfos = 3;
-            content->infosList.infoTypes = infoTypes;
-            content->infosList.infoContents = infoContents;
-            break;
-        default:
-            return false;
-    }
-    return true;
+    TZ_ASSERT(copy_string(infoContentsBridge[VERSION_IDX], MAX_LENGTH, APPVERSION) >= 0,
+              EXC_WRONG_LENGTH);
+
+    TZ_ASSERT(copy_string(infoContentsBridge[DEVELOPER_IDX], MAX_LENGTH, "Ledger") >= 0,
+              EXC_WRONG_LENGTH);
+
+    TZ_ASSERT(copy_string(infoContentsBridge[COPYRIGHT_IDX], MAX_LENGTH, "(c) 2023 Ledger") >= 0,
+              EXC_WRONG_LENGTH);
+
 end:
     TZ_EXC_PRINT(exc);
-    return true;
 }
 
-static void controls_callback(int token, uint8_t index) {
-    UNUSED(index);
+//  -----------------------------------------------------------
+//  ------------------------ SETTINGS -------------------------
+//  -----------------------------------------------------------
+
+typedef enum {
+    HWM_ENABLED_TOKEN = FIRST_USER_TOKEN,
+    NEXT_TOKEN
+} tz_settingsToken_t;
+
+//  -------------------- SWITCHES SETTINGS --------------------
+
+typedef enum {
+    HWM_ENABLED_IDX = 0,
+    SETTINGS_SWITCHES_NB
+} tz_settingsSwitchesIndex_t;
+
+static nbgl_contentSwitch_t settingsSwitches[SETTINGS_SWITCHES_NB] = {0};
+
+/**
+ * @brief Initializes switches settings values
+ */
+static void initSettingsSwitches(void) {
+    nbgl_contentSwitch_t* hwmSwitch = &settingsSwitches[HWM_ENABLED_IDX];
+    hwmSwitch->text = "High Watermark";
+    hwmSwitch->subText = "Track high watermark\n in Ledger";
+    hwmSwitch->initState = (nbgl_state_t) (!g_hwm.hwm_disabled);
+    hwmSwitch->token = HWM_ENABLED_TOKEN;
+}
+
+/**
+ * @brief Callback to controle switches impact
+ *
+ * @param token: token of the switch toggled
+ * @param state: switch state
+ * @param page: page index
+ */
+static void settingsSwitchesToggleCallback(tz_settingsToken_t token, nbgl_state_t state, int page) {
+    UNUSED(page);
     if (token == HWM_ENABLED_TOKEN) {
         toggle_hwm();
+        settingsSwitches[HWM_ENABLED_IDX].initState = state;
     }
 }
 
-#define TOTAL_SETTINGS_PAGE  (3)
-#define INIT_SETTINGS_PAGE   (0)
-#define DISABLE_SUB_SETTINGS false
+#define SETTINGS_SWITCHES_CONTENTS                                                             \
+    {                                                                                          \
+        .type = SWITCHES_LIST,                                                                 \
+        .content.switchesList = {.switches = settingsSwitches,                                 \
+                                 .nbSwitches = SETTINGS_SWITCHES_NB},                          \
+        .contentActionCallback = (nbgl_contentActionCallback_t) settingsSwitchesToggleCallback \
+    }
+
+//  ---------------------- ALL SETTINGS -----------------------
+
+typedef enum {
+    SWITCHES_IDX = 0,
+    SETTINGS_PAGE_NB
+} tz_settingsIndex_t;
+
+static const nbgl_content_t settingsContentsList[SETTINGS_PAGE_NB] = {SETTINGS_SWITCHES_CONTENTS};
+
+static const nbgl_genericContents_t settingsContents = {.callbackCallNeeded = false,
+                                                        .contentsList = settingsContentsList,
+                                                        .nbContents = SETTINGS_PAGE_NB};
 
 /**
- * @brief Draws settings pages
- *
+ * @brief Initializes settings values
  */
-static void ui_menu_about_baking(void) {
-    nbgl_useCaseSettings("Tezos baking",
-                         INIT_SETTINGS_PAGE,
-                         TOTAL_SETTINGS_PAGE,
-                         DISABLE_SUB_SETTINGS,
-                         ui_initial_screen,
-                         navigation_cb_baking,
-                         controls_callback);
+static void initSettings(void) {
+    initSettingsSwitches();
 }
 
-#define SETTINGS_BUTTON_ENABLED (true)
+//  -----------------------------------------------------------
 
 void ui_initial_screen(void) {
-    nbgl_useCaseHome("Tezos Baking",
-                     &C_tezos,
-                     NULL,
-                     SETTINGS_BUTTON_ENABLED,
-                     ui_menu_about_baking,
-                     app_exit);
+    initSettings();
+    initInfo();
+
+    nbgl_useCaseHomeAndSettings("Tezos Baking",
+                                &C_tezos,
+                                NULL,
+                                INIT_HOME_PAGE,
+                                &settingsContents,
+                                &infoList,
+                                NULL,
+                                app_exit);
 }
 
 #endif  // HAVE_NBGL
