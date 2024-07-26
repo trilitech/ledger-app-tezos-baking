@@ -428,7 +428,7 @@ def test_automatic_low_cost_screensaver_exited_by_display(
 def test_version(client: TezosClient) -> None:
     """Test the VERSION instruction."""
 
-    expected_version = Version(Version.AppKind.BAKING, 2, 4, 7)
+    expected_version = Version(Version.AppKind.BAKING, 2, 5, 0)
 
     version = client.version()
 
