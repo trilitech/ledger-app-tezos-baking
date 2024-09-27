@@ -48,11 +48,12 @@ typedef enum {
     VERSION_IDX,
     DEVELOPER_IDX,
     COPYRIGHT_IDX,
+    CONTACT_IDX,
     INFO_NB
 } tz_infoIndex_t;
 
 static const char* const infoTypes[INFO_NB] =
-    {"Chain", "Public Key Hash", "High Watermark", "Version", "Developer", "Copyright"};
+    {"Chain", "Public Key Hash", "High Watermark", "Version", "Developer", "Copyright", "Contact"};
 
 #define MAX_LENGTH 200
 static const char* infoContents[INFO_NB];
@@ -92,11 +93,16 @@ static void initInfo(void) {
     TZ_ASSERT(copy_string(infoContentsBridge[VERSION_IDX], MAX_LENGTH, APPVERSION) >= 0,
               EXC_WRONG_LENGTH);
 
-    TZ_ASSERT(copy_string(infoContentsBridge[DEVELOPER_IDX], MAX_LENGTH, "Ledger") >= 0,
-              EXC_WRONG_LENGTH);
+    TZ_ASSERT(
+        copy_string(infoContentsBridge[DEVELOPER_IDX], MAX_LENGTH, "Trilitech Kanvas Ltd. et al") >=
+            0,
+        EXC_WRONG_LENGTH);
 
-    TZ_ASSERT(copy_string(infoContentsBridge[COPYRIGHT_IDX], MAX_LENGTH, "(c) 2023 Ledger") >= 0,
+    TZ_ASSERT(copy_string(infoContentsBridge[COPYRIGHT_IDX], MAX_LENGTH, "(c) 2024 Trilitech") >= 0,
               EXC_WRONG_LENGTH);
+    TZ_ASSERT(
+        copy_string(infoContentsBridge[CONTACT_IDX], MAX_LENGTH, "ledger-tezos@trili.tech") >= 0,
+        EXC_WRONG_LENGTH);
 
 end:
     TZ_EXC_PRINT(exc);

@@ -510,6 +510,11 @@ Following is a sample of measurements obtained with this app (Tezos Baking app v
 
 | Device | Derivation Type   | Avg time/signature(milliseconds) |
 |--------|-------------------|----------------------------------|
+| Flex   | SECP256K1_tz2     | 214                              |
+| Flex   | SECP256R1_tz3     | 215                              |
+| Flex   | ED25519_tz1       | 456                              |
+| Flex   | BIP32_ED25519_tz1 | 783                              |
+|        |                   |                                  |
 | Nanos+ | SECP256K1_tz2     | 229                              |
 | Nanos+ | SECP256R1_tz3     | 226                              |
 | Nanos+ | ED25519_tz1       | 465                              |
