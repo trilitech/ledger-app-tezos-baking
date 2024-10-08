@@ -96,6 +96,7 @@ class TouchFixedScreen(FixedScreen):
     SETTINGS_HMW_DISABLED  = "hwm_status_disabled"
     SETTINGS_HMW_ENABLED   = "hwm_status_enabled"
     SETTINGS_DESCRIPTION   = "description"
+    SETTINGS_DESCRIPTION_2 = "description_2"
 
 
 class UseCaseReview(OriginalUseCaseReview):
