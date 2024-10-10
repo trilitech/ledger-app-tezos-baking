@@ -19,7 +19,8 @@ ENABLE_NBGL_QRCODE = 1
 
 HAVE_APPLICATION_FLAG_GLOBAL_PIN = 1
 
-CURVE_APP_LOAD_PARAMS = ed25519 secp256k1 secp256r1
+# No BLS for NANOS
+CURVE_APP_LOAD_PARAMS = ed25519 secp256k1 secp256r1 bls12381g1
 PATH_APP_LOAD_PARAMS  = "44'/1729'"
 
 # VERSION
@@ -35,7 +36,8 @@ GIT_DESCRIBE ?= $(shell git describe --tags --abbrev=8 --always --long --dirty 2
 VERSION_TAG ?= $(shell echo "$(GIT_DESCRIBE)" | cut -f1 -d-)
 COMMIT ?= $(shell echo "$(GIT_DESCRIBE)" | awk -F'-g' '{print $2}' | sed 's/-dirty/*/')
 
-DEFINES   += COMMIT=\"$(COMMIT)\"
+DEFINES += COMMIT=\"$(COMMIT)\"
+DEFINES += HAVE_BLS
 
 # Only warn about version tags if specified/inferred
 ifeq ($(VERSION_TAG),)
