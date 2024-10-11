@@ -26,6 +26,7 @@
 #include "baking_auth.h"
 #include "bip32.h"
 #include "globals.h"
+#include "memory.h"
 #include "os_cx.h"
 #include "to_string.h"
 #include "ui.h"
