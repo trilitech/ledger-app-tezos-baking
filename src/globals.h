@@ -58,10 +58,7 @@ void toggle_hwm(void);
 /// Our buffer must accommodate any remainder from hashing and the next message at once.
 #define TEZOS_BUFSIZE (BLAKE2B_BLOCKBYTES + MAX_APDU_SIZE)
 
-#define PRIVATE_KEY_DATA_SIZE         64u
-#define MAX_SIGNATURE_SIZE            100u
-#define ELLIPTIC_CURVE_PUB_KEY_LENGTH 65u
-#define PUB_KEY_COMPPRESSED_LENGTH    33u
+#define MAX_SIGNATURE_SIZE 100u
 
 /**
  * @brief This structure represents the state needed to handle HMAC

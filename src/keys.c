@@ -19,21 +19,18 @@
 
 */
 
+#include "crypto_helpers.h"
+
 #include "keys.h"
 
-#include "apdu.h"
-#include "crypto_helpers.h"
-#include "globals.h"
-#include "memory.h"
-#include "types.h"
-
-#include <stdbool.h>
-#include <string.h>
+/***** Bip32 path *****/
 
 bool read_bip32_path(buffer_t *buf, bip32_path_t *const out) {
     return (buffer_read_u8(buf, &out->length) &&
             buffer_read_bip32_path(buf, out->components, (size_t) out->length));
 }
+
+/***** Key *****/
 
 /**
  * @brief Converts `derivation_type` to `derivation_mode`
@@ -87,7 +84,7 @@ cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
     signature_type_t signature_type = derivation_type_to_signature_type(derivation_type);
     cx_curve_t cx_curve = signature_type_to_cx_curve(signature_type);
 
-    public_key->W_len = ELLIPTIC_CURVE_PUB_KEY_LENGTH;
+    public_key->W_len = PK_LEN;
     public_key->curve = cx_curve;
 
     // generate corresponding public key
@@ -105,7 +102,7 @@ cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
     if (cx_curve == CX_CURVE_Ed25519) {
         CX_CHECK(
             cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, public_key->W, public_key->W_len));
-        public_key->W_len = PUB_KEY_COMPPRESSED_LENGTH;
+        public_key->W_len = COMPRESSED_PK_LEN;
     }
 
 end:
@@ -143,7 +140,7 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
 
     switch (signature_type) {
         case SIGNATURE_TYPE_ED25519: {
-            compressed.W_len = public_key->W_len - 1;
+            compressed.W_len = TZ_EDPK_LEN;
             memcpy(compressed.W, public_key->W + 1, compressed.W_len);
             break;
         }
@@ -151,7 +148,7 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
         case SIGNATURE_TYPE_SECP256R1: {
             memcpy(compressed.W, public_key->W, public_key->W_len);
             compressed.W[0] = 0x02 + (public_key->W[64] & 0x01);
-            compressed.W_len = PUB_KEY_COMPPRESSED_LENGTH;
+            compressed.W_len = COMPRESSED_PK_LEN;
             break;
         }
         default:
