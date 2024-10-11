@@ -186,6 +186,14 @@ static inline bool bip32_path_with_curve_eq(bip32_path_with_curve_t volatile con
 #define TZ_EDPK_LEN       (COMPRESSED_PK_LEN - 1u)
 
 /**
+ * @brief This structure represents elliptic curve public key handled
+ *        Can be explicitly cast into `cx_ecfp_public_key_t`
+ */
+typedef union {
+    cx_ecfp_256_public_key_t pk_256;  ///< edpk, sppk and p2pk keys
+} tz_ecfp_public_key_t;
+
+/**
  * @brief Generates a public key from a bip32 path and a curve
  *
  * @param public_key: public key output

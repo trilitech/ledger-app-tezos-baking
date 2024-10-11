@@ -46,13 +46,13 @@ int provide_pubkey(bip32_path_with_curve_t const* const path_with_curve) {
     // so throwing an error rather than returning an empty key
     TZ_ASSERT(os_global_pin_is_validated() == BOLOS_UX_OK, EXC_SECURITY);
 
-    cx_ecfp_public_key_t pubkey = {0};
-    CX_CHECK(generate_public_key(&pubkey, path_with_curve));
+    cx_ecfp_public_key_t* pubkey = (cx_ecfp_public_key_t*) &(tz_ecfp_public_key_t){0};
+    CX_CHECK(generate_public_key(pubkey, path_with_curve));
 
-    resp[offset] = pubkey.W_len;
+    resp[offset] = pubkey->W_len;
     offset++;
-    memmove(resp + offset, pubkey.W, pubkey.W_len);
-    offset += pubkey.W_len;
+    memmove(resp + offset, pubkey->W, pubkey->W_len);
+    offset += pubkey->W_len;
 
     return io_send_response_pointer(resp, offset, SW_OK);
 
