@@ -194,6 +194,36 @@ typedef union {
 } tz_ecfp_public_key_t;
 
 /**
+ * @brief Alias to represent abstract compressed public key
+ */
+typedef cx_ecfp_public_key_t cx_ecfp_compressed_public_key_t;
+
+/**
+ * @brief These structures are based on `cx_ecfp_public_key_t` and represents compressed elliptic
+ * curve public key handled
+ *        Can be explicitly cast into `cx_ecfp_compressed_public_key_t`
+ */
+/** Ed25519 compressed public key */
+typedef struct {
+    cx_curve_t curve;        ///< Curve identifier
+    size_t W_len;            ///< Compressed public key length in bytes
+    uint8_t W[TZ_EDPK_LEN];  ///< Compressed public key value
+} tz_ecfp_ed25519_compressed_public_key_t;
+/** Secp256 compressed public key */
+typedef struct {
+    cx_curve_t curve;              ///< Curve identifier
+    size_t W_len;                  ///< Compressed public key length in bytes
+    uint8_t W[COMPRESSED_PK_LEN];  ///< Compressed public key value
+} tz_ecfp_secp256_compressed_public_key_t;
+/**
+ * @brief This structure represents elliptic curve compressed public key handled
+ */
+typedef union {
+    tz_ecfp_ed25519_compressed_public_key_t pk_ed25519;  ///< edpk keys
+    tz_ecfp_secp256_compressed_public_key_t pk_secp256;  ///< sppk and p2pk keys
+} tz_ecfp_compressed_public_key_t;
+
+/**
  * @brief Generates a public key from a bip32 path and a curve
  *
  * @param public_key: public key output
@@ -215,7 +245,7 @@ cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
  */
 cx_err_t generate_public_key_hash(uint8_t *const hash_out,
                                   size_t const hash_out_size,
-                                  cx_ecfp_public_key_t *const compressed_out,
+                                  cx_ecfp_compressed_public_key_t *const compressed_out,
                                   bip32_path_with_curve_t const *const path_with_curve);
 
 /**
