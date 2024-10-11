@@ -124,7 +124,7 @@ end:
  */
 static cx_err_t public_key_hash(uint8_t *const hash_out,
                                 size_t const hash_out_size,
-                                cx_ecfp_public_key_t *compressed_out,
+                                cx_ecfp_compressed_public_key_t *compressed_out,
                                 derivation_type_t const derivation_type,
                                 cx_ecfp_public_key_t const *const public_key) {
     if ((hash_out == NULL) || (public_key == NULL)) {
@@ -136,21 +136,22 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
     }
 
     signature_type_t signature_type = derivation_type_to_signature_type(derivation_type);
-    cx_ecfp_public_key_t compressed = {0};
+    cx_ecfp_compressed_public_key_t *compressed =
+        (cx_ecfp_compressed_public_key_t *) &(tz_ecfp_compressed_public_key_t){0};
 
     switch (signature_type) {
         case SIGNATURE_TYPE_ED25519: {
-            compressed.curve = public_key->curve;
-            compressed.W_len = TZ_EDPK_LEN;
-            memcpy(compressed.W, public_key->W + 1, compressed.W_len);
+            compressed->curve = public_key->curve;
+            compressed->W_len = TZ_EDPK_LEN;
+            memcpy(compressed->W, public_key->W + 1, compressed->W_len);
             break;
         }
         case SIGNATURE_TYPE_SECP256K1:
         case SIGNATURE_TYPE_SECP256R1: {
-            compressed.curve = public_key->curve;
-            compressed.W_len = COMPRESSED_PK_LEN;
-            memcpy(compressed.W, public_key->W, compressed.W_len);
-            compressed.W[0] = 0x02 + (public_key->W[64] & 0x01);
+            compressed->curve = public_key->curve;
+            compressed->W_len = COMPRESSED_PK_LEN;
+            memcpy(compressed->W, public_key->W, compressed->W_len);
+            compressed->W[0] = 0x02 + (public_key->W[64] & 0x01);
             break;
         }
         default:
@@ -164,13 +165,13 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
 
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &hash_state,
                               CX_LAST,
-                              compressed.W,
-                              compressed.W_len,
+                              compressed->W,
+                              compressed->W_len,
                               hash_out,
                               KEY_HASH_SIZE));
 
     if (compressed_out != NULL) {
-        memmove(compressed_out, &compressed, sizeof(*compressed_out));
+        memmove(compressed_out, compressed, sizeof(tz_ecfp_compressed_public_key_t));
     }
 
 end:
@@ -179,7 +180,7 @@ end:
 
 cx_err_t generate_public_key_hash(uint8_t *const hash_out,
                                   size_t const hash_out_size,
-                                  cx_ecfp_public_key_t *compressed_out,
+                                  cx_ecfp_compressed_public_key_t *compressed_out,
                                   bip32_path_with_curve_t const *const path_with_curve) {
     if ((hash_out == NULL) || (path_with_curve == NULL)) {
         return CX_INVALID_PARAMETER;

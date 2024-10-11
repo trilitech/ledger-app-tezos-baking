@@ -165,12 +165,12 @@ struct parsed_operation {
  *
  */
 struct parsed_operation_group {
-    cx_ecfp_public_key_t public_key;    ///< signer public key
-    uint64_t total_fee;                 ///< sum of all fees
-    uint64_t total_storage_limit;       ///< sum of all storage limits
-    bool has_reveal;                    ///< if the bundle contains at least a reveal
-    struct parsed_contract signing;     ///< contract form of signer
-    struct parsed_operation operation;  ///< operation parsed
+    tz_ecfp_compressed_public_key_t public_key;  ///< compressed signer public key
+    uint64_t total_fee;                          ///< sum of all fees
+    uint64_t total_storage_limit;                ///< sum of all storage limits
+    bool has_reveal;                             ///< if the bundle contains at least a reveal
+    struct parsed_contract signing;              ///< contract form of signer
+    struct parsed_operation operation;           ///< operation parsed
 };
 
 #define CUSTOM_MAX(a, b)                     \
