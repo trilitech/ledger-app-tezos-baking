@@ -107,10 +107,10 @@ int apdu_dispatcher(const command_t* cmd) {
 
 #define ASSERT_NO_P2 TZ_ASSERT(cmd->p2 == 0u, EXC_WRONG_PARAM)
 
-#define READ_P2_DERIVATION_TYPE                                               \
-    do {                                                                      \
-        derivation_type = parse_derivation_type(cmd->p2);                     \
-        TZ_ASSERT(derivation_type != DERIVATION_TYPE_UNSET, EXC_WRONG_PARAM); \
+#define READ_P2_DERIVATION_TYPE                                              \
+    do {                                                                     \
+        derivation_type = (derivation_type_t) cmd->p2;                       \
+        TZ_ASSERT(DERIVATION_TYPE_IS_SET(derivation_type), EXC_WRONG_PARAM); \
     } while (0)
 
 #define ASSERT_NO_DATA TZ_ASSERT(cmd->data == NULL, EXC_WRONG_VALUES)

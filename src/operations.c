@@ -77,25 +77,11 @@ static tz_parser_result parse_raw_tezos_header_signature_type(
     raw_tezos_header_signature_type_t const *const raw_signature_type,
     signature_type_t *signature_type) {
     tz_parser_result res = PARSER_CONTINUE;
-    signature_type_t signature_type_result;
 
     PARSER_ASSERT(raw_signature_type != NULL);
+    PARSER_ASSERT(SIGNATURE_TYPE_IS_SET((signature_type_t) raw_signature_type->v));
 
-    switch (raw_signature_type->v) {
-        case 0:
-            signature_type_result = SIGNATURE_TYPE_ED25519;
-            break;
-        case 1:
-            signature_type_result = SIGNATURE_TYPE_SECP256K1;
-            break;
-        case 2:
-            signature_type_result = SIGNATURE_TYPE_SECP256R1;
-            break;
-        default:
-            PARSER_FAIL();
-    }
-
-    *signature_type = signature_type_result;
+    *signature_type = (signature_type_t) raw_signature_type->v;
     res = PARSER_DONE;
 
 end:
