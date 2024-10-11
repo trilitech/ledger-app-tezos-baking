@@ -92,7 +92,7 @@ cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
                                                    public_key->curve,
                                                    bip32_path->components,
                                                    bip32_path->length,
-                                                   public_key->W,
+                                                   ((cx_ecfp_256_public_key_t *) public_key)->W,
                                                    NULL,
                                                    CX_SHA512,
                                                    NULL,
@@ -140,15 +140,17 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
 
     switch (signature_type) {
         case SIGNATURE_TYPE_ED25519: {
+            compressed.curve = public_key->curve;
             compressed.W_len = TZ_EDPK_LEN;
             memcpy(compressed.W, public_key->W + 1, compressed.W_len);
             break;
         }
         case SIGNATURE_TYPE_SECP256K1:
         case SIGNATURE_TYPE_SECP256R1: {
-            memcpy(compressed.W, public_key->W, public_key->W_len);
-            compressed.W[0] = 0x02 + (public_key->W[64] & 0x01);
+            compressed.curve = public_key->curve;
             compressed.W_len = COMPRESSED_PK_LEN;
+            memcpy(compressed.W, public_key->W, compressed.W_len);
+            compressed.W[0] = 0x02 + (public_key->W[64] & 0x01);
             break;
         }
         default:
@@ -183,16 +185,16 @@ cx_err_t generate_public_key_hash(uint8_t *const hash_out,
         return CX_INVALID_PARAMETER;
     }
 
-    cx_ecfp_public_key_t pubkey = {0};
+    cx_ecfp_public_key_t *pubkey = (cx_ecfp_public_key_t *) &(tz_ecfp_public_key_t){0};
     cx_err_t error = CX_OK;
 
-    CX_CHECK(generate_public_key(&pubkey, path_with_curve));
+    CX_CHECK(generate_public_key(pubkey, path_with_curve));
 
     CX_CHECK(public_key_hash(hash_out,
                              hash_out_size,
                              compressed_out,
                              path_with_curve->derivation_type,
-                             &pubkey));
+                             pubkey));
 
 end:
     return error;
