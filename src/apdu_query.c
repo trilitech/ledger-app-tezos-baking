@@ -98,10 +98,10 @@ int handle_query_auth_key_with_curve(void) {
     uint8_t const length = g_hwm.baking_key.bip32_path.length;
     TZ_ASSERT(length <= NUM_ELEMENTS(g_hwm.baking_key.bip32_path.components), EXC_WRONG_LENGTH);
 
-    int derivation_type = unparse_derivation_type(g_hwm.baking_key.derivation_type);
-    TZ_ASSERT(derivation_type >= 0, EXC_REFERENCED_DATA_NOT_FOUND);
+    TZ_ASSERT(DERIVATION_TYPE_IS_SET(g_hwm.baking_key.derivation_type),
+              EXC_REFERENCED_DATA_NOT_FOUND);
 
-    resp[offset] = derivation_type;
+    resp[offset] = (uint8_t) g_hwm.baking_key.derivation_type;
     offset++;
 
     resp[offset] = length;

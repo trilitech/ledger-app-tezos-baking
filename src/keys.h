@@ -41,61 +41,25 @@
  *      code for the mapping.
  */
 typedef enum {
-    DERIVATION_TYPE_UNSET = 0,
-    DERIVATION_TYPE_SECP256K1 = 1,
-    DERIVATION_TYPE_SECP256R1 = 2,
-    DERIVATION_TYPE_ED25519 = 3,
-    DERIVATION_TYPE_BIP32_ED25519 = 4,
+    DERIVATION_TYPE_ED25519 = 0x00,
+    DERIVATION_TYPE_SECP256K1 = 0x01,
+    DERIVATION_TYPE_SECP256R1 = 0x02,
+    DERIVATION_TYPE_BIP32_ED25519 = 0x03,
+    DERIVATION_TYPE_UNSET = 0x04
 } derivation_type_t;
 
 typedef enum {
-    SIGNATURE_TYPE_UNSET = 0,
+    SIGNATURE_TYPE_ED25519 = 0,
     SIGNATURE_TYPE_SECP256K1 = 1,
     SIGNATURE_TYPE_SECP256R1 = 2,
-    SIGNATURE_TYPE_ED25519 = 3
+    SIGNATURE_TYPE_UNSET = 3
 } signature_type_t;
 
-/**
- * @brief Reads a curve code from wire-format and parse into `deviration_type`
- *
- * @param curve_code: curve code
- * @return derivation_type_t: derivation_type result
- */
-static inline derivation_type_t parse_derivation_type(uint8_t const curve_code) {
-    switch (curve_code) {
-        case 0:
-            return DERIVATION_TYPE_ED25519;
-        case 1:
-            return DERIVATION_TYPE_SECP256K1;
-        case 2:
-            return DERIVATION_TYPE_SECP256R1;
-        case 3:
-            return DERIVATION_TYPE_BIP32_ED25519;
-        default:
-            return DERIVATION_TYPE_UNSET;
-    }
-}
+#define DERIVATION_TYPE_IS_SET(type) \
+    (((derivation_type_t) 0 <= type) && (type < DERIVATION_TYPE_UNSET))
 
-/**
- * @brief Converts `derivation_type` to wire-format.
- *
- * @param derivation_type: curve
- * @return uint8_t: curve code result
- */
-static inline int unparse_derivation_type(derivation_type_t const derivation_type) {
-    switch (derivation_type) {
-        case DERIVATION_TYPE_ED25519:
-            return 0;
-        case DERIVATION_TYPE_SECP256K1:
-            return 1;
-        case DERIVATION_TYPE_SECP256R1:
-            return 2;
-        case DERIVATION_TYPE_BIP32_ED25519:
-            return 3;
-        default:
-            return -1;
-    }
-}
+#define SIGNATURE_TYPE_IS_SET(type) \
+    (((signature_type_t) 0 <= type) && (type < SIGNATURE_TYPE_UNSET))
 
 /**
  * @brief Converts `derivation_type` to `signature_type`
