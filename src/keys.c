@@ -32,44 +32,6 @@ bool read_bip32_path(buffer_t *buf, bip32_path_t *const out) {
 
 /***** Key *****/
 
-/**
- * @brief Converts `derivation_type` to `derivation_mode`
- *
- * @param derivation_type: derivation_type
- * @return unsigned int: derivation mode
- */
-static inline unsigned int derivation_type_to_derivation_mode(
-    derivation_type_t const derivation_type) {
-    switch (derivation_type) {
-        case DERIVATION_TYPE_ED25519:
-            return HDW_ED25519_SLIP10;
-        case DERIVATION_TYPE_SECP256K1:
-        case DERIVATION_TYPE_SECP256R1:
-        case DERIVATION_TYPE_BIP32_ED25519:
-        default:
-            return HDW_NORMAL;
-    }
-}
-
-/**
- * @brief Converts `signature_type` to `cx_curve`
- *
- * @param signature_type: signature_type
- * @return cx_curve_t: curve result
- */
-static inline cx_curve_t signature_type_to_cx_curve(signature_type_t const signature_type) {
-    switch (signature_type) {
-        case SIGNATURE_TYPE_SECP256K1:
-            return CX_CURVE_SECP256K1;
-        case SIGNATURE_TYPE_SECP256R1:
-            return CX_CURVE_SECP256R1;
-        case SIGNATURE_TYPE_ED25519:
-            return CX_CURVE_Ed25519;
-        default:
-            return CX_CURVE_NONE;
-    }
-}
-
 cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
                              bip32_path_with_curve_t const *const path_with_curve) {
     if ((public_key == NULL) || (path_with_curve == NULL)) {
@@ -80,29 +42,45 @@ cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
 
     bip32_path_t const *const bip32_path = &path_with_curve->bip32_path;
     derivation_type_t derivation_type = path_with_curve->derivation_type;
-    unsigned int derivation_mode = derivation_type_to_derivation_mode(derivation_type);
-    signature_type_t signature_type = derivation_type_to_signature_type(derivation_type);
-    cx_curve_t cx_curve = signature_type_to_cx_curve(signature_type);
+    unsigned int derivation_mode;
 
-    public_key->W_len = PK_LEN;
-    public_key->curve = cx_curve;
-
-    // generate corresponding public key
-    CX_CHECK(bip32_derive_with_seed_get_pubkey_256(derivation_mode,
-                                                   public_key->curve,
-                                                   bip32_path->components,
-                                                   bip32_path->length,
-                                                   ((cx_ecfp_256_public_key_t *) public_key)->W,
-                                                   NULL,
-                                                   CX_SHA512,
-                                                   NULL,
-                                                   0));
-
-    // If we're using the old curve, make sure to adjust accordingly.
-    if (cx_curve == CX_CURVE_Ed25519) {
-        CX_CHECK(
-            cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519, public_key->W, public_key->W_len));
-        public_key->W_len = COMPRESSED_PK_LEN;
+    switch (derivation_type) {
+        case DERIVATION_TYPE_ED25519:
+        case DERIVATION_TYPE_BIP32_ED25519: {
+            derivation_mode =
+                (derivation_type == DERIVATION_TYPE_ED25519) ? HDW_ED25519_SLIP10 : HDW_NORMAL;
+            public_key->curve = CX_CURVE_Ed25519;
+            public_key->W_len = COMPRESSED_PK_LEN;
+            CX_CHECK(
+                bip32_derive_with_seed_get_pubkey_256(derivation_mode,
+                                                      public_key->curve,
+                                                      bip32_path->components,
+                                                      bip32_path->length,
+                                                      ((cx_ecfp_256_public_key_t *) public_key)->W,
+                                                      NULL,
+                                                      CX_SHA512,
+                                                      NULL,
+                                                      0));
+            CX_CHECK(cx_edwards_compress_point_no_throw(CX_CURVE_Ed25519,
+                                                        public_key->W,
+                                                        public_key->W_len));
+            break;
+        }
+        case DERIVATION_TYPE_SECP256K1:
+        case DERIVATION_TYPE_SECP256R1: {
+            public_key->curve = (derivation_type == DERIVATION_TYPE_SECP256K1) ? CX_CURVE_SECP256K1
+                                                                               : CX_CURVE_SECP256R1;
+            public_key->W_len = PK_LEN;
+            CX_CHECK(bip32_derive_get_pubkey_256(public_key->curve,
+                                                 bip32_path->components,
+                                                 bip32_path->length,
+                                                 ((cx_ecfp_256_public_key_t *) public_key)->W,
+                                                 NULL,
+                                                 CX_SHA512));
+            break;
+        }
+        default:
+            return CX_INVALID_PARAMETER;
     }
 
 end:
@@ -135,19 +113,19 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
         return CX_INVALID_PARAMETER_SIZE;
     }
 
-    signature_type_t signature_type = derivation_type_to_signature_type(derivation_type);
     cx_ecfp_compressed_public_key_t *compressed =
         (cx_ecfp_compressed_public_key_t *) &(tz_ecfp_compressed_public_key_t){0};
 
-    switch (signature_type) {
-        case SIGNATURE_TYPE_ED25519: {
+    switch (derivation_type) {
+        case DERIVATION_TYPE_ED25519:
+        case DERIVATION_TYPE_BIP32_ED25519: {
             compressed->curve = public_key->curve;
             compressed->W_len = TZ_EDPK_LEN;
             memcpy(compressed->W, public_key->W + 1, compressed->W_len);
             break;
         }
-        case SIGNATURE_TYPE_SECP256K1:
-        case SIGNATURE_TYPE_SECP256R1: {
+        case DERIVATION_TYPE_SECP256K1:
+        case DERIVATION_TYPE_SECP256R1: {
             compressed->curve = public_key->curve;
             compressed->W_len = COMPRESSED_PK_LEN;
             memcpy(compressed->W, public_key->W, compressed->W_len);
@@ -214,13 +192,16 @@ cx_err_t sign(uint8_t *const out,
 
     bip32_path_t const *const bip32_path = &path_with_curve->bip32_path;
     derivation_type_t derivation_type = path_with_curve->derivation_type;
-    unsigned int derivation_mode = derivation_type_to_derivation_mode(derivation_type);
-    signature_type_t signature_type = derivation_type_to_signature_type(derivation_type);
-    cx_curve_t cx_curve = signature_type_to_cx_curve(signature_type);
+    unsigned int derivation_mode;
+    cx_curve_t cx_curve;
     uint32_t info;
 
-    switch (signature_type) {
-        case SIGNATURE_TYPE_ED25519: {
+    switch (derivation_type) {
+        case DERIVATION_TYPE_ED25519:
+        case DERIVATION_TYPE_BIP32_ED25519: {
+            derivation_mode =
+                (derivation_type == DERIVATION_TYPE_ED25519) ? HDW_ED25519_SLIP10 : HDW_NORMAL;
+            cx_curve = CX_CURVE_Ed25519;
             CX_CHECK(bip32_derive_with_seed_eddsa_sign_hash_256(derivation_mode,
                                                                 cx_curve,
                                                                 bip32_path->components,
@@ -233,8 +214,10 @@ cx_err_t sign(uint8_t *const out,
                                                                 NULL,
                                                                 0));
         } break;
-        case SIGNATURE_TYPE_SECP256K1:
-        case SIGNATURE_TYPE_SECP256R1: {
+        case DERIVATION_TYPE_SECP256K1:
+        case DERIVATION_TYPE_SECP256R1: {
+            cx_curve = (derivation_type == DERIVATION_TYPE_SECP256K1) ? CX_CURVE_SECP256K1
+                                                                      : CX_CURVE_SECP256R1;
             CX_CHECK(bip32_derive_ecdsa_sign_hash_256(cx_curve,
                                                       bip32_path->components,
                                                       bip32_path->length,
