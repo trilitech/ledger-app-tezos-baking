@@ -45,14 +45,16 @@ typedef enum {
     DERIVATION_TYPE_SECP256K1 = 0x01,
     DERIVATION_TYPE_SECP256R1 = 0x02,
     DERIVATION_TYPE_BIP32_ED25519 = 0x03,
-    DERIVATION_TYPE_UNSET = 0x04
+    DERIVATION_TYPE_BLS12_381 = 0x04,
+    DERIVATION_TYPE_UNSET = 0x05
 } derivation_type_t;
 
 typedef enum {
     SIGNATURE_TYPE_ED25519 = 0,
     SIGNATURE_TYPE_SECP256K1 = 1,
     SIGNATURE_TYPE_SECP256R1 = 2,
-    SIGNATURE_TYPE_UNSET = 3
+    SIGNATURE_TYPE_BLS12_381 = 3,
+    SIGNATURE_TYPE_UNSET = 4
 } signature_type_t;
 
 #define DERIVATION_TYPE_IS_SET(type) \
@@ -77,6 +79,8 @@ static inline signature_type_t derivation_type_to_signature_type(
         case DERIVATION_TYPE_ED25519:
         case DERIVATION_TYPE_BIP32_ED25519:
             return SIGNATURE_TYPE_ED25519;
+        case DERIVATION_TYPE_BLS12_381:
+            return SIGNATURE_TYPE_BLS12_381;
         default:
             return SIGNATURE_TYPE_UNSET;
     }
@@ -188,6 +192,7 @@ static inline bool bip32_path_with_curve_eq(bip32_path_with_curve_t volatile con
  */
 typedef union {
     cx_ecfp_256_public_key_t pk_256;  ///< edpk, sppk and p2pk keys
+    cx_ecfp_384_public_key_t pk_384;  ///< BLpk keys
 } tz_ecfp_public_key_t;
 
 /**
@@ -212,12 +217,19 @@ typedef struct {
     size_t W_len;      ///< Compressed public key length in bytes
     uint8_t W[33];     ///< Compressed public key value
 } tz_ecfp_secp256_compressed_public_key_t;
+/** BLS compressed public key */
+typedef struct {
+    cx_curve_t curve;  ///< Curve identifier
+    size_t W_len;      ///< Compressed public key length in bytes
+    uint8_t W[48];     ///< Compressed public key value
+} tz_ecfp_bls_compressed_public_key_t;
 /**
  * @brief This structure represents elliptic curve compressed public key handled
  */
 typedef union {
     tz_ecfp_ed25519_compressed_public_key_t pk_ed25519;  ///< edpk keys
     tz_ecfp_secp256_compressed_public_key_t pk_secp256;  ///< sppk and p2pk keys
+    tz_ecfp_bls_compressed_public_key_t pk_bls;          ///< BLpk keys
 } tz_ecfp_compressed_public_key_t;
 
 /**

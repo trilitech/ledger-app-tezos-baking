@@ -64,6 +64,7 @@ union public_key {
     uint8_t edpk[32];  ///< raw public key for a edpk key
     uint8_t sppk[33];  ///< raw public key for a sppk key
     uint8_t p2pk[33];  ///< raw public key for a p2pk key
+    uint8_t blpk[48];  ///< raw public key for a BLpk key
 } __attribute__((packed));
 
 /**
