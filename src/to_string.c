@@ -121,6 +121,13 @@ static int pkh_to_string(char *const dest,
             data.prefix[1] = 161u;
             data.prefix[2] = 164u;
             break;
+#ifndef TARGET_NANOS
+        case SIGNATURE_TYPE_BLS12_381:
+            data.prefix[0] = 6u;
+            data.prefix[1] = 161u;
+            data.prefix[2] = 166u;
+            break;
+#endif
         default:
             return -1;
     }

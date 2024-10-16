@@ -64,6 +64,9 @@ union public_key {
     uint8_t edpk[TZ_EDPK_LEN];        ///< raw public key for a edpk key
     uint8_t sppk[COMPRESSED_PK_LEN];  ///< raw public key for a sppk key
     uint8_t p2pk[COMPRESSED_PK_LEN];  ///< raw public key for a p2pk key
+#ifndef TARGET_NANOS
+    uint8_t blpk[BLS_COMPRESSED_PK_LEN];  ///< raw public key for a BLpk key
+#endif
 } __attribute__((packed));
 
 /**

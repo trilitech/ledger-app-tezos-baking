@@ -21,6 +21,9 @@
 
 #include "crypto_helpers.h"
 
+#ifndef TARGET_NANOS
+#include "crypto.h"
+#endif
 #include "keys.h"
 
 /***** Bip32 path *****/
@@ -79,6 +82,16 @@ cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
                                                  CX_SHA512));
             break;
         }
+#ifndef TARGET_NANOS
+        case DERIVATION_TYPE_BLS12_381: {
+            public_key->curve = CX_CURVE_BLS12_381_G1;
+            public_key->W_len = BLS_PK_LEN;
+            CX_CHECK(bip32_derive_get_pubkey_bls(bip32_path->components,
+                                                 bip32_path->length,
+                                                 ((cx_ecfp_384_public_key_t *) public_key)->W));
+            break;
+        }
+#endif
         default:
             return CX_INVALID_PARAMETER;
     }
@@ -132,6 +145,14 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
             compressed->W[0] = 0x02 + (public_key->W[64] & 0x01);
             break;
         }
+#ifndef TARGET_NANOS
+        case DERIVATION_TYPE_BLS12_381: {
+            compressed->curve = public_key->curve;
+            compressed->W_len = BLS_COMPRESSED_PK_LEN;
+            memcpy(compressed->W, public_key->W + 1, compressed->W_len);
+            break;
+        }
+#endif
         default:
             return CX_INVALID_PARAMETER;
     }
@@ -232,6 +253,16 @@ cx_err_t sign(uint8_t *const out,
                 out[0] |= 0x01;
             }
         } break;
+#ifndef TARGET_NANOS
+        case DERIVATION_TYPE_BLS12_381: {
+            CX_CHECK(bip32_derive_with_seed_bls_sign_hash(bip32_path->components,
+                                                          bip32_path->length,
+                                                          (uint8_t const *) PIC(in),
+                                                          in_size,
+                                                          out,
+                                                          out_size));
+        } break;
+#endif
         default:
             error = CX_INVALID_PARAMETER;
     }
