@@ -23,40 +23,13 @@
 #pragma once
 
 #include "exception.h"
-#include "bip32.h"
 #include "os.h"
 #include "os_io_seproxyhal.h"
 
 #include <stdbool.h>
 #include <string.h>
 
-/**
- * NOTE: There are *two* ways that "key type" or "curve code" are represented in
- * this code base:
- *   1. `derivation_type` represents how a key will be derived from the seed. It
- *      is almost the same as `signature_type` but allows for multiple derivation
- *      strategies for ed25519. This type is often parsed from the APDU
- *      instruction. See `parse_derivation_type` for the mapping.
- *   2. `signature_type` represents how a key will be used for signing.
- *      The mapping from `derivation_type` to `signature_type` is injective.
- *      See `derivation_type_to_signature_type`.
- *      This type is parsed from Tezos data headers. See the relevant parsing
- *      code for the mapping.
- */
-typedef enum {
-    DERIVATION_TYPE_UNSET = 0,
-    DERIVATION_TYPE_SECP256K1 = 1,
-    DERIVATION_TYPE_SECP256R1 = 2,
-    DERIVATION_TYPE_ED25519 = 3,
-    DERIVATION_TYPE_BIP32_ED25519 = 4
-} derivation_type_t;
-
-typedef enum {
-    SIGNATURE_TYPE_UNSET = 0,
-    SIGNATURE_TYPE_SECP256K1 = 1,
-    SIGNATURE_TYPE_SECP256R1 = 2,
-    SIGNATURE_TYPE_ED25519 = 3
-} signature_type_t;
+#include "keys.h"
 
 /**
  * @brief Type of baking message
@@ -105,87 +78,6 @@ static chain_id_t const mainnet_chain_id = {.v = 0x7A06A770};
 typedef bool (*ui_callback_t)(void);
 
 /**
- * @brief This structure represents a bip32 path
- *
- */
-typedef struct {
-    uint8_t length;                       ///< length of the path
-    uint32_t components[MAX_BIP32_PATH];  ///< array of components
-} bip32_path_t;
-
-/**
- * @brief Copies a bip32 path
- *
- * @param out: bip32 path output
- * @param in: bip32 path copied
- * @return bool: whether the copy was successful or not
- */
-static inline bool copy_bip32_path(bip32_path_t *const out, bip32_path_t const *const in) {
-    if ((out == NULL) || (in == NULL)) {
-        return false;
-    }
-    memcpy(out->components, in->components, in->length * sizeof(*in->components));
-    out->length = in->length;
-    return true;
-}
-
-/**
- * @brief Checks that two bip32 paths are equals
- *
- * @param a: first bip32 path
- * @param b: second bip32 path
- * @return bool: result
- */
-static inline bool bip32_paths_eq(bip32_path_t volatile const *const a,
-                                  bip32_path_t volatile const *const b) {
-    return (a == b) || ((a != NULL) && (b != NULL) && (a->length == b->length) &&
-                        (memcmp((const uint8_t *) a->components,
-                                (const uint8_t *) b->components,
-                                a->length * sizeof(*a->components)) == 0));
-}
-
-/**
- * @brief This structure represents a bip32 path and its curve
- *
- *        Defines a key when associates with a mnemonic seed
- *
- */
-typedef struct {
-    bip32_path_t bip32_path;            ///< bip32 path of the key
-    derivation_type_t derivation_type;  ///< curve of the key
-} bip32_path_with_curve_t;
-
-/**
- * @brief Copies a bip32 path and its curve
- *
- * @param out: output
- * @param in: bip32 path and curve copied
- * @return bool: whether the copy was successful or not
- */
-static inline bool copy_bip32_path_with_curve(bip32_path_with_curve_t *const out,
-                                              bip32_path_with_curve_t const *const in) {
-    if ((out == NULL) || (in == NULL) || !copy_bip32_path(&out->bip32_path, &in->bip32_path)) {
-        return false;
-    }
-    out->derivation_type = in->derivation_type;
-    return true;
-}
-
-/**
- * @brief Checks that two bip32 paths with their paths are equals
- *
- * @param a: first bip32 path and curve
- * @param b: first bip32 path and curve
- * @return bool: result
- */
-static inline bool bip32_path_with_curve_eq(bip32_path_with_curve_t volatile const *const a,
-                                            bip32_path_with_curve_t volatile const *const b) {
-    return (a == b) ||
-           ((a != NULL) && (b != NULL) && bip32_paths_eq(&a->bip32_path, &b->bip32_path) &&
-            (a->derivation_type == b->derivation_type));
-}
-
-/**
  * @brief This structure represents a High Watermark (HWM)
  *
  */
@@ -221,8 +113,6 @@ typedef struct {
 #define HWM_STATUS_SIZE 9u   // HWM status takes values Enabled and Disabled.
 #define PROTOCOL_HASH_BASE58_STRING_SIZE \
     sizeof("ProtoBetaBetaBetaBetaBetaBetaBetaBetaBet11111a5ug96")
-
-#define KEY_HASH_SIZE 20u
 
 /**
  * @brief This structure represents the content of a parsed baking data
@@ -275,12 +165,12 @@ struct parsed_operation {
  *
  */
 struct parsed_operation_group {
-    cx_ecfp_public_key_t public_key;    ///< signer public key
-    uint64_t total_fee;                 ///< sum of all fees
-    uint64_t total_storage_limit;       ///< sum of all storage limits
-    bool has_reveal;                    ///< if the bundle contains at least a reveal
-    struct parsed_contract signing;     ///< contract form of signer
-    struct parsed_operation operation;  ///< operation parsed
+    tz_ecfp_compressed_public_key_t public_key;  ///< compressed signer public key
+    uint64_t total_fee;                          ///< sum of all fees
+    uint64_t total_storage_limit;                ///< sum of all storage limits
+    bool has_reveal;                             ///< if the bundle contains at least a reveal
+    struct parsed_contract signing;              ///< contract form of signer
+    struct parsed_operation operation;           ///< operation parsed
 };
 
 #define CUSTOM_MAX(a, b)                     \
