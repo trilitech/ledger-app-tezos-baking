@@ -406,7 +406,7 @@ class TezosNavigator(metaclass=MetaScreen):
     def get_public_key_prompt(self,
                               account: Account,
                               navigate: Optional[Callable] = None,
-                              **kwargs) -> bytes:
+                              **kwargs) -> str:
         """Send a get public key request and navigate until accept"""
         if navigate is None:
             navigate = self.accept_key_navigate
@@ -473,7 +473,7 @@ class TezosNavigator(metaclass=MetaScreen):
                           main_hwm: Hwm,
                           test_hwm: Hwm,
                           navigate: Optional[Callable] = None,
-                          **kwargs) -> bytes:
+                          **kwargs) -> str:
         """Send a setup request and navigate until accept"""
         if navigate is None:
             navigate = self.accept_setup_navigate
