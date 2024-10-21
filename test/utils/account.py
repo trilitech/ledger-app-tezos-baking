@@ -18,10 +18,12 @@
 from enum import IntEnum
 from typing import Union
 
+from hashlib import blake2b
 import base58
 import pysodium
 import secp256k1
 import fastecdsa
+from py_ecc.bls import G2MessageAugmentation as bls
 
 import pytezos
 from pytezos.crypto.encoding import base58_encode
@@ -36,6 +38,7 @@ class SigScheme(IntEnum):
     SECP256K1     = 0x01
     SECP256R1     = 0x02
     BIP32_ED25519 = 0x03
+    BLS           = 0x04
     DEFAULT       = ED25519
 
 class BipPath:
@@ -127,6 +130,8 @@ class Signature:
             prefix = bytes([13, 115, 101, 19, 63]) if sig_scheme == SigScheme.SECP256K1 \
                 else bytes([54, 240, 44, 52])
             data = Signature.from_secp256_tlv(data)
+        elif sig_scheme == SigScheme.BLS:
+            prefix = bytes([40, 171, 64, 207])
         else:
             assert False, f"Wrong signature type: {sig_scheme}"
 
@@ -180,10 +185,24 @@ class PublicKey:
             data = bytes(kind) + data[:32]
             return base58_encode(data, prefix).decode()
 
+        # BLS
+        if sig_scheme == SigScheme.BLS:
+            assert kind == PublicKey.CompressionKind.UNCOMPRESSED, \
+                f"Wrong BLS public key compression kind: {kind}"
+            assert len(data) == 2 * 48, \
+                f"Wrong BLS public key length: {len(data)}"
+            return base58.b58encode_check(bytes([6, 149, 135, 204]) + data[:48]).decode()
+
         assert False, f"Wrong signature type: {sig_scheme}"
 
 class Account:
     """Class representing account."""
+
+    path: BipPath
+    sig_scheme: SigScheme
+    # key: str == BLS.sk since pytezos do not support BLS for now
+    key: Union[pytezos.Key, str]
+    nanos_screens: int
 
     def __init__(self,
                  path: Union[BipPath, str, bytes],
@@ -195,30 +214,43 @@ class Account:
             BipPath.from_bytes(path) if isinstance(path, bytes) else \
             path
         self.sig_scheme: SigScheme = sig_scheme
-        self.key: pytezos.Key = pytezos.pytezos.using(key=key).key
+        if self.sig_scheme == SigScheme.BLS:
+            self.key: str = key
+        else:
+            self.key: pytezos.Key = pytezos.pytezos.using(key=key).key
         self.nanos_screens: int = nanos_screens
 
     @property
     def public_key_hash(self) -> str:
         """public_key_hash of the account."""
+        if isinstance(self.key, str):
+            pk_raw = base58.b58decode_check(self.public_key.encode())[4:]
+            pkh_raw = blake2b(pk_raw, digest_size=20).digest()
+            return base58.b58encode_check(bytes([6, 161, 166]) + pkh_raw).decode()
+
         return self.key.public_key_hash()
 
     @property
     def public_key(self) -> str:
         """public_key of the account."""
+        if isinstance(self.key, str):
+            sk_raw = base58.b58decode_check(self.secret_key.encode())[4:]
+            sk_int = int.from_bytes(sk_raw, 'little')
+            pk_raw = bls.SkToPk(sk_int)
+            return base58.b58encode_check(bytes([6, 149, 135, 204]) + pk_raw).decode()
+
         return self.key.public_key()
 
     @property
     def secret_key(self) -> str:
         """secret_key of the account."""
+        if isinstance(self.key, str):
+            return self.key
+
         return self.key.secret_key()
 
     def __repr__(self) -> str:
         return f"{self.sig_scheme.name}_{self.public_key_hash}"
-
-    def sign(self, message: Union[str, bytes], generic: bool = False) -> bytes:
-        """Sign a raw sequence of bytes."""
-        return self.key.sign(message, generic)
 
     def sign_prehashed_message(self, prehashed_message: bytes) -> bytes:
         """Sign a raw sequence of bytes already hashed."""
@@ -245,6 +277,11 @@ class Account:
                 prehashed=True
             )
             return r.to_bytes(32, 'big') + s.to_bytes(32, 'big')
+        if self.sig_scheme == SigScheme.BLS:
+            sk_raw = base58.b58decode_check(self.secret_key.encode())[4:]
+            sk_int = int.from_bytes(sk_raw, 'little') # Tezos encode it in 'little'
+            return bls.Sign(sk_int, prehashed_message)
+
         raise ValueError(f"Account do not have a right signature type: {self.sig_scheme}")
 
     def check_signature(self,
@@ -255,7 +292,15 @@ class Account:
             message = bytes.fromhex(message)
         if isinstance(signature, bytes):
             signature = Signature.from_bytes(signature, self.sig_scheme)
-        assert self.key.verify(signature.encode(), message), \
-            f"Fail to verify signature {signature}, \n\
-            with account {self} \n\
-            and message {message.hex()}"
+        if isinstance(self.key, str):
+            pk_raw = base58.b58decode_check(self.public_key.encode())[4:]
+            signature_raw = base58.b58decode_check(signature.encode())[4:]
+            assert bls.Verify(pk_raw, message, signature_raw), \
+                f"Fail to verify signature {signature}, \n\
+                with account {self} \n\
+                and message {message.hex()}"
+        else:
+            assert self.key.verify(signature.encode(), message), \
+                f"Fail to verify signature {signature}, \n\
+                with account {self} \n\
+                and message {message.hex()}"

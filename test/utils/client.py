@@ -169,6 +169,7 @@ class StatusCode(IntEnum):
     HID_REQUIRED              = 0x6983
     CLASS                     = 0x6e00
     MEMORY_ERROR              = 0x9200
+    CX_ERR                    = 0x9001
 
     @contextmanager
     def expected(self) -> Generator[None, None, None]:
