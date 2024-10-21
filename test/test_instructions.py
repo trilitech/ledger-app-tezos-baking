@@ -22,12 +22,14 @@ import hashlib
 import hmac
 import time
 
+from functools import wraps
 import pytest
+from conftest import skip_nanos_bls
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from utils.client import TezosClient, Version, Hwm, StatusCode
-from utils.account import Account, PublicKey
+from utils.account import Account, PublicKey, SigScheme
 from utils.helper import get_current_commit
 from utils.message import (
     Message,
@@ -57,6 +59,7 @@ from common import (
     ZEBRA_ACCOUNTS,
 )
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", [None, *ACCOUNTS])
 def test_review_home(account: Optional[Account],
                      backend: BackendInterface,
@@ -502,8 +505,10 @@ def test_ledger_screensaver(firmware: Firmware,
         assert (res.find("y") != -1), "Ledger screensaver should have activated"
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ZEBRA_ACCOUNTS)
 def test_benchmark_attestation_time(account: Account,
+                                    firmware: Firmware,
                                     client: TezosClient,
                                     tezos_navigator: TezosNavigator,
                                     backend_name) -> None:
@@ -549,8 +554,11 @@ def test_benchmark_attestation_time(account: Account,
         )
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
-def test_authorize_baking(account: Account, tezos_navigator: TezosNavigator) -> None:
+def test_authorize_baking(account: Account,
+                          firmware: Firmware,
+                          tezos_navigator: TezosNavigator) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
     snap_path = Path(f"{account}")
 
@@ -599,9 +607,11 @@ def test_deauthorize(firmware: Firmware,
         test_hwm=Hwm(0, 0)
     )
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_auth_key(
         account: Account,
+        firmware: Firmware,
         client: TezosClient,
         tezos_navigator: TezosNavigator) -> None:
     """Test the QUERY_AUTH_KEY instruction."""
@@ -613,9 +623,11 @@ def test_get_auth_key(
     assert path == account.path, \
         f"Expected {account.path} but got {path}"
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_auth_key_with_curve(
         account: Account,
+        firmware: Firmware,
         client: TezosClient,
         tezos_navigator: TezosNavigator) -> None:
     """Test the QUERY_AUTH_KEY_WITH_CURVE instruction."""
@@ -630,8 +642,11 @@ def test_get_auth_key_with_curve(
     assert sig_scheme == account.sig_scheme, \
         f"Expected {account.sig_scheme.name} but got {sig_scheme.name}"
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
-def test_get_public_key_baking(account: Account, tezos_navigator: TezosNavigator) -> None:
+def test_get_public_key_baking(account: Account,
+                               firmware: Firmware,
+                               tezos_navigator: TezosNavigator) -> None:
     """Test the AUTHORIZE_BAKING instruction."""
 
     tezos_navigator.authorize_baking(account)
@@ -644,8 +659,11 @@ def test_get_public_key_baking(account: Account, tezos_navigator: TezosNavigator
         f"Expected public key {account.public_key} but got {public_key}"
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
-def test_get_public_key_silent(account: Account, client: TezosClient) -> None:
+def test_get_public_key_silent(account: Account,
+                               firmware: Firmware,
+                               client: TezosClient) -> None:
     """Test the GET_PUBLIC_KEY instruction."""
 
     public_key = client.get_public_key_silent(account)
@@ -654,8 +672,11 @@ def test_get_public_key_silent(account: Account, client: TezosClient) -> None:
         f"Expected public key {account.public_key} but got {public_key}"
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
-def test_get_public_key_prompt(account: Account, tezos_navigator: TezosNavigator) -> None:
+def test_get_public_key_prompt(account: Account,
+                               firmware: Firmware,
+                               tezos_navigator: TezosNavigator) -> None:
     """Test the PROMPT_PUBLIC_KEY instruction."""
 
     public_key = tezos_navigator.get_public_key_prompt(account, snap_path=Path(f"{account}"))
@@ -679,8 +700,11 @@ def test_reset_app_context(tezos_navigator: TezosNavigator) -> None:
     )
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
-def test_setup_app_context(account: Account, tezos_navigator: TezosNavigator) -> None:
+def test_setup_app_context(account: Account,
+                           firmware: Firmware,
+                           tezos_navigator: TezosNavigator) -> None:
     """Test the SETUP instruction."""
     snap_path = Path(f"{account}")
 
@@ -707,9 +731,11 @@ def test_setup_app_context(account: Account, tezos_navigator: TezosNavigator) ->
     )
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_main_hwm(
         account: Account,
+        firmware: Firmware,
         client: TezosClient,
         tezos_navigator: TezosNavigator) -> None:
     """Test the QUERY_MAIN_HWM instruction."""
@@ -731,9 +757,11 @@ def test_get_main_hwm(
         f"Expected main hmw {main_hwm} but got {received_main_hwm}"
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
 def test_get_all_hwm(
         account: Account,
+        firmware: Firmware,
         client: TezosClient,
         tezos_navigator: TezosNavigator) -> None:
     """Test the QUERY_ALL_HWM instruction."""
@@ -797,6 +825,7 @@ def build_block(level, current_round, chain_id):
     )
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
 @pytest.mark.parametrize("with_hash", [False, True])
 def test_sign_preattestation(
@@ -854,6 +883,7 @@ def test_sign_preattestation(
     )
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
 @pytest.mark.parametrize("with_hash", [False, True])
 def test_sign_attestation(
@@ -911,6 +941,7 @@ def test_sign_attestation(
     )
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
 @pytest.mark.parametrize("with_hash", [False, True])
 def test_sign_attestation_dal(
@@ -968,6 +999,7 @@ def test_sign_attestation_dal(
     )
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
 @pytest.mark.parametrize("with_hash", [False, True])
 def test_sign_block(
@@ -1126,11 +1158,13 @@ def test_sign_level_authorized(
             client.sign_message(account, message_2)
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
 @pytest.mark.parametrize("with_hash", [False, True])
 def test_sign_delegation(
         account: Account,
         with_hash: bool,
+        firmware: Firmware,
         tezos_navigator: TezosNavigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on delegation."""
     snap_path = Path(f"{account}")
@@ -1261,11 +1295,13 @@ def test_sign_delegation_constraints(
         )
 
 
+@skip_nanos_bls
 @pytest.mark.parametrize("account", ACCOUNTS)
 @pytest.mark.parametrize("with_hash", [False, True])
 def test_sign_reveal(
         account: Account,
         with_hash: bool,
+        firmware: Firmware,
         client: TezosClient,
         tezos_navigator: TezosNavigator) -> None:
     """Test the SIGN(_WITH_HASH) instruction on reveal."""
@@ -1778,7 +1814,7 @@ HMAC_TEST_SET = [
     ("0123456789abcdef0123456789abcdef0123456789abcdef")
 ]
 
-# This HMAC test don't pass with tz2 and tz3
+# This HMAC test don't pass with tz2, tz3 and tz4
 @pytest.mark.parametrize("account", TZ1_ACCOUNTS)
 @pytest.mark.parametrize("message_hex", HMAC_TEST_SET)
 def test_hmac(

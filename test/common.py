@@ -50,6 +50,13 @@ BIP32_TZ1_ACCOUNT = Account(
     2
 )
 
+TZ4_ACCOUNT = Account(
+    "m/44'/1729'/0'/0'",
+    SigScheme.BLS,
+    "BLsk2Q1AdMSKNJbM1fLqHEWgaEDUz2odGrgPuCV1bxtzAedVEC2RSz",
+    3
+)
+
 LONG_TZ1_ACCOUNT = Account(
     "m/9'/12'/13'/8'/78'",
     SigScheme.ED25519,
@@ -75,13 +82,18 @@ TZ3_ACCOUNTS = [
     TZ3_ACCOUNT,
 ]
 
-ACCOUNTS = TZ1_ACCOUNTS + TZ2_ACCOUNTS + TZ3_ACCOUNTS
+TZ4_ACCOUNTS = [
+    TZ4_ACCOUNT,
+]
+
+ACCOUNTS = TZ1_ACCOUNTS + TZ2_ACCOUNTS + TZ3_ACCOUNTS + TZ4_ACCOUNTS
 
 ZEBRA_ACCOUNTS = [
     TZ1_ACCOUNT,
     TZ2_ACCOUNT,
     TZ3_ACCOUNT,
     BIP32_TZ1_ACCOUNT,
+    TZ4_ACCOUNT,
 ]
 
 EMPTY_PATH = BipPath.from_string("m")
