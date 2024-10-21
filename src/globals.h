@@ -55,9 +55,6 @@ void toggle_hwm(void);
 /// Maximum number of bytes in a single APDU
 #define MAX_APDU_SIZE 235u
 
-/// Our buffer must accommodate any remainder from hashing and the next message at once.
-#define TEZOS_BUFSIZE (BLAKE2B_BLOCKBYTES + MAX_APDU_SIZE)
-
 #define MAX_SIGNATURE_SIZE 100u
 
 /**
@@ -76,7 +73,6 @@ typedef struct {
  */
 typedef struct {
     cx_blake2b_t state;  ///< blake2b state
-    bool initialized;    ///< if the state has already been initialized
 } blake2b_hash_state_t;
 
 /**
@@ -95,10 +91,6 @@ typedef struct {
         bool is_valid;                    ///< if the parsed operation group is considered as valid
         struct parsed_operation_group v;  ///< current parsed operation group
     } maybe_ops;
-
-    /// buffer to hold the current message part and the  previous message hash
-    uint8_t message_data[TEZOS_BUFSIZE];
-    size_t message_data_length;  ///< length of message data
 
     blake2b_hash_state_t hash_state;     ///< current blake2b hash state
     uint8_t final_hash[SIGN_HASH_SIZE];  ///< buffer to hold hash of all the message
