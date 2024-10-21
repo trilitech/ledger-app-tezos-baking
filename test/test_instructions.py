@@ -23,7 +23,6 @@ import hmac
 import time
 
 import pytest
-from pytezos import pytezos
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
@@ -32,16 +31,17 @@ from utils.account import Account
 from utils.helper import get_current_commit
 from utils.message import (
     Message,
-    UnsafeOp,
+    ManagerOperation,
+    OperationGroup,
     Delegation,
     Reveal,
+    Transaction,
     Preattestation,
     Attestation,
-    AttestationDal,
     Fitness,
     BlockHeader,
     Block,
-    DEFAULT_CHAIN_ID
+    Default
 )
 from utils.navigator import (
     TezosNavigator,
@@ -274,7 +274,7 @@ def test_automatic_low_cost_screensaver(firmware: Firmware,
 
     tezos_navigator.setup_app_context(
         account,
-        DEFAULT_CHAIN_ID,
+        Default.CHAIN_ID,
         Hwm(0, 0),
         Hwm(0, 0)
     )
@@ -289,7 +289,7 @@ def test_automatic_low_cost_screensaver(firmware: Firmware,
     attestation = build_attestation(
         op_level=1,
         op_round=0,
-        chain_id=DEFAULT_CHAIN_ID
+        chain_id=Default.CHAIN_ID
     )
 
     client.sign_message(account, attestation)
@@ -328,7 +328,7 @@ def test_automatic_low_cost_screensaver_cancelled_by_display(
 
     tezos_navigator.setup_app_context(
         account,
-        DEFAULT_CHAIN_ID,
+        Default.CHAIN_ID,
         Hwm(0, 0),
         Hwm(0, 0)
     )
@@ -336,7 +336,7 @@ def test_automatic_low_cost_screensaver_cancelled_by_display(
     attestation = build_attestation(
         op_level=1,
         op_round=0,
-        chain_id=DEFAULT_CHAIN_ID
+        chain_id=Default.CHAIN_ID
     )
 
     client.sign_message(account, attestation)
@@ -377,7 +377,7 @@ def test_automatic_low_cost_screensaver_exited_by_display(
 
     tezos_navigator.setup_app_context(
         account,
-        DEFAULT_CHAIN_ID,
+        Default.CHAIN_ID,
         Hwm(0, 0),
         Hwm(0, 0)
     )
@@ -385,7 +385,7 @@ def test_automatic_low_cost_screensaver_exited_by_display(
     attestation = build_attestation(
         op_level=1,
         op_round=0,
-        chain_id=DEFAULT_CHAIN_ID
+        chain_id=Default.CHAIN_ID
     )
 
     client.sign_message(account, attestation)
@@ -414,7 +414,7 @@ def test_automatic_low_cost_screensaver_exited_by_display(
     attestation = build_attestation(
         op_level=2,
         op_round=0,
-        chain_id=DEFAULT_CHAIN_ID
+        chain_id=Default.CHAIN_ID
     )
 
     client.sign_message(account, attestation)
@@ -456,7 +456,14 @@ def test_ledger_screensaver(firmware: Firmware,
                             client: TezosClient,
                             tezos_navigator: TezosNavigator,
                             backend_name) -> None:
-    # Make sure that ledger device being tested has screensaver time set to 1 minute and PIN lock is disabled.
+    """Test the ledger's screensaver.
+
+       Make sure that ledger device being tested has screensaver time
+       set to 1 minute and PIN lock is disabled.
+
+       Only runs for physical devices.
+
+    """
     account = DEFAULT_ACCOUNT
     if backend_name == "speculos":
         assert True
@@ -468,7 +475,7 @@ def test_ledger_screensaver(firmware: Firmware,
     assert (res.find("y") != -1), "Ledger screensaver should have activated"
 
     lvl = 0
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
     main_hwm = Hwm(lvl, 0)
     test_hwm = Hwm(0, 0)
 
@@ -496,14 +503,22 @@ def test_ledger_screensaver(firmware: Firmware,
 
 
 @pytest.mark.parametrize("account", ZEBRA_ACCOUNTS)
-def test_benchmark_attestation_time(account: Account, client: TezosClient, tezos_navigator: TezosNavigator, backend_name) -> None:
+def test_benchmark_attestation_time(account: Account,
+                                    client: TezosClient,
+                                    tezos_navigator: TezosNavigator,
+                                    backend_name) -> None:
+    """Benchmark attestation signing time.
+
+       Only runs for physical devices.
+
+    """
     # check if backend is speculos, then return .
     if backend_name == "speculos":
         assert True
         return
 
     lvl = 0
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
     main_hwm = Hwm(lvl, 0)
     test_hwm = Hwm(0, 0)
 
@@ -525,7 +540,13 @@ def test_benchmark_attestation_time(account: Account, client: TezosClient, tezos
         client.sign_message(account, attestation)
     end= time.time()
     with open("Avg_time_for_100_attestations.txt",'a') as f:
-        f.write("\nTime elapsed for derivation type : " + str(account) + " is : " + str(end-st) + "\n")
+        f.write(
+            "\nTime elapsed for derivation type : "
+            + str(account)
+            + " is : "
+            + str(end-st)
+            + "\n"
+        )
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -539,7 +560,7 @@ def test_authorize_baking(account: Account, tezos_navigator: TezosNavigator) -> 
 
     tezos_navigator.check_app_context(
         account,
-        chain_id=DEFAULT_CHAIN_ID,
+        chain_id=Default.CHAIN_ID,
         main_hwm=Hwm(0, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -570,7 +591,7 @@ def test_deauthorize(firmware: Firmware,
 
     tezos_navigator.check_app_context(
         None,
-        chain_id=DEFAULT_CHAIN_ID,
+        chain_id=Default.CHAIN_ID,
         main_hwm=Hwm(0, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -644,7 +665,7 @@ def test_reset_app_context(tezos_navigator: TezosNavigator) -> None:
 
     tezos_navigator.check_app_context(
         None,
-        chain_id=DEFAULT_CHAIN_ID,
+        chain_id=Default.CHAIN_ID,
         main_hwm=Hwm(reset_level, 0),
         test_hwm=Hwm(reset_level, 0)
     )
@@ -684,7 +705,7 @@ def test_get_main_hwm(
         tezos_navigator: TezosNavigator) -> None:
     """Test the QUERY_MAIN_HWM instruction."""
 
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
     main_hwm = Hwm(0, 0)
     test_hwm = Hwm(0, 0)
 
@@ -708,7 +729,7 @@ def test_get_all_hwm(
         tezos_navigator: TezosNavigator) -> None:
     """Test the QUERY_ALL_HWM instruction."""
 
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
     main_hwm = Hwm(0, 0)
     test_hwm = Hwm(0, 0)
 
@@ -735,22 +756,26 @@ def build_preattestation(op_level, op_round, chain_id):
     """Build a preattestation."""
     return Preattestation(
         op_level=op_level,
-        op_round=op_round
-    ).forge(chain_id=chain_id)
+        op_round=op_round,
+        chain_id=chain_id
+    )
 
 def build_attestation(op_level, op_round, chain_id):
     """Build a attestation."""
     return Attestation(
         op_level=op_level,
-        op_round=op_round
-    ).forge(chain_id=chain_id)
+        op_round=op_round,
+        chain_id=chain_id
+    )
 
 def build_attestation_dal(op_level, op_round, chain_id):
     """Build a attestation_dal."""
-    return AttestationDal(
+    return Attestation(
         op_level=op_level,
-        op_round=op_round
-    ).forge(chain_id=chain_id)
+        op_round=op_round,
+        dal_attestation=0,
+        chain_id=chain_id
+    )
 
 def build_block(level, current_round, chain_id):
     """Build a block."""
@@ -758,8 +783,9 @@ def build_block(level, current_round, chain_id):
         header=BlockHeader(
             level=level,
             fitness=Fitness(current_round=current_round)
-        )
-    ).forge(chain_id=chain_id)
+        ),
+        chain_id=chain_id
+    )
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -774,7 +800,7 @@ def test_sign_preattestation(
     """Test the SIGN(_WITH_HASH) instruction on preattestation."""
     snap_path = Path(f"{account}")
 
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
     main_hwm = Hwm(0, 0)
     test_hwm = Hwm(0, 0)
 
@@ -831,7 +857,7 @@ def test_sign_attestation(
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
     snap_path = Path(f"{account}")
 
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
     main_hwm = Hwm(0, 0)
     test_hwm = Hwm(0, 0)
 
@@ -888,7 +914,7 @@ def test_sign_attestation_dal(
     """Test the SIGN(_WITH_HASH) instruction on attestation."""
     snap_path = Path(f"{account}")
 
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
     main_hwm = Hwm(0, 0)
     test_hwm = Hwm(0, 0)
 
@@ -945,7 +971,7 @@ def test_sign_block(
     """Test the SIGN(_WITH_HASH) instruction on block."""
     snap_path = Path(f"{account}")
 
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
     main_hwm = Hwm(0, 0)
     test_hwm = Hwm(0, 0)
 
@@ -997,7 +1023,7 @@ def test_sign_block_at_reset_level(client: TezosClient, tezos_navigator: TezosNa
 
     reset_level: int = 1
 
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
     main_hwm = Hwm(reset_level, 0)
     test_hwm = Hwm(0, 0)
 
@@ -1059,7 +1085,7 @@ def test_sign_level_authorized(
 
     account: Account = DEFAULT_ACCOUNT
 
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
     main_level = 1
 
     tezos_navigator.setup_app_context(
@@ -1102,7 +1128,7 @@ def test_sign_delegation(
 
     tezos_navigator.setup_app_context(
         account,
-        DEFAULT_CHAIN_ID,
+        Default.CHAIN_ID,
         main_hwm=Hwm(0, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -1112,15 +1138,13 @@ def test_sign_delegation(
         source=account.public_key_hash,
     )
 
-    raw_delegation = delegation.forge()
-
     if not with_hash:
         signature = tezos_navigator.sign_delegation(
             account,
             delegation,
             snap_path=snap_path
         )
-        account.check_signature(signature, bytes(raw_delegation))
+        account.check_signature(signature, bytes(delegation))
     else:
         delegation_hash, signature = \
             tezos_navigator.sign_delegation_with_hash(
@@ -1128,9 +1152,9 @@ def test_sign_delegation(
                 delegation,
                 snap_path=snap_path
             )
-        assert delegation_hash == raw_delegation.hash, \
-            f"Expected hash {raw_delegation.hash.hex()} but got {delegation_hash.hex()}"
-        account.check_signature(signature, bytes(raw_delegation))
+        assert delegation_hash == delegation.hash, \
+            f"Expected hash {delegation.hash.hex()} but got {delegation_hash.hex()}"
+        account.check_signature(signature, bytes(delegation))
 
 
 
@@ -1153,7 +1177,7 @@ def test_sign_delegation_fee(
 
     tezos_navigator.setup_app_context(
         account,
-        DEFAULT_CHAIN_ID,
+        Default.CHAIN_ID,
         main_hwm=Hwm(0, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -1211,7 +1235,7 @@ def test_sign_delegation_constraints(
 
     tezos_navigator.setup_app_context(
         setup_account,
-        DEFAULT_CHAIN_ID,
+        Default.CHAIN_ID,
         main_hwm=Hwm(0, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -1239,7 +1263,7 @@ def test_sign_reveal(
 
     tezos_navigator.setup_app_context(
         account,
-        DEFAULT_CHAIN_ID,
+        Default.CHAIN_ID,
         main_hwm=Hwm(0, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -1247,7 +1271,7 @@ def test_sign_reveal(
     reveal = Reveal(
         public_key=account.public_key,
         source=account.public_key_hash,
-    ).forge()
+    )
 
     if not with_hash:
         signature = client.sign_message(
@@ -1306,7 +1330,7 @@ def test_sign_reveal_constraints(
 
     tezos_navigator.setup_app_context(
         setup_account,
-        DEFAULT_CHAIN_ID,
+        Default.CHAIN_ID,
         main_hwm=Hwm(0, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -1314,7 +1338,7 @@ def test_sign_reveal_constraints(
     reveal = Reveal(
         public_key=public_key_account.public_key,
         source=source_account.public_key_hash,
-    ).forge()
+    )
 
     with status_code.expected():
         client.sign_message(
@@ -1331,7 +1355,7 @@ def test_sign_not_authorized_key(
     account_1 = DEFAULT_ACCOUNT
     account_2 = DEFAULT_ACCOUNT_2
 
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
 
     tezos_navigator.setup_app_context(
         account_1,
@@ -1354,7 +1378,7 @@ def test_sign_transaction(
     account_1 = DEFAULT_ACCOUNT
     account_2 = DEFAULT_ACCOUNT_2
 
-    main_chain_id = DEFAULT_CHAIN_ID
+    main_chain_id = Default.CHAIN_ID
 
     tezos_navigator.setup_app_context(
         account_1,
@@ -1363,14 +1387,11 @@ def test_sign_transaction(
         test_hwm=Hwm(0, 0)
     )
 
-    ctxt = pytezos.using()
-    transaction = UnsafeOp(
-        ctxt.transaction(
-            source=account_1.public_key_hash,
-            destination=account_2.public_key_hash,
-            amount=10_000,
-        )
-    ).forge()
+    transaction = Transaction(
+        source=account_1.public_key_hash,
+        destination=account_2.public_key_hash,
+        amount=10_000,
+    )
 
     with StatusCode.PARSE_ERROR.expected():
         client.sign_message(account_1, transaction)
@@ -1388,15 +1409,12 @@ def build_delegation(account: Account) -> Delegation:
         delegate=account.public_key_hash,
         source=account.public_key_hash,
     )
-def build_transaction(account: Account) -> UnsafeOp:
+def build_transaction(account: Account) -> Transaction:
     """Build a transaction."""
-    ctxt = pytezos.using()
-    return UnsafeOp(
-        ctxt.transaction(
-            source=account.public_key_hash,
-            destination=DEFAULT_ACCOUNT_2.public_key_hash,
-            amount=10_000,
-        )
+    return Transaction(
+        source=account.public_key_hash,
+        destination=DEFAULT_ACCOUNT_2.public_key_hash,
+        amount=10_000,
     )
 def build_bad_reveal_1(account: Account) -> Reveal:
     """Build a bad reveal."""
@@ -1462,9 +1480,9 @@ PARAMETERS_SIGN_MULTIPLE_OPERATIONS = [
     PARAMETERS_SIGN_MULTIPLE_OPERATIONS
 )
 def test_sign_multiple_operation(
-        operation_builder_1: Callable[[Account], UnsafeOp],
-        operation_builder_2: Callable[[Account], UnsafeOp],
-        operation_builder_3: Optional[Callable[[Account], UnsafeOp]],
+        operation_builder_1: Callable[[Account], ManagerOperation],
+        operation_builder_2: Callable[[Account], ManagerOperation],
+        operation_builder_3: Optional[Callable[[Account], ManagerOperation]],
         status_code: StatusCode,
         operation_display: bool,
         client: TezosClient,
@@ -1475,37 +1493,34 @@ def test_sign_multiple_operation(
 
     tezos_navigator.setup_app_context(
         account,
-        DEFAULT_CHAIN_ID,
+        Default.CHAIN_ID,
         main_hwm=Hwm(0, 0),
         test_hwm=Hwm(0, 0)
     )
 
-    operation = operation_builder_1(account)
-    operation = operation.merge(
-        operation_builder_2(account)
-    )
+    operations = [
+        operation_builder_1(account),
+        operation_builder_2(account),
+    ]
     if operation_builder_3 is not None:
-        operation = operation.merge(
-            operation_builder_3(account)
-        )
-
-    message = operation.forge()
+        operations.append(operation_builder_3(account))
+    operation = OperationGroup(operations)
 
     with status_code.expected():
         if operation_display:
             signature = send_and_navigate(
                 send=lambda: client.sign_message(
                     account,
-                    message
+                    operation
                 ),
                 navigate=tezos_navigator.accept_sign_navigate
             )
         else:
             signature = client.sign_message(
                 account,
-                message
+                operation
             )
-        account.check_signature(signature, bytes(message))
+        account.check_signature(signature, bytes(operation))
 
 
 def test_sign_when_hwm_disabled(
@@ -1519,21 +1534,21 @@ def test_sign_when_hwm_disabled(
 
     tezos_navigator.setup_app_context(
         account,
-        DEFAULT_CHAIN_ID,  # Chain = 0
+        Default.CHAIN_ID,  # Chain = 0
         main_hwm=Hwm(0, 0),
         test_hwm=Hwm(0, 0)
     )
 
     attestation = build_attestation(
         1, 0,
-        DEFAULT_CHAIN_ID  # Chain = 0
+        Default.CHAIN_ID  # Chain = 0
     )
 
     client.sign_message(account, attestation)
 
     tezos_navigator.check_app_context(
         account,
-        chain_id=DEFAULT_CHAIN_ID,
+        chain_id=Default.CHAIN_ID,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -1547,7 +1562,7 @@ def test_sign_when_hwm_disabled(
 
     tezos_navigator.check_app_context(
         account,
-        chain_id=DEFAULT_CHAIN_ID,
+        chain_id=Default.CHAIN_ID,
         main_hwm=Hwm(2, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -1562,18 +1577,26 @@ def test_sign_when_hwm_disabled(
 
     tezos_navigator.check_app_context(
         account,
-        chain_id=DEFAULT_CHAIN_ID,
+        chain_id=Default.CHAIN_ID,
         main_hwm=Hwm(2, 0),
         test_hwm=Hwm(0, 0)
     )
 
 
 @pytest.mark.parametrize("exit_style", ["abruptly", "properly"])
-def test_hwm_disabled_exit(client: TezosClient, tezos_navigator: TezosNavigator, exit_style, backend_name) -> None:
-    """On device test to verify HWM settings operation. Can run the test with hwm setting enabled or disabled.
-       When HWM is disabled, an abrupt power off will result in HWM reset to 0.
-       Whwereas when HWM settings is enabled, the abrupt power off will not
-       reset the HWM. With a proper exit, HWM will always be preserved."""
+def test_hwm_disabled_exit(client: TezosClient,
+                           tezos_navigator: TezosNavigator,
+                           exit_style, backend_name) -> None:
+    """On device test to verify HWM settings operation. Can run the
+       test with hwm setting enabled or disabled.  When HWM is
+       disabled, an abrupt power off will result in HWM reset to 0.
+       Whwereas when HWM settings is enabled, the abrupt power off
+       will not reset the HWM. With a proper exit, HWM will always be
+       preserved.
+
+       Only runs for physical devices.
+
+    """
     # check if backend is speculos, then return .
     if backend_name == "speculos":
         assert True
@@ -1588,12 +1611,12 @@ def test_hwm_disabled_exit(client: TezosClient, tezos_navigator: TezosNavigator,
 
     tezos_navigator.setup_app_context(
         account,
-        DEFAULT_CHAIN_ID,  # Chain = 0
+        Default.CHAIN_ID,  # Chain = 0
         main_hwm = Hwm(0, 0),
         test_hwm = Hwm(0, 0)
     )
     for i in range(1, 11):
-        attestation = build_attestation(i, 0, DEFAULT_CHAIN_ID)
+        attestation = build_attestation(i, 0, Default.CHAIN_ID)
         client.sign_message(account, attestation)
     main_hwm = Hwm(10,0)
     received_main_hwm = tezos_navigator.client.get_main_hwm()
@@ -1623,21 +1646,21 @@ def test_sign_when_no_chain_setup(
 
     tezos_navigator.setup_app_context(
         account,
-        DEFAULT_CHAIN_ID, # Chain = 0
+        Default.CHAIN_ID, # Chain = 0
         main_hwm=Hwm(0, 0),
         test_hwm=Hwm(0, 0)
     )
 
     attestation = build_attestation(
         1, 0,
-        DEFAULT_CHAIN_ID # Chain = 0
+        Default.CHAIN_ID # Chain = 0
     )
 
     client.sign_message(account, attestation)
 
     tezos_navigator.check_app_context(
         account,
-        chain_id=DEFAULT_CHAIN_ID,
+        chain_id=Default.CHAIN_ID,
         main_hwm=Hwm(1, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -1651,7 +1674,7 @@ def test_sign_when_no_chain_setup(
 
     tezos_navigator.check_app_context(
         account,
-        chain_id=DEFAULT_CHAIN_ID,
+        chain_id=Default.CHAIN_ID,
         main_hwm=Hwm(2, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -1666,7 +1689,7 @@ def test_sign_when_no_chain_setup(
 
     tezos_navigator.check_app_context(
         account,
-        chain_id=DEFAULT_CHAIN_ID,
+        chain_id=Default.CHAIN_ID,
         main_hwm=Hwm(2, 0),
         test_hwm=Hwm(0, 0)
     )
@@ -1703,7 +1726,7 @@ def test_sign_when_chain_is_setup(
 
     attestation = build_attestation(
         2, 0,
-        DEFAULT_CHAIN_ID # Chain = 0
+        Default.CHAIN_ID # Chain = 0
     )
 
     client.sign_message(account, attestation)
