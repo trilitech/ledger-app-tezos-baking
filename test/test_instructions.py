@@ -27,7 +27,7 @@ import pytest
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from utils.client import TezosClient, Version, Hwm, StatusCode
-from utils.account import Account
+from utils.account import Account, PublicKey
 from utils.helper import get_current_commit
 from utils.message import (
     Message,
@@ -554,9 +554,12 @@ def test_authorize_baking(account: Account, tezos_navigator: TezosNavigator) -> 
     """Test the AUTHORIZE_BAKING instruction."""
     snap_path = Path(f"{account}")
 
-    public_key = tezos_navigator.authorize_baking(account, snap_path=snap_path)
+    data = tezos_navigator.authorize_baking(account, snap_path=snap_path)
 
-    account.check_public_key(public_key)
+    public_key = PublicKey.from_bytes(data, account.sig_scheme)
+
+    assert account.public_key == public_key, \
+        f"Expected public key {account.public_key} but got {public_key}"
 
     tezos_navigator.check_app_context(
         account,
@@ -633,9 +636,12 @@ def test_get_public_key_baking(account: Account, tezos_navigator: TezosNavigator
 
     tezos_navigator.authorize_baking(account)
 
-    public_key = tezos_navigator.authorize_baking(None, snap_path=Path(f"{account}"))
+    data = tezos_navigator.authorize_baking(None, snap_path=Path(f"{account}"))
 
-    account.check_public_key(public_key)
+    public_key = PublicKey.from_bytes(data, account.sig_scheme)
+
+    assert account.public_key == public_key, \
+        f"Expected public key {account.public_key} but got {public_key}"
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -644,7 +650,8 @@ def test_get_public_key_silent(account: Account, client: TezosClient) -> None:
 
     public_key = client.get_public_key_silent(account)
 
-    account.check_public_key(public_key)
+    assert account.public_key == public_key, \
+        f"Expected public key {account.public_key} but got {public_key}"
 
 
 @pytest.mark.parametrize("account", ACCOUNTS)
@@ -653,7 +660,8 @@ def test_get_public_key_prompt(account: Account, tezos_navigator: TezosNavigator
 
     public_key = tezos_navigator.get_public_key_prompt(account, snap_path=Path(f"{account}"))
 
-    account.check_public_key(public_key)
+    assert account.public_key == public_key, \
+        f"Expected public key {account.public_key} but got {public_key}"
 
 
 def test_reset_app_context(tezos_navigator: TezosNavigator) -> None:
@@ -688,7 +696,8 @@ def test_setup_app_context(account: Account, tezos_navigator: TezosNavigator) ->
         snap_path=snap_path
     )
 
-    account.check_public_key(public_key)
+    assert account.public_key == public_key, \
+        f"Expected public key {account.public_key} but got {public_key}"
 
     tezos_navigator.check_app_context(
         account,
