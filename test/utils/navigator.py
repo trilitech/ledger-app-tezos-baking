@@ -45,7 +45,7 @@ from ragger.navigator import Navigator, NavInsID, NavIns
 
 from common import TESTS_ROOT_DIR, EMPTY_PATH
 from utils.client import TezosClient, Hwm
-from utils.account import Account, Signature
+from utils.account import Account
 from utils.message import Delegation
 
 RESPONSE = TypeVar('RESPONSE')
@@ -511,7 +511,7 @@ class TezosNavigator(metaclass=MetaScreen):
                         account: Account,
                         delegation: Delegation,
                         navigate: Optional[Callable] = None,
-                        **kwargs) -> Signature:
+                        **kwargs) -> str:
         """Send a sign request on delegation and navigate until accept"""
         if navigate is None:
             navigate = self.accept_sign_navigate
@@ -527,7 +527,7 @@ class TezosNavigator(metaclass=MetaScreen):
                                   account: Account,
                                   delegation: Delegation,
                                   navigate: Optional[Callable] = None,
-                                  **kwargs) -> Tuple[bytes, Signature]:
+                                  **kwargs) -> Tuple[bytes, str]:
         """Send a sign and get hash request on delegation and navigate until accept"""
         if navigate is None:
             navigate = self.accept_sign_navigate

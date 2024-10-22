@@ -342,7 +342,7 @@ class TezosClient:
 
     def sign_message(self,
                      account: Account,
-                     message: Message) -> Signature:
+                     message: Message) -> str:
         """Send the SIGN instruction."""
 
         self._exchange(
@@ -359,7 +359,7 @@ class TezosClient:
 
     def sign_message_with_hash(self,
                      account: Account,
-                     message: Message) -> Tuple[bytes, Signature]:
+                     message: Message) -> Tuple[bytes, str]:
         """Send the SIGN_WITH_HASH instruction."""
 
         self._exchange(
