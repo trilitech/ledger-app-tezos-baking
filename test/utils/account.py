@@ -82,17 +82,8 @@ class BipPath:
 class Signature:
     """Class representing signature."""
 
-    GENERIC_SIGNATURE_PREFIX = bytes.fromhex("04822b") # sig(96)
-
-    def __init__(self, value: bytes):
-        value = Signature.GENERIC_SIGNATURE_PREFIX + value
-        self.value: bytes = base58.b58encode_check(value)
-
-    def __repr__(self) -> str:
-        return self.value.hex()
-
-    @classmethod
-    def from_tlv(cls, tlv: Union[bytes, bytearray]) -> 'Signature':
+    @staticmethod
+    def from_secp256_tlv(tlv: Union[bytes, bytearray]) -> bytes:
         """Get the signature encapsulated in a TLV."""
         # See:
         # https://developers.ledger.com/docs/embedded-app/crypto-api/lcx__ecdsa_8h/#cx_ecdsa_sign
@@ -125,14 +116,21 @@ class Signature:
         # A size adjustment is required here.
         def adjust_size(data, size):
             return data[-size:].rjust(size, b'\x00')
-        return Signature(adjust_size(r, 32) + adjust_size(s, 32))
+        return adjust_size(r, 32) + adjust_size(s, 32)
 
     @classmethod
-    def from_bytes(cls, data: bytes, sig_scheme: SigScheme) -> 'Signature':
+    def from_bytes(cls, data: bytes, sig_scheme: SigScheme) -> str:
         """Get the signature according to the SigScheme."""
         if sig_scheme in { SigScheme.ED25519, SigScheme.BIP32_ED25519 }:
-            return Signature(data)
-        return Signature.from_tlv(data)
+            prefix = bytes([9, 245, 205, 134, 18])
+        elif sig_scheme in { SigScheme.SECP256K1, SigScheme.SECP256R1 }:
+            prefix = bytes([13, 115, 101, 19, 63]) if sig_scheme == SigScheme.SECP256K1 \
+                else bytes([54, 240, 44, 52])
+            data = Signature.from_secp256_tlv(data)
+        else:
+            assert False, f"Wrong signature type: {sig_scheme}"
+
+        return base58.b58encode_check(prefix + data).decode()
 
 class PublicKey:
     """Set of functions over public key management"""
@@ -250,14 +248,14 @@ class Account:
         raise ValueError(f"Account do not have a right signature type: {self.sig_scheme}")
 
     def check_signature(self,
-                        signature: Union[bytes, Signature],
+                        signature: Union[str, bytes],
                         message: Union[str, bytes]):
         """Check that the signature is the signature of the message by the account."""
         if isinstance(message, str):
             message = bytes.fromhex(message)
         if isinstance(signature, bytes):
             signature = Signature.from_bytes(signature, self.sig_scheme)
-        assert self.key.verify(signature.value, message), \
+        assert self.key.verify(signature.encode(), message), \
             f"Fail to verify signature {signature}, \n\
             with account {self} \n\
             and message {message.hex()}"
