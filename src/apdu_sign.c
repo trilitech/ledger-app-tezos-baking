@@ -334,6 +334,11 @@ int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
 
     G.message_data_length += cdata->size;
 
+#ifndef TARGET_NANOS
+    memmove(G.message, cdata->ptr, cdata->size);
+    G.message_len = cdata->size;
+#endif
+
     if (last) {
         // Hash contents of *this* message and then get the final hash value.
         TZ_CHECK(blake2b_incremental_hash(G.message_data,
@@ -379,6 +384,18 @@ static int perform_signature(bool const send_hash) {
     uint8_t resp[SIGN_HASH_SIZE + MAX_SIGNATURE_SIZE] = {0};
     size_t offset = 0;
 
+    uint8_t *message = G.final_hash;
+    size_t message_len = sizeof(G.final_hash);
+
+#ifndef TARGET_NANOS
+    // The BLS signature uses its own hash function.
+    // The entire message must be stored in `G.message`.
+    if (global.path_with_curve.derivation_type == DERIVATION_TYPE_BLS12_381) {
+        message = G.message;
+        message_len = G.message_len;
+    }
+#endif
+
     if (send_hash) {
         memcpy(resp + offset, G.final_hash, sizeof(G.final_hash));
         offset += sizeof(G.final_hash);
@@ -386,11 +403,7 @@ static int perform_signature(bool const send_hash) {
 
     size_t signature_size = MAX_SIGNATURE_SIZE;
 
-    CX_CHECK(sign(resp + offset,
-                  &signature_size,
-                  &global.path_with_curve,
-                  G.final_hash,
-                  sizeof(G.final_hash)));
+    CX_CHECK(sign(resp + offset, &signature_size, &global.path_with_curve, message, message_len));
 
     offset += signature_size;
 

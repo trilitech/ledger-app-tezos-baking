@@ -102,6 +102,10 @@ typedef struct {
 
     blake2b_hash_state_t hash_state;     ///< current blake2b hash state
     uint8_t final_hash[SIGN_HASH_SIZE];  ///< buffer to hold hash of all the message
+#ifndef TARGET_NANOS
+    uint8_t message[MAX_APDU_SIZE];  ///< buffer to hold last packet message
+    size_t message_len;              ///< size of the message last packet
+#endif
 
     magic_byte_t magic_byte;         ///< current magic byte read
     struct parse_state parse_state;  ///< current parser state
