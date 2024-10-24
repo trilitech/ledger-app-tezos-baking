@@ -15,11 +15,14 @@
 
 """Pytest configuration file."""
 
+from functools import wraps
 import pytest
+
 from ragger.backend import BackendInterface
 from ragger.conftest import configuration
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator
+from utils.account import SigScheme
 from utils.client import TezosClient
 from utils.navigator import TezosNavigator
 from common import DEFAULT_SEED
@@ -44,3 +47,17 @@ def tezos_navigator(
         test_name: str) -> TezosNavigator:
     """Get a tezos navigator."""
     return TezosNavigator(backend, firmware, client, navigator, golden_run, test_name)
+
+def skip_nanos_bls(func):
+    """Allows to skip tests with BLS `account` on NanoS device"""
+    @wraps(func)
+    def wrap(*args, **kwargs):
+        account = kwargs.get("account", None)
+        firmware = kwargs.get("firmware", None)
+        if firmware is not None \
+           and firmware.name == "nanos" \
+           and account is not None \
+           and account.sig_scheme == SigScheme.BLS:
+            pytest.skip("NanoS does not support BLS")
+        return func(*args, **kwargs)
+    return wrap

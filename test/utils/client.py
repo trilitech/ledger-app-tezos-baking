@@ -23,7 +23,7 @@ from ragger.utils import RAPDU
 from ragger.backend import BackendInterface
 from ragger.error import ExceptionRAPDU
 from pytezos.michelson import forge
-from utils.account import Account, SigScheme, BipPath, Signature
+from utils.account import Account, BipPath, PublicKey, Signature, SigScheme
 from utils.helper import BytesReader
 from utils.message import Message
 
@@ -169,6 +169,7 @@ class StatusCode(IntEnum):
     HID_REQUIRED              = 0x6983
     CLASS                     = 0x6e00
     MEMORY_ERROR              = 0x9200
+    CX_ERR                    = 0x9001
 
     @contextmanager
     def expected(self) -> Generator[None, None, None]:
@@ -237,10 +238,15 @@ class TezosClient:
             sig_scheme=account.sig_scheme
             payload=bytes(account.path)
 
-        return self._exchange(
+        data = self._exchange(
             ins=Ins.AUTHORIZE_BAKING,
             sig_scheme=sig_scheme,
             payload=payload)
+
+        length, data = data[0], data[1:]
+        assert length == len(data), f"Wrong data size, {length} != {len(data)}"
+
+        return data
 
     def deauthorize(self) -> None:
         """Send the DEAUTHORIZE instruction."""
@@ -259,19 +265,29 @@ class TezosClient:
         sig_scheme = SigScheme(data[0])
         return sig_scheme, BipPath.from_bytes(data[1:])
 
-    def get_public_key_silent(self, account: Account) -> bytes:
+    def get_public_key_silent(self, account: Account) -> str:
         """Send the GET_PUBLIC_KEY instruction."""
-        return self._exchange(
+        data = self._exchange(
             ins=Ins.GET_PUBLIC_KEY,
             sig_scheme=account.sig_scheme,
             payload=bytes(account.path))
 
-    def get_public_key_prompt(self, account: Account) -> bytes:
+        length, data = data[0], data[1:]
+        assert length == len(data), f"Wrong data size, {length} != {len(data)}"
+
+        return PublicKey.from_bytes(data, account.sig_scheme)
+
+    def get_public_key_prompt(self, account: Account) -> str:
         """Send the PROMPT_PUBLIC_KEY instruction."""
-        return  self._exchange(
+        data = self._exchange(
             ins=Ins.PROMPT_PUBLIC_KEY,
             sig_scheme=account.sig_scheme,
             payload=bytes(account.path))
+
+        length, data = data[0], data[1:]
+        assert length == len(data), f"Wrong data size, {length} != {len(data)}"
+
+        return PublicKey.from_bytes(data, account.sig_scheme)
 
     def reset_app_context(self, reset_level: int) -> None:
         """Send the RESET instruction."""
@@ -286,7 +302,7 @@ class TezosClient:
                           account: Account,
                           main_chain_id: str,
                           main_hwm: Hwm,
-                          test_hwm: Hwm) -> bytes:
+                          test_hwm: Hwm) -> str:
         """Send the SETUP instruction."""
 
         data: bytes = b''
@@ -295,10 +311,15 @@ class TezosClient:
         data += bytes(test_hwm)
         data += bytes(account.path)
 
-        return self._exchange(
+        data = self._exchange(
             ins=Ins.SETUP,
             sig_scheme=account.sig_scheme,
             payload=data)
+
+        length, data = data[0], data[1:]
+        assert length == len(data), f"Wrong data size, {length} != {len(data)}"
+
+        return PublicKey.from_bytes(data, account.sig_scheme)
 
     def get_main_hwm(self) -> Hwm:
         """Send the QUERY_MAIN_HWM instruction."""
@@ -322,7 +343,7 @@ class TezosClient:
 
     def sign_message(self,
                      account: Account,
-                     message: Message) -> Signature:
+                     message: Message) -> str:
         """Send the SIGN instruction."""
 
         self._exchange(
@@ -339,7 +360,7 @@ class TezosClient:
 
     def sign_message_with_hash(self,
                      account: Account,
-                     message: Message) -> Tuple[bytes, Signature]:
+                     message: Message) -> Tuple[bytes, str]:
         """Send the SIGN_WITH_HASH instruction."""
 
         self._exchange(

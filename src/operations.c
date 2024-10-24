@@ -77,25 +77,11 @@ static tz_parser_result parse_raw_tezos_header_signature_type(
     raw_tezos_header_signature_type_t const *const raw_signature_type,
     signature_type_t *signature_type) {
     tz_parser_result res = PARSER_CONTINUE;
-    signature_type_t signature_type_result;
 
     PARSER_ASSERT(raw_signature_type != NULL);
+    PARSER_ASSERT(SIGNATURE_TYPE_IS_SET((signature_type_t) raw_signature_type->v));
 
-    switch (raw_signature_type->v) {
-        case 0:
-            signature_type_result = SIGNATURE_TYPE_ED25519;
-            break;
-        case 1:
-            signature_type_result = SIGNATURE_TYPE_SECP256K1;
-            break;
-        case 2:
-            signature_type_result = SIGNATURE_TYPE_SECP256R1;
-            break;
-        default:
-            PARSER_FAIL();
-    }
-
-    *signature_type = signature_type_result;
+    *signature_type = (signature_type_t) raw_signature_type->v;
     res = PARSER_DONE;
 
 end:
@@ -110,7 +96,7 @@ end:
  * @param path_with_curve: bip32 path and curve of the key
  * @return tz_exc: exception, SW_OK if none
  */
-static inline tz_exc compute_pkh(cx_ecfp_public_key_t *const compressed_pubkey_out,
+static inline tz_exc compute_pkh(cx_ecfp_compressed_public_key_t *const compressed_pubkey_out,
                                  parsed_contract_t *const contract_out,
                                  bip32_path_with_curve_t const *const path_with_curve) {
     tz_exc exc = SW_OK;
@@ -281,7 +267,9 @@ static tz_exc parse_operations_init(struct parsed_operation_group *const out,
 
     out->operation.tag = OPERATION_TAG_NONE;
 
-    TZ_CHECK(compute_pkh(&out->public_key, &out->signing, path_with_curve));
+    TZ_CHECK(compute_pkh((cx_ecfp_compressed_public_key_t *) &out->public_key,
+                         &out->signing,
+                         path_with_curve));
 
     // Start out with source = signing, for reveals
     memcpy(&out->operation.source, &out->signing, sizeof(out->signing));
@@ -435,13 +423,13 @@ static inline tz_parser_result parse_byte(uint8_t byte,
             OP_STEP
 
             {
-                size_t klen = out->public_key.W_len;
+                size_t klen = ((cx_ecfp_compressed_public_key_t *) &out->public_key)->W_len;
 
                 // klen must match one of the field sizes in the public_key union
 
                 CALL_SUBPARSER(parse_next_type, byte, &(state->subparser_state.nexttype), klen);
 
-                PARSER_ASSERT(memcmp(out->public_key.W,
+                PARSER_ASSERT(memcmp(((cx_ecfp_compressed_public_key_t *) &out->public_key)->W,
                                      &(state->subparser_state.nexttype.body.raw),
                                      klen) == 0);
 
