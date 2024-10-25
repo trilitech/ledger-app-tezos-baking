@@ -58,6 +58,9 @@ WARN_UNUSED_RESULT cx_err_t bip32_derive_get_pubkey_bls(const uint32_t *path,
  *
  * @param[in]  path_len        Bip32 path length.
  *
+ * @param[in]  public_key      Must be the BLS key associated with the path and the inner seed.
+ *                             If NULL, it will be computed using the path and the inner seed.
+ *
  * @param[in]  msg             Digest of the message to be signed.
  *                             The length of *message* must be shorter than the group order size.
  *                             Otherwise it is truncated.
@@ -73,10 +76,12 @@ WARN_UNUSED_RESULT cx_err_t bip32_derive_get_pubkey_bls(const uint32_t *path,
  *                             - CX_EC_INVALID_CURVE
  *                             - CX_INTERNAL_ERROR
  */
-WARN_UNUSED_RESULT cx_err_t bip32_derive_with_seed_bls_sign_hash(const uint32_t *path,
-                                                                 size_t path_len,
-                                                                 uint8_t const *msg,
-                                                                 size_t msg_len,
-                                                                 uint8_t *sig,
-                                                                 size_t *sig_len);
+WARN_UNUSED_RESULT cx_err_t
+bip32_derive_with_seed_bls_sign_hash(const uint32_t *path,
+                                     size_t path_len,
+                                     cx_ecfp_384_public_key_t *public_key,
+                                     uint8_t const *msg,
+                                     size_t msg_len,
+                                     uint8_t *sig,
+                                     size_t *sig_len);
 #endif

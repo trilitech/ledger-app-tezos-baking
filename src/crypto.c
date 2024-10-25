@@ -131,12 +131,14 @@ end:
 // https://gitlab.com/tezos/tezos/-/blob/master/src/lib_bls12_381_signature/bls12_381_signature.ml?ref_type=heads#L351
 static const uint8_t CIPHERSUITE[] = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_AUG_";
 
-WARN_UNUSED_RESULT cx_err_t bip32_derive_with_seed_bls_sign_hash(const uint32_t *path,
-                                                                 size_t path_len,
-                                                                 uint8_t const *msg,
-                                                                 size_t msg_len,
-                                                                 uint8_t *sig,
-                                                                 size_t *sig_len) {
+WARN_UNUSED_RESULT cx_err_t
+bip32_derive_with_seed_bls_sign_hash(const uint32_t *path,
+                                     size_t path_len,
+                                     cx_ecfp_384_public_key_t *public_key,
+                                     uint8_t const *msg,
+                                     size_t msg_len,
+                                     uint8_t *sig,
+                                     size_t *sig_len) {
     cx_err_t error = CX_OK;
     cx_ecfp_384_private_key_t privkey = {0};
     uint8_t hash[CX_BLS_BLS12381_PARAM_LEN * 4] = {0};
@@ -156,8 +158,17 @@ WARN_UNUSED_RESULT cx_err_t bip32_derive_with_seed_bls_sign_hash(const uint32_t 
     // Derive private key according to BIP32 path
     CX_CHECK(bip32_derive_init_privkey_bls(path, path_len, &privkey));
 
-    CX_CHECK(bip32_derive_get_pubkey_bls(path, path_len, raw_pubkey));
-    memmove(tmp, raw_pubkey + 1, BLS_COMPRESSED_PK_LEN);
+    if (public_key == NULL) {
+        CX_CHECK(bip32_derive_get_pubkey_bls(path, path_len, raw_pubkey));
+        memmove(tmp, raw_pubkey + 1, BLS_COMPRESSED_PK_LEN);
+    } else {
+        if ((public_key->curve != CX_CURVE_BLS12_381_G1) ||
+            (public_key->W_len < (BLS_COMPRESSED_PK_LEN + 1u))) {
+            error = CX_INVALID_PARAMETER_VALUE;
+            goto end;
+        }
+        memmove(tmp, public_key->W + 1, BLS_COMPRESSED_PK_LEN);
+    }
     memmove(tmp + BLS_COMPRESSED_PK_LEN, msg, msg_len);
 
     CX_CHECK(cx_hash_to_field(tmp,

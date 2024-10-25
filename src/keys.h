@@ -289,6 +289,9 @@ cx_err_t public_key_hash(uint8_t *const hash_out,
  * @param out: signature output
  * @param out_size: output size
  * @param path_with_curve: bip32 path and curve of the key
+ * @param public_key: BLS public key associated with the path and the inner seed.
+ *                    Will be used only for BLS signature.
+ *                    If NULL, it will be computed using the path and the inner seed.
  * @param in: message input
  * @param in_size: input size
  * @return cx_err_t: error, CX_OK if none
@@ -296,5 +299,6 @@ cx_err_t public_key_hash(uint8_t *const hash_out,
 cx_err_t sign(uint8_t *const out,
               size_t *out_size,
               bip32_path_with_curve_t const *const path_with_curve,
+              cx_ecfp_public_key_t *public_key,
               uint8_t const *const in,
               size_t const in_size);

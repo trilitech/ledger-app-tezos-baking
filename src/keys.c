@@ -165,8 +165,12 @@ end:
 cx_err_t sign(uint8_t *const out,
               size_t *out_size,
               bip32_path_with_curve_t const *const path_with_curve,
+              cx_ecfp_public_key_t *public_key,
               uint8_t const *const in,
               size_t const in_size) {
+#ifdef TARGET_NANOS
+    UNUSED(public_key);
+#endif
     if ((out == NULL) || (out_size == NULL) || (path_with_curve == NULL) || (in == NULL)) {
         return CX_INVALID_PARAMETER;
     }
@@ -219,6 +223,7 @@ cx_err_t sign(uint8_t *const out,
         case DERIVATION_TYPE_BLS12_381: {
             CX_CHECK(bip32_derive_with_seed_bls_sign_hash(bip32_path->components,
                                                           bip32_path->length,
+                                                          (cx_ecfp_384_public_key_t *) public_key,
                                                           (uint8_t const *) PIC(in),
                                                           in_size,
                                                           out,

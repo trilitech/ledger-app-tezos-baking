@@ -66,6 +66,7 @@ static inline tz_exc hmac(uint8_t *const out,
     CX_CHECK(sign(state->signed_hmac_key,
                   &signed_hmac_key_size,
                   path_with_curve,
+                  NULL,
                   key_sha256,
                   sizeof(key_sha256)));
 

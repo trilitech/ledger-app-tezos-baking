@@ -311,7 +311,12 @@ static int perform_signature(bool const send_hash) {
 
     size_t signature_size = MAX_SIGNATURE_SIZE;
 
-    CX_CHECK(sign(resp + offset, &signature_size, &global.path_with_curve, message, message_len));
+    CX_CHECK(sign(resp + offset,
+                  &signature_size,
+                  &global.path_with_curve,
+                  (cx_ecfp_public_key_t *) &global.public_key,
+                  message,
+                  message_len));
 
     offset += signature_size;
 
