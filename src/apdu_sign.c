@@ -220,8 +220,20 @@ int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
             TZ_FAIL(EXC_PARSE_ERROR);
     }
 
-    CX_CHECK(
-        cx_hash_no_throw((cx_hash_t *) &G.hash_state.state, 0, cdata->ptr, cdata->size, NULL, 0));
+#ifndef TARGET_NANOS
+    // There is no need to hash the message if it is not used for signing or if it is not sent at
+    // the end.
+    if (with_hash || (global.path_with_curve.derivation_type != DERIVATION_TYPE_BLS12_381)) {
+#endif
+        CX_CHECK(cx_hash_no_throw((cx_hash_t *) &G.hash_state.state,
+                                  0,
+                                  cdata->ptr,
+                                  cdata->size,
+                                  NULL,
+                                  0));
+#ifndef TARGET_NANOS
+    }
+#endif
 
 #ifndef TARGET_NANOS
     memmove(G.message, cdata->ptr, cdata->size);
@@ -229,12 +241,20 @@ int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
 #endif
 
     if (last) {
-        CX_CHECK(cx_hash_no_throw((cx_hash_t *) &G.hash_state.state,
-                                  CX_LAST,
-                                  NULL,
-                                  0,
-                                  G.final_hash,
-                                  sizeof(G.final_hash)));
+#ifndef TARGET_NANOS
+        // There is no need to hash the message if it is not used for signing or if it is not sent
+        // at the end.
+        if (with_hash || (global.path_with_curve.derivation_type != DERIVATION_TYPE_BLS12_381)) {
+#endif
+            CX_CHECK(cx_hash_no_throw((cx_hash_t *) &G.hash_state.state,
+                                      CX_LAST,
+                                      NULL,
+                                      0,
+                                      G.final_hash,
+                                      sizeof(G.final_hash)));
+#ifndef TARGET_NANOS
+        }
+#endif
 
         G.maybe_ops.is_valid = parse_operations_final(&G.parse_state, &G.maybe_ops.v);
 
