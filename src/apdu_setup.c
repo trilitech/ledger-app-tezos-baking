@@ -55,7 +55,7 @@ static bool ok(void) {
 
     UPDATE_NVRAM;
 
-    provide_pubkey(&global.path_with_curve);
+    provide_pubkey((cx_ecfp_public_key_t *) &global.public_key);
 
     return true;
 }

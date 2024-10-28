@@ -38,7 +38,7 @@
  * @return true
  */
 static bool pubkey_ok(void) {
-    provide_pubkey(&global.path_with_curve);
+    provide_pubkey((cx_ecfp_public_key_t *) &global.public_key);
     return true;
 }
 
@@ -88,7 +88,7 @@ int handle_get_public_key(buffer_t *cdata,
     TZ_ASSERT(cdata->size == cdata->offset, EXC_WRONG_LENGTH);
 
     if (!prompt) {
-        return provide_pubkey(&global.path_with_curve);
+        return provide_pubkey((cx_ecfp_public_key_t *) &global.public_key);
     } else {
         // INS_PROMPT_PUBLIC_KEY || INS_AUTHORIZE_BAKING
         ui_callback_t cb;

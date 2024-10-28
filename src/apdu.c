@@ -53,21 +53,14 @@ end:
     return exc;
 }
 
-int provide_pubkey(bip32_path_with_curve_t const* const path_with_curve) {
+int provide_pubkey(cx_ecfp_public_key_t const* const pubkey) {
     tz_exc exc = SW_OK;
     cx_err_t error = CX_OK;
 
-    TZ_ASSERT_NOT_NULL(path_with_curve);
+    TZ_ASSERT_NOT_NULL(pubkey);
 
     uint8_t resp[1u + MAX_SIGNATURE_SIZE] = {0};
     size_t offset = 0;
-
-    // Application could be PIN-locked, and pubkey->W_len would then be 0,
-    // so throwing an error rather than returning an empty key
-    TZ_ASSERT(os_global_pin_is_validated() == BOLOS_UX_OK, EXC_SECURITY);
-
-    cx_ecfp_public_key_t* pubkey = (cx_ecfp_public_key_t*) &(tz_ecfp_public_key_t){0};
-    CX_CHECK(generate_public_key(pubkey, path_with_curve));
 
     resp[offset] = pubkey->W_len;
     offset++;
