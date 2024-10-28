@@ -76,23 +76,22 @@ typedef enum {
     (((signature_type_t) 0 <= type) && (type < SIGNATURE_TYPE_UNSET))
 
 /**
- * @brief Converts `derivation_type` to `signature_type`
+ * @brief Gets the signature_type of a public_key
  *
- * @param derivation_type: derivation_type
+ * @param public_key: public key
  * @return signature_type_t: signature_type result
  */
-static inline signature_type_t derivation_type_to_signature_type(
-    derivation_type_t const derivation_type) {
-    switch (derivation_type) {
-        case DERIVATION_TYPE_SECP256K1:
+static inline signature_type_t signature_type_of_public_key(
+    cx_ecfp_public_key_t const *const public_key) {
+    switch (public_key->curve) {
+        case CX_CURVE_SECP256K1:
             return SIGNATURE_TYPE_SECP256K1;
-        case DERIVATION_TYPE_SECP256R1:
+        case CX_CURVE_SECP256R1:
             return SIGNATURE_TYPE_SECP256R1;
-        case DERIVATION_TYPE_ED25519:
-        case DERIVATION_TYPE_BIP32_ED25519:
+        case CX_CURVE_Ed25519:
             return SIGNATURE_TYPE_ED25519;
 #ifndef TARGET_NANOS
-        case DERIVATION_TYPE_BLS12_381:
+        case CX_CURVE_BLS12_381_G1:
             return SIGNATURE_TYPE_BLS12_381;
 #endif
         default:
@@ -266,19 +265,21 @@ cx_err_t generate_public_key(cx_ecfp_public_key_t *public_key,
                              bip32_path_with_curve_t const *const path_with_curve);
 
 /**
- * @brief Generates a public key hash from a bip32 path and a curve
+ * @brief Extract the public key hash from a public key and a curve
+ *
+ *        Is non-reentrant
  *
  * @param hash_out: public key hash output
  * @param hash_out_size: output size
  * @param compressed_out: compressed public key output
  *                        pass NULL if this value is not desired
- * @param path_with_curve: bip32 path and curve
+ * @param public_key: public key
  * @return cx_err_t: error, CX_OK if none
  */
-cx_err_t generate_public_key_hash(uint8_t *const hash_out,
-                                  size_t const hash_out_size,
-                                  cx_ecfp_compressed_public_key_t *const compressed_out,
-                                  bip32_path_with_curve_t const *const path_with_curve);
+cx_err_t public_key_hash(uint8_t *const hash_out,
+                         size_t const hash_out_size,
+                         cx_ecfp_compressed_public_key_t *compressed_out,
+                         cx_ecfp_public_key_t const *const public_key);
 
 /**
  * @brief Signs a message with a key

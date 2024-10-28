@@ -68,6 +68,9 @@ static const nbgl_contentInfoList_t infoList = {.nbInfos = INFO_NB,
  */
 static void initInfo(void) {
     tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
+
+    cx_ecfp_public_key_t* authorized_pk = (cx_ecfp_public_key_t*) &(tz_ecfp_public_key_t){0};
 
     for (tz_infoIndex_t idx = 0; idx < INFO_NB; idx++) {
         infoContents[idx] = infoContentsBridge[idx];
@@ -82,9 +85,9 @@ static void initInfo(void) {
         TZ_ASSERT(copy_string(infoContentsBridge[PKH_IDX], MAX_LENGTH, "No Key Authorized"),
                   EXC_WRONG_LENGTH);
     } else {
-        TZ_CHECK(bip32_path_with_curve_to_pkh_string(infoContentsBridge[PKH_IDX],
-                                                     MAX_LENGTH,
-                                                     &g_hwm.baking_key));
+        CX_CHECK(generate_public_key(authorized_pk, &g_hwm.baking_key));
+
+        TZ_CHECK(pk_to_pkh_string(infoContentsBridge[PKH_IDX], MAX_LENGTH, authorized_pk));
     }
 
     TZ_ASSERT(hwm_to_string(infoContentsBridge[HWM_IDX], MAX_LENGTH, &g_hwm.hwm.main) >= 0,
@@ -105,6 +108,7 @@ static void initInfo(void) {
         EXC_WRONG_LENGTH);
 
 end:
+    TZ_CONVERT_CX();
     TZ_EXC_PRINT(exc);
 }
 

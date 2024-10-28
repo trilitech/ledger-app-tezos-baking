@@ -212,6 +212,9 @@ end:
 
 tz_exc calculate_idle_screen_authorized_key(void) {
     tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
+
+    cx_ecfp_public_key_t *authorized_pk = (cx_ecfp_public_key_t *) &(tz_ecfp_public_key_t){0};
 
     memset(&home_context.authorized_key, 0, sizeof(home_context.authorized_key));
 
@@ -221,12 +224,15 @@ tz_exc calculate_idle_screen_authorized_key(void) {
                               "No Key Authorized"),
                   EXC_WRONG_LENGTH);
     } else {
-        TZ_CHECK(bip32_path_with_curve_to_pkh_string(home_context.authorized_key,
-                                                     sizeof(home_context.authorized_key),
-                                                     &g_hwm.baking_key));
+        CX_CHECK(generate_public_key(authorized_pk, &g_hwm.baking_key));
+
+        TZ_CHECK(pk_to_pkh_string(home_context.authorized_key,
+                                  sizeof(home_context.authorized_key),
+                                  authorized_pk));
     }
 
 end:
+    TZ_CONVERT_CX();
     return exc;
 }
 

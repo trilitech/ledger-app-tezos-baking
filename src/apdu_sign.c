@@ -215,7 +215,9 @@ int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
             break;
         case MAGIC_BYTE_UNSAFE_OP:
             // Parse the operation. It will be verified in `baking_sign_complete`.
-            TZ_CHECK(parse_operations(cdata, &G.maybe_ops.v, &global.path_with_curve));
+            TZ_CHECK(parse_operations(cdata,
+                                      &G.maybe_ops.v,
+                                      (cx_ecfp_public_key_t *) &global.public_key));
             break;
         default:
             TZ_FAIL(EXC_PARSE_ERROR);

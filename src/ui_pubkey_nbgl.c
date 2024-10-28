@@ -69,9 +69,9 @@ int prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
     address_context.ok_cb = ok_cb;
     address_context.cxl_cb = cxl_cb;
 
-    TZ_CHECK(bip32_path_with_curve_to_pkh_string(address_context.buffer,
-                                                 sizeof(address_context.buffer),
-                                                 &global.path_with_curve));
+    TZ_CHECK(pk_to_pkh_string(address_context.buffer,
+                              sizeof(address_context.buffer),
+                              (cx_ecfp_public_key_t*) &global.public_key));
 
     const char* text;
     if (authorize) {

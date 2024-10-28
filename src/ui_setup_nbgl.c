@@ -146,9 +146,9 @@ int prompt_setup(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     setup_context.ok_cb = ok_cb;
     setup_context.cxl_cb = cxl_cb;
 
-    TZ_CHECK(bip32_path_with_curve_to_pkh_string(setup_context.tagValueRef[ADDRESS_IDX],
-                                                 MAX_LENGTH,
-                                                 &global.path_with_curve));
+    TZ_CHECK(pk_to_pkh_string(setup_context.tagValueRef[ADDRESS_IDX],
+                              MAX_LENGTH,
+                              (cx_ecfp_public_key_t *) &global.public_key));
 
     TZ_ASSERT(chain_id_to_string_with_aliases(setup_context.tagValueRef[CHAIN_IDX],
                                               MAX_LENGTH,

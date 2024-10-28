@@ -93,26 +93,25 @@ end:
  *
  * @param compressed_pubkey_out: compressed_pubkey output
  * @param contract_out: contract output
- * @param path_with_curve: bip32 path and curve of the key
+ * @param public_key: public key
  * @return tz_exc: exception, SW_OK if none
  */
 static inline tz_exc compute_pkh(cx_ecfp_compressed_public_key_t *const compressed_pubkey_out,
                                  parsed_contract_t *const contract_out,
-                                 bip32_path_with_curve_t const *const path_with_curve) {
+                                 cx_ecfp_public_key_t const *const public_key) {
     tz_exc exc = SW_OK;
     cx_err_t error = CX_OK;
 
-    TZ_ASSERT_NOT_NULL(path_with_curve);
+    TZ_ASSERT_NOT_NULL(public_key);
     TZ_ASSERT_NOT_NULL(compressed_pubkey_out);
     TZ_ASSERT_NOT_NULL(contract_out);
 
-    CX_CHECK(generate_public_key_hash(contract_out->hash,
-                                      sizeof(contract_out->hash),
-                                      compressed_pubkey_out,
-                                      path_with_curve));
+    CX_CHECK(public_key_hash(contract_out->hash,
+                             sizeof(contract_out->hash),
+                             compressed_pubkey_out,
+                             public_key));
 
-    contract_out->signature_type =
-        derivation_type_to_signature_type(path_with_curve->derivation_type);
+    contract_out->signature_type = signature_type_of_public_key(public_key);
     TZ_ASSERT(contract_out->signature_type != SIGNATURE_TYPE_UNSET, EXC_MEMORY_ERROR);
 
     contract_out->originated = 0;
@@ -251,17 +250,17 @@ end:
  * @brief Initialize the operation parser
  *
  * @param out: parsing output
- * @param path_with_curve: bip32 path and curve of the key
+ * @param public_key: public key
  * @param state: parsing state
  * @return tz_exc: exception, SW_OK if none
  */
 static tz_exc parse_operations_init(struct parsed_operation_group *const out,
-                                    bip32_path_with_curve_t const *const path_with_curve,
+                                    cx_ecfp_public_key_t const *const public_key,
                                     struct parse_state *const state) {
     tz_exc exc = SW_OK;
 
     TZ_ASSERT_NOT_NULL(out);
-    TZ_ASSERT_NOT_NULL(path_with_curve);
+    TZ_ASSERT_NOT_NULL(public_key);
 
     memset(out, 0, sizeof(*out));
 
@@ -269,7 +268,7 @@ static tz_exc parse_operations_init(struct parsed_operation_group *const out,
 
     TZ_CHECK(compute_pkh((cx_ecfp_compressed_public_key_t *) &out->public_key,
                          &out->signing,
-                         path_with_curve));
+                         public_key));
 
     // Start out with source = signing, for reveals
     memcpy(&out->operation.source, &out->signing, sizeof(out->signing));
@@ -490,11 +489,11 @@ end:
 
 tz_exc parse_operations(buffer_t *buf,
                         struct parsed_operation_group *const out,
-                        bip32_path_with_curve_t const *const path_with_curve) {
+                        cx_ecfp_public_key_t const *const public_key) {
     tz_exc exc = SW_OK;
     uint8_t byte;
 
-    TZ_CHECK(parse_operations_init(out, path_with_curve, &G.parse_state));
+    TZ_CHECK(parse_operations_init(out, public_key, &G.parse_state));
 
     while (buffer_read_u8(buf, &byte) == true) {
         TZ_ASSERT(parse_byte(byte, &G.parse_state, out) != PARSER_ERROR, EXC_PARSE_ERROR);

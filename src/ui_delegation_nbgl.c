@@ -85,9 +85,9 @@ int prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
     delegation_context.ok_cb = ok_cb;
     delegation_context.cxl_cb = cxl_cb;
 
-    TZ_CHECK(bip32_path_with_curve_to_pkh_string(delegation_context.tagValueRef[ADDRESS_IDX],
-                                                 MAX_LENGTH,
-                                                 &global.path_with_curve));
+    TZ_CHECK(pk_to_pkh_string(delegation_context.tagValueRef[ADDRESS_IDX],
+                              MAX_LENGTH,
+                              (cx_ecfp_public_key_t *) &global.public_key));
 
     TZ_ASSERT(microtez_to_string(delegation_context.tagValueRef[FEE_IDX],
                                  MAX_LENGTH,
