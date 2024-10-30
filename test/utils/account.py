@@ -18,12 +18,15 @@
 from enum import IntEnum
 from typing import Union
 
+from hashlib import blake2b
 import base58
 import pysodium
 import secp256k1
 import fastecdsa
+from py_ecc.bls import G2MessageAugmentation as bls
 
 import pytezos
+from pytezos.crypto.encoding import base58_encode
 from bip_utils.bip.bip32.bip32_path import Bip32Path, Bip32PathParser
 from bip_utils.bip.bip32.bip32_key_data import Bip32KeyIndex
 from utils.helper import BytesReader
@@ -35,6 +38,7 @@ class SigScheme(IntEnum):
     SECP256K1     = 0x01
     SECP256R1     = 0x02
     BIP32_ED25519 = 0x03
+    BLS           = 0x04
     DEFAULT       = ED25519
 
 class BipPath:
@@ -81,17 +85,8 @@ class BipPath:
 class Signature:
     """Class representing signature."""
 
-    GENERIC_SIGNATURE_PREFIX = bytes.fromhex("04822b") # sig(96)
-
-    def __init__(self, value: bytes):
-        value = Signature.GENERIC_SIGNATURE_PREFIX + value
-        self.value: bytes = base58.b58encode_check(value)
-
-    def __repr__(self) -> str:
-        return self.value.hex()
-
-    @classmethod
-    def from_tlv(cls, tlv: Union[bytes, bytearray]) -> 'Signature':
+    @staticmethod
+    def from_secp256_tlv(tlv: Union[bytes, bytearray]) -> bytes:
         """Get the signature encapsulated in a TLV."""
         # See:
         # https://developers.ledger.com/docs/embedded-app/crypto-api/lcx__ecdsa_8h/#cx_ecdsa_sign
@@ -124,17 +119,90 @@ class Signature:
         # A size adjustment is required here.
         def adjust_size(data, size):
             return data[-size:].rjust(size, b'\x00')
-        return Signature(adjust_size(r, 32) + adjust_size(s, 32))
+        return adjust_size(r, 32) + adjust_size(s, 32)
 
     @classmethod
-    def from_bytes(cls, data: bytes, sig_scheme: SigScheme) -> 'Signature':
+    def from_bytes(cls, data: bytes, sig_scheme: SigScheme) -> str:
         """Get the signature according to the SigScheme."""
         if sig_scheme in { SigScheme.ED25519, SigScheme.BIP32_ED25519 }:
-            return Signature(data)
-        return Signature.from_tlv(data)
+            prefix = bytes([9, 245, 205, 134, 18])
+        elif sig_scheme in { SigScheme.SECP256K1, SigScheme.SECP256R1 }:
+            prefix = bytes([13, 115, 101, 19, 63]) if sig_scheme == SigScheme.SECP256K1 \
+                else bytes([54, 240, 44, 52])
+            data = Signature.from_secp256_tlv(data)
+        elif sig_scheme == SigScheme.BLS:
+            prefix = bytes([40, 171, 64, 207])
+        else:
+            assert False, f"Wrong signature type: {sig_scheme}"
+
+        return base58.b58encode_check(prefix + data).decode()
+
+class PublicKey:
+    """Set of functions over public key management"""
+
+    class CompressionKind(IntEnum):
+        """Bytes compression kind"""
+        EVEN         = 0x02
+        ODD          = 0x03
+        UNCOMPRESSED = 0x04
+
+        def __bytes__(self) -> bytes:
+            return bytes([self])
+
+    @staticmethod
+    def from_bytes(data: bytes, sig_scheme: SigScheme) -> str:
+        """Convert a public key from bytes to string"""
+        # `data` should be:
+        # kind + pk
+        # pk length = 32 for compressed, 64 for uncompressed
+        kind = data[0]
+        data = data[1:]
+
+        # Ed25519
+        if sig_scheme in [
+                SigScheme.ED25519,
+                SigScheme.BIP32_ED25519
+        ]:
+            assert kind == PublicKey.CompressionKind.EVEN, \
+                f"Wrong Ed25519 public key compression kind: {kind}"
+            assert len(data) == 32, \
+                f"Wrong Ed25519 public key length: {len(data)}"
+            return base58_encode(data, b'edpk').decode()
+
+        # Secp256
+        if sig_scheme in [
+                SigScheme.SECP256K1,
+                SigScheme.SECP256R1
+        ]:
+            assert kind == PublicKey.CompressionKind.UNCOMPRESSED, \
+                f"Wrong Secp256 public key compression kind: {kind}"
+            assert len(data) == 2 * 32, \
+                f"Wrong Secp256 public key length: {len(data)}"
+            kind = PublicKey.CompressionKind.ODD if data[-1] & 1 else \
+                PublicKey.CompressionKind.EVEN
+            prefix = b'sppk' if sig_scheme == SigScheme.SECP256K1 \
+                else b'p2pk'
+            data = bytes(kind) + data[:32]
+            return base58_encode(data, prefix).decode()
+
+        # BLS
+        if sig_scheme == SigScheme.BLS:
+            assert kind == PublicKey.CompressionKind.UNCOMPRESSED, \
+                f"Wrong BLS public key compression kind: {kind}"
+            assert len(data) == 2 * 48, \
+                f"Wrong BLS public key length: {len(data)}"
+            return base58.b58encode_check(bytes([6, 149, 135, 204]) + data[:48]).decode()
+
+        assert False, f"Wrong signature type: {sig_scheme}"
 
 class Account:
     """Class representing account."""
+
+    path: BipPath
+    sig_scheme: SigScheme
+    # key: str == BLS.sk since pytezos do not support BLS for now
+    key: Union[pytezos.Key, str]
+    nanos_screens: int
 
     def __init__(self,
                  path: Union[BipPath, str, bytes],
@@ -146,30 +214,43 @@ class Account:
             BipPath.from_bytes(path) if isinstance(path, bytes) else \
             path
         self.sig_scheme: SigScheme = sig_scheme
-        self.key: pytezos.Key = pytezos.pytezos.using(key=key).key
+        if self.sig_scheme == SigScheme.BLS:
+            self.key: str = key
+        else:
+            self.key: pytezos.Key = pytezos.pytezos.using(key=key).key
         self.nanos_screens: int = nanos_screens
 
     @property
     def public_key_hash(self) -> str:
         """public_key_hash of the account."""
+        if isinstance(self.key, str):
+            pk_raw = base58.b58decode_check(self.public_key.encode())[4:]
+            pkh_raw = blake2b(pk_raw, digest_size=20).digest()
+            return base58.b58encode_check(bytes([6, 161, 166]) + pkh_raw).decode()
+
         return self.key.public_key_hash()
 
     @property
     def public_key(self) -> str:
         """public_key of the account."""
+        if isinstance(self.key, str):
+            sk_raw = base58.b58decode_check(self.secret_key.encode())[4:]
+            sk_int = int.from_bytes(sk_raw, 'little')
+            pk_raw = bls.SkToPk(sk_int)
+            return base58.b58encode_check(bytes([6, 149, 135, 204]) + pk_raw).decode()
+
         return self.key.public_key()
 
     @property
     def secret_key(self) -> str:
         """secret_key of the account."""
+        if isinstance(self.key, str):
+            return self.key
+
         return self.key.secret_key()
 
     def __repr__(self) -> str:
         return f"{self.sig_scheme.name}_{self.public_key_hash}"
-
-    def sign(self, message: Union[str, bytes], generic: bool = False) -> bytes:
-        """Sign a raw sequence of bytes."""
-        return self.key.sign(message, generic)
 
     def sign_prehashed_message(self, prehashed_message: bytes) -> bytes:
         """Sign a raw sequence of bytes already hashed."""
@@ -196,73 +277,30 @@ class Account:
                 prehashed=True
             )
             return r.to_bytes(32, 'big') + s.to_bytes(32, 'big')
+        if self.sig_scheme == SigScheme.BLS:
+            sk_raw = base58.b58decode_check(self.secret_key.encode())[4:]
+            sk_int = int.from_bytes(sk_raw, 'little') # Tezos encode it in 'little'
+            return bls.Sign(sk_int, prehashed_message)
+
         raise ValueError(f"Account do not have a right signature type: {self.sig_scheme}")
 
-    @property
-    def base58_decoded(self) -> bytes:
-        """base58_decoded of the account."""
-
-        # Get the public_key without prefix
-        public_key = base58.b58decode_check(self.public_key)
-
-        if self.sig_scheme in [
-                SigScheme.ED25519,
-                SigScheme.BIP32_ED25519
-        ]:
-            prefix = bytes.fromhex("0d0f25d9") # edpk(54)
-        elif self.sig_scheme == SigScheme.SECP256K1:
-            prefix = bytes.fromhex("03fee256") # sppk(55)
-        elif self.sig_scheme == SigScheme.SECP256R1:
-            prefix = bytes.fromhex("03b28b7f") # p2pk(55)
-        else:
-            raise ValueError(f"Account do not have a right signature type: {self.sig_scheme}")
-        assert public_key.startswith(prefix), \
-            "Expected prefix {prefix.hex()} but got {public_key.hex()}"
-
-        public_key = public_key[len(prefix):]
-
-        if self.sig_scheme in [
-                SigScheme.SECP256K1,
-                SigScheme.SECP256R1
-        ]:
-            assert public_key[0] in [0x02, 0x03], \
-                "Expected a prefix kind of 0x02 or 0x03 but got {public_key[0]}"
-            public_key = public_key[1:]
-
-        return public_key
-
-    def check_public_key(self, data: bytes) -> None:
-        """Check that the data correspond to the account."""
-
-        # `data` should be:
-        # length + kind + pk
-        # kind : 02=odd, 03=even, 04=uncompressed
-        # pk length = 32 for compressed, 64 for uncompressed
-        assert len(data) - 1 == data[0], \
-                "Expected a length of {data[0]} but got {len(data) - 1}"
-        if data[1] == 0x04: # public key uncompressed
-            assert data[0] == 1 + 32 + 32, \
-                "Expected a length of 1 + 32 + 32 but got {data[0]}"
-        elif data[1] in [0x02, 0x03]: # public key even or odd (compressed)
-            assert data[0] == 1 + 32, \
-                "Expected a length of 1 + 32 but got {data[0]}"
-        else:
-            raise ValueError(f"Expected a prefix kind of 0x02, 0x03 or 0x04 but got {data[1]}")
-        data = data[2:2+32]
-
-        public_key = self.base58_decoded
-        assert data == public_key, \
-            f"Expected public key {public_key.hex()} but got {data.hex()}"
-
     def check_signature(self,
-                        signature: Union[bytes, Signature],
+                        signature: Union[str, bytes],
                         message: Union[str, bytes]):
         """Check that the signature is the signature of the message by the account."""
         if isinstance(message, str):
             message = bytes.fromhex(message)
         if isinstance(signature, bytes):
             signature = Signature.from_bytes(signature, self.sig_scheme)
-        assert self.key.verify(signature.value, message), \
-            f"Fail to verify signature {signature}, \n\
-            with account {self} \n\
-            and message {message.hex()}"
+        if isinstance(self.key, str):
+            pk_raw = base58.b58decode_check(self.public_key.encode())[4:]
+            signature_raw = base58.b58decode_check(signature.encode())[4:]
+            assert bls.Verify(pk_raw, message, signature_raw), \
+                f"Fail to verify signature {signature}, \n\
+                with account {self} \n\
+                and message {message.hex()}"
+        else:
+            assert self.key.verify(signature.encode(), message), \
+                f"Fail to verify signature {signature}, \n\
+                with account {self} \n\
+                and message {message.hex()}"

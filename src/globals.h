@@ -55,13 +55,7 @@ void toggle_hwm(void);
 /// Maximum number of bytes in a single APDU
 #define MAX_APDU_SIZE 235u
 
-/// Our buffer must accommodate any remainder from hashing and the next message at once.
-#define TEZOS_BUFSIZE (BLAKE2B_BLOCKBYTES + MAX_APDU_SIZE)
-
-#define PRIVATE_KEY_DATA_SIZE         64u
-#define MAX_SIGNATURE_SIZE            100u
-#define ELLIPTIC_CURVE_PUB_KEY_LENGTH 65u
-#define PUB_KEY_COMPPRESSED_LENGTH    33u
+#define MAX_SIGNATURE_SIZE 100u
 
 /**
  * @brief This structure represents the state needed to handle HMAC
@@ -79,7 +73,6 @@ typedef struct {
  */
 typedef struct {
     cx_blake2b_t state;  ///< blake2b state
-    bool initialized;    ///< if the state has already been initialized
 } blake2b_hash_state_t;
 
 /**
@@ -99,12 +92,12 @@ typedef struct {
         struct parsed_operation_group v;  ///< current parsed operation group
     } maybe_ops;
 
-    /// buffer to hold the current message part and the  previous message hash
-    uint8_t message_data[TEZOS_BUFSIZE];
-    size_t message_data_length;  ///< length of message data
-
     blake2b_hash_state_t hash_state;     ///< current blake2b hash state
     uint8_t final_hash[SIGN_HASH_SIZE];  ///< buffer to hold hash of all the message
+#ifndef TARGET_NANOS
+    uint8_t message[MAX_APDU_SIZE];  ///< buffer to hold last packet message
+    size_t message_len;              ///< size of the message last packet
+#endif
 
     magic_byte_t magic_byte;         ///< current magic byte read
     struct parse_state parse_state;  ///< current parser state

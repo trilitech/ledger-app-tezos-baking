@@ -40,9 +40,9 @@
  *
  */
 typedef struct {
-    char buffer[sizeof(cx_ecfp_public_key_t)];  /// value buffer
-    ui_callback_t ok_cb;                        /// accept callback
-    ui_callback_t cxl_cb;                       /// cancel callback
+    char buffer[PKH_STRING_SIZE];  /// value buffer
+    ui_callback_t ok_cb;           /// accept callback
+    ui_callback_t cxl_cb;          /// cancel callback
 } AddressContext_t;
 
 /// Current address context

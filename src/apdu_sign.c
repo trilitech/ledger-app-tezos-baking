@@ -41,110 +41,6 @@
 static int perform_signature(bool const send_hash);
 
 /**
- * @brief Initializes the blake2b state if it is not
- *
- * @param state: blake2b state
- * @return tz_exc: exception, SW_OK if none
- */
-static inline tz_exc conditional_init_hash_state(blake2b_hash_state_t *const state) {
-    tz_exc exc = SW_OK;
-    cx_err_t error = CX_OK;
-
-    TZ_ASSERT_NOT_NULL(state);
-
-    if (!state->initialized) {
-        // cx_blake2b_init takes size in bits.
-        CX_CHECK(cx_blake2b_init_no_throw(&state->state, SIGN_HASH_SIZE * 8u));
-        state->initialized = true;
-    }
-
-end:
-    TZ_CONVERT_CX();
-    return exc;
-}
-
-/**
- * @brief Hashes incrementally a buffer using a blake2b state
- *
- *        The hash remains in the buffer, the buffer content length is
- *        updated and the blake2b state is also updated
- *
- * @param buff: buffer
- * @param buff_size: buffer size
- * @param buff_length: buffer content length
- * @param state: blake2b state
- * @return tz_exc: exception, SW_OK if none
- */
-static tz_exc blake2b_incremental_hash(uint8_t *const buff,
-                                       size_t const buff_size,
-                                       size_t *const buff_length,
-                                       blake2b_hash_state_t *const state) {
-    tz_exc exc = SW_OK;
-    cx_err_t error = CX_OK;
-
-    TZ_ASSERT_NOT_NULL(buff);
-    TZ_ASSERT_NOT_NULL(buff_length);
-    TZ_ASSERT_NOT_NULL(state);
-
-    TZ_CHECK(conditional_init_hash_state(state));
-
-    uint8_t *current = buff;
-    while (*buff_length > B2B_BLOCKBYTES) {
-        TZ_ASSERT((current - buff) <= (int) buff_size, EXC_MEMORY_ERROR);
-
-        CX_CHECK(
-            cx_hash_no_throw((cx_hash_t *) &state->state, 0, current, B2B_BLOCKBYTES, NULL, 0));
-        *buff_length -= B2B_BLOCKBYTES;
-        current += B2B_BLOCKBYTES;
-    }
-    memmove(buff, current, *buff_length);
-
-end:
-    TZ_CONVERT_CX();
-    return exc;
-}
-
-/**
- * @brief Finalizes the hashes of a buffer using a blake2b state
- *
- *        The buffer is modified and the buffer content length is
- *        updated
- *
- *        The final hash is stored in the ouput, its size is also
- *         stored and the blake2b state is updated
- *
- * @param out: output buffer
- * @param out_size: output size
- * @param buff: buffer
- * @param buff_size: buffer size
- * @param buff_length: buffer content length
- * @param state: blake2b state
- * @return tz_exc: exception, SW_OK if none
- */
-static tz_exc blake2b_finish_hash(uint8_t *const out,
-                                  size_t const out_size,
-                                  uint8_t *const buff,
-                                  size_t const buff_size,
-                                  size_t *const buff_length,
-                                  blake2b_hash_state_t *const state) {
-    tz_exc exc = SW_OK;
-    cx_err_t error = CX_OK;
-
-    TZ_ASSERT_NOT_NULL(out);
-    TZ_ASSERT_NOT_NULL(buff);
-    TZ_ASSERT_NOT_NULL(buff_length);
-    TZ_ASSERT_NOT_NULL(state);
-
-    TZ_CHECK(conditional_init_hash_state(state));
-    TZ_CHECK(blake2b_incremental_hash(buff, buff_size, buff_length, state));
-    CX_CHECK(
-        cx_hash_no_throw((cx_hash_t *) &state->state, CX_LAST, buff, *buff_length, out, out_size));
-end:
-    TZ_CONVERT_CX();
-    return exc;
-}
-
-/**
  * @brief Allows to clear all data related to signature
  *
  */
@@ -283,6 +179,7 @@ end:
  */
 int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
     tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
 
     TZ_ASSERT_NOT_NULL(cdata);
 
@@ -294,6 +191,9 @@ int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
 
     // Only parse a single packet when baking
     TZ_ASSERT(G.packet_index == 1u, EXC_PARSE_ERROR);
+    if (G.packet_index == 1u) {
+        CX_CHECK(cx_hash_init_ex((cx_hash_t *) &G.hash_state.state, CX_BLAKE2B, SIGN_HASH_SIZE));
+    }
 
     TZ_ASSERT(buffer_read_u8(cdata, &G.magic_byte), EXC_PARSE_ERROR);
     bool is_attestation = false;
@@ -320,32 +220,21 @@ int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
             TZ_FAIL(EXC_PARSE_ERROR);
     }
 
-    // Hash contents of *previous* message (which may be empty).
-    TZ_CHECK(blake2b_incremental_hash(G.message_data,
-                                      sizeof(G.message_data),
-                                      &G.message_data_length,
-                                      &G.hash_state));
+    CX_CHECK(
+        cx_hash_no_throw((cx_hash_t *) &G.hash_state.state, 0, cdata->ptr, cdata->size, NULL, 0));
 
-    TZ_ASSERT(
-        buffer_seek_set(cdata, 0) && buffer_move(cdata,
-                                                 G.message_data + G.message_data_length,
-                                                 sizeof(G.message_data) - G.message_data_length),
-        EXC_PARSE_ERROR);
-
-    G.message_data_length += cdata->size;
+#ifndef TARGET_NANOS
+    memmove(G.message, cdata->ptr, cdata->size);
+    G.message_len = cdata->size;
+#endif
 
     if (last) {
-        // Hash contents of *this* message and then get the final hash value.
-        TZ_CHECK(blake2b_incremental_hash(G.message_data,
-                                          sizeof(G.message_data),
-                                          &G.message_data_length,
-                                          &G.hash_state));
-        TZ_CHECK(blake2b_finish_hash(G.final_hash,
-                                     sizeof(G.final_hash),
-                                     G.message_data,
-                                     sizeof(G.message_data),
-                                     &G.message_data_length,
-                                     &G.hash_state));
+        CX_CHECK(cx_hash_no_throw((cx_hash_t *) &G.hash_state.state,
+                                  CX_LAST,
+                                  NULL,
+                                  0,
+                                  G.final_hash,
+                                  sizeof(G.final_hash)));
 
         G.maybe_ops.is_valid = parse_operations_final(&G.parse_state, &G.maybe_ops.v);
 
@@ -355,6 +244,7 @@ int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
     }
 
 end:
+    TZ_CONVERT_CX();
     return io_send_apdu_err(exc);
 }
 
@@ -379,6 +269,18 @@ static int perform_signature(bool const send_hash) {
     uint8_t resp[SIGN_HASH_SIZE + MAX_SIGNATURE_SIZE] = {0};
     size_t offset = 0;
 
+    uint8_t *message = G.final_hash;
+    size_t message_len = sizeof(G.final_hash);
+
+#ifndef TARGET_NANOS
+    // The BLS signature uses its own hash function.
+    // The entire message must be stored in `G.message`.
+    if (global.path_with_curve.derivation_type == DERIVATION_TYPE_BLS12_381) {
+        message = G.message;
+        message_len = G.message_len;
+    }
+#endif
+
     if (send_hash) {
         memcpy(resp + offset, G.final_hash, sizeof(G.final_hash));
         offset += sizeof(G.final_hash);
@@ -386,11 +288,7 @@ static int perform_signature(bool const send_hash) {
 
     size_t signature_size = MAX_SIGNATURE_SIZE;
 
-    CX_CHECK(sign(resp + offset,
-                  &signature_size,
-                  &global.path_with_curve,
-                  G.final_hash,
-                  sizeof(G.final_hash)));
+    CX_CHECK(sign(resp + offset, &signature_size, &global.path_with_curve, message, message_len));
 
     offset += signature_size;
 

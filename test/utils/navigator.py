@@ -38,8 +38,6 @@ from ragger.firmware.touch.positions import (
     Position,
     STAX_BUTTON_LOWER_LEFT,
     STAX_BUTTON_ABOVE_LOWER_MIDDLE,
-    STAX_BUTTON_LOWER_RIGHT,
-    STAX_BUTTON_LOWER_MIDDLE,
     FLEX_BUTTON_LOWER_LEFT,
     FLEX_BUTTON_ABOVE_LOWER_MIDDLE
 )
@@ -47,11 +45,8 @@ from ragger.navigator import Navigator, NavInsID, NavIns
 
 from common import TESTS_ROOT_DIR, EMPTY_PATH
 from utils.client import TezosClient, Hwm
-from utils.account import Account, Signature
-from utils.message import (
-    Delegation,
-    DEFAULT_BLOCK_HASH
-)
+from utils.account import Account
+from utils.message import Delegation
 
 RESPONSE = TypeVar('RESPONSE')
 
@@ -78,6 +73,8 @@ def send_and_navigate(send: Callable[[], RESPONSE], navigate: Callable[[], None]
 
 class FixedScreen(str, Enum):
     """Class representing screens that have fixed display."""
+    def __str__(self) -> str:
+        return self.value
 
 class NanoFixedScreen(FixedScreen):
     """FixedScreen for Nano devices."""
@@ -409,7 +406,7 @@ class TezosNavigator(metaclass=MetaScreen):
     def get_public_key_prompt(self,
                               account: Account,
                               navigate: Optional[Callable] = None,
-                              **kwargs) -> bytes:
+                              **kwargs) -> str:
         """Send a get public key request and navigate until accept"""
         if navigate is None:
             navigate = self.accept_key_navigate
@@ -476,7 +473,7 @@ class TezosNavigator(metaclass=MetaScreen):
                           main_hwm: Hwm,
                           test_hwm: Hwm,
                           navigate: Optional[Callable] = None,
-                          **kwargs) -> bytes:
+                          **kwargs) -> str:
         """Send a setup request and navigate until accept"""
         if navigate is None:
             navigate = self.accept_setup_navigate
@@ -513,16 +510,15 @@ class TezosNavigator(metaclass=MetaScreen):
     def sign_delegation(self,
                         account: Account,
                         delegation: Delegation,
-                        branch: str = DEFAULT_BLOCK_HASH,
                         navigate: Optional[Callable] = None,
-                        **kwargs) -> Signature:
+                        **kwargs) -> str:
         """Send a sign request on delegation and navigate until accept"""
         if navigate is None:
             navigate = self.accept_sign_navigate
         return send_and_navigate(
             send=lambda: self.client.sign_message(
                 account,
-                delegation.forge(branch)
+                delegation
             ),
             navigate=lambda: navigate(**kwargs)
         )
@@ -530,16 +526,15 @@ class TezosNavigator(metaclass=MetaScreen):
     def sign_delegation_with_hash(self,
                                   account: Account,
                                   delegation: Delegation,
-                                  branch: str = DEFAULT_BLOCK_HASH,
                                   navigate: Optional[Callable] = None,
-                                  **kwargs) -> Tuple[bytes, Signature]:
+                                  **kwargs) -> Tuple[bytes, str]:
         """Send a sign and get hash request on delegation and navigate until accept"""
         if navigate is None:
             navigate = self.accept_sign_navigate
         return send_and_navigate(
             send=lambda: self.client.sign_message_with_hash(
                 account,
-                delegation.forge(branch)
+                delegation
             ),
             navigate=lambda: navigate(**kwargs)
         )

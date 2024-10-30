@@ -61,9 +61,12 @@ struct implicit_contract {
  *
  */
 union public_key {
-    uint8_t edpk[32];  ///< raw public key for a edpk key
-    uint8_t sppk[33];  ///< raw public key for a sppk key
-    uint8_t p2pk[33];  ///< raw public key for a p2pk key
+    uint8_t edpk[TZ_EDPK_LEN];        ///< raw public key for a edpk key
+    uint8_t sppk[COMPRESSED_PK_LEN];  ///< raw public key for a sppk key
+    uint8_t p2pk[COMPRESSED_PK_LEN];  ///< raw public key for a p2pk key
+#ifndef TARGET_NANOS
+    uint8_t blpk[BLS_COMPRESSED_PK_LEN];  ///< raw public key for a BLpk key
+#endif
 } __attribute__((packed));
 
 /**

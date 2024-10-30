@@ -17,12 +17,25 @@
 
 from abc import ABC, abstractmethod
 from enum import IntEnum
-from hashlib import blake2b
-from typing import Optional, Union
-from pytezos import pytezos
-from pytezos.operation.group import OperationGroup
-from pytezos.block.forge import forge_int_fixed, forge_fitness
-from pytezos.michelson import forge
+from typing import Any, Dict, List, Optional, Union
+
+import base58
+
+from pytezos.block.forge import forge_block_header, forge_int_fixed
+from pytezos.crypto.encoding import base58_encodings
+from pytezos.crypto.key import blake2b_32
+from pytezos.michelson.forge import (
+    forge_address,
+    forge_base58,
+    forge_int16,
+    forge_int32,
+    forge_nat,
+    # forge_public_key, # overrode until BLS key included
+)
+from pytezos.operation.content import ContentMixin
+from pytezos.operation.forge import forge_tag
+# from pytezos.operation.group import OperationGroup
+from pytezos.rpc.kind import operation_tags
 
 class Message(ABC):
     """Class representing a message."""
@@ -32,38 +45,33 @@ class Message(ABC):
     @property
     def hash(self) -> bytes:
         """hash of the message."""
-        return blake2b(
-            self.raw(),
-            digest_size=Message.HASH_SIZE
-        ).digest()
+        return blake2b_32(bytes(self)).digest()
 
     @abstractmethod
-    def raw(self) -> bytes:
-        """bytes representation of the message."""
-        raise NotImplementedError
-
     def __bytes__(self) -> bytes:
-        return self.raw()
+        raise NotImplementedError
 
 class RawMessage(Message):
     """Class representing a raw message."""
 
+    _value: bytes
+
     def __init__(self, value: Union[str, bytes]):
-        self.value: bytes = value if isinstance(value, bytes) else \
+        self._value = value if isinstance(value, bytes) else \
             bytes.fromhex(value)
 
-    def raw(self) -> bytes:
-        return self.value
+    def __bytes__(self) -> bytes:
+        return self._value
 
-class MagicByte(IntEnum):
-    """Class representing the magic byte."""
+class Watermark(IntEnum):
+    """Class hodling messages watermark."""
 
     INVALID                   = 0x00
     BLOCK                     = 0x01
     BAKING_OP                 = 0x02
-    UNSAFE_OP                 = 0x03
+    MANAGER_OPERATION         = 0x03
     UNSAFE_OP2                = 0x04
-    UNSAFE_OP3                = 0x05
+    MICHELINE_EXPRESSION      = 0x05
     TENDERBAKE_BLOCK          = 0x11
     TENDERBAKE_PREATTESTATION = 0x12
     TENDERBAKE_ATTESTATION    = 0x13
@@ -92,191 +100,365 @@ class OperationTag(IntEnum):
     ATTESTATION          = 21
     ATTESTATION_WITH_DAL = 23
 
-# Chain_id.zero
-DEFAULT_CHAIN_ID = "NetXH12Aer3be93"
-# Block_hash.zero
-DEFAULT_BLOCK_HASH = "BKiHLREqU3JkXfzEDYAkmmfX48gBDtYhMrpA98s7Aq4SzbUAB6M"
-# Block_payload_hash.zero
-DEFAULT_BLOCK_PAYLOAD_HASH = "vh1g87ZG6scSYxKhspAUzprQVuLAyoa5qMBKcUfjgnQGnFb3dJcG"
-# Operation_list_list_hash.zero
-DEFAULT_OPERATIONS_HASH = "LLoZKi1iMzbeJrfrGWPFYmkLebcsha6vGskQ4rAXt2uMwQtBfRcjL"
-# Time.Protocol.epoch
-DEFAULT_TIMESTAMP = "1970-01-01T00:00:00-00:00"
-# Context_hash.zero
-DEFAULT_CONTEXT_HASH = "CoUeJrcPBj3T3iJL3PY4jZHnmZa5rRZ87VQPdSBNBcwZRMWJGh9j"
+Micheline = Union[List, Dict]
 
-class UnsafeOp:
-    """Class representing an unsafe operation."""
+class Default:
+    """Class holding default values."""
 
-    operation: OperationGroup
+    BLOCK_HASH: str              = "BKiHLREqU3JkXfzEDYAkmmfX48gBDtYhMrpA98s7Aq4SzbUAB6M"
+    BLOCK_PAYLOAD_HASH: str      = "vh1g87ZG6scSYxKhspAUzprQVuLAyoa5qMBKcUfjgnQGnFb3dJcG"
+    CHAIN_ID: str                = "NetXH12Aer3be93"
+    CONTEXT_HASH: str            = "CoUeJrcPBj3T3iJL3PY4jZHnmZa5rRZ87VQPdSBNBcwZRMWJGh9j"
+    ED25519_PUBLIC_KEY: str      = 'edpkteDwHwoNPB18tKToFKeSCykvr1ExnoMV5nawTJy9Y9nLTfQ541'
+    ED25519_PUBLIC_KEY_HASH: str = 'tz1Ke2h7sDdakHJQh8WX4Z372du1KChsksyU'
+    ENTRYPOINT: str              = 'default'
+    OPERATIONS_HASH: str         = "LLoZKi1iMzbeJrfrGWPFYmkLebcsha6vGskQ4rAXt2uMwQtBfRcjL"
+    TIMESTAMP: str               = "1970-01-01T00:00:00-00:00"
 
-    def __init__(self, operation: OperationGroup):
-        self.operation = operation
+    class Micheline:
+        """Class holding Micheline default values."""
+        VALUE: Micheline = {'prim': 'Unit'}
 
-    def forge(self, branch: str = DEFAULT_BLOCK_HASH) -> Message:
+class OperationBuilder(ContentMixin):
+    """Extends and fix pytezos.operation.content.ContentMixin."""
+
+    def preattestation(
+            self,
+            slot: int = 0,
+            op_level: int = 0,
+            op_round: int = 0,
+            block_payload_hash: str = Default.BLOCK_PAYLOAD_HASH):
+        """Build a tezos preattestation."""
+        return self.operation(
+            {
+                'kind': 'preattestation',
+                'slot': slot,
+                'level': op_level,
+                'round': op_round,
+                'block_payload_hash': block_payload_hash,
+            }
+        )
+
+    def attestation(
+            self,
+            slot: int = 0,
+            op_level: int = 0,
+            op_round: int = 0,
+            block_payload_hash: str = Default.BLOCK_PAYLOAD_HASH,
+            dal_attestation: Optional[int] = None):
+        """Build a tezos attestation."""
+        kind = 'attestation' if dal_attestation is None \
+            else 'attestation_with_dal'
+        content = {
+            'kind': kind,
+            'slot': slot,
+            'level': op_level,
+            'round': op_round,
+            'block_payload_hash': block_payload_hash,
+        }
+
+        if dal_attestation is not None:
+            content['dal_attestation'] = str(dal_attestation)
+
+        return self.operation(content)
+
+base58_encodings += [(b"BLpk", 76, bytes([6, 149, 135, 204]), 48, "BLS public key")]
+
+def forge_public_key(value: str) -> bytes:
+    """Encode public key into bytes.
+
+    :param value: public key in in base58 form
+    """
+    prefix = value[:4]
+    res = base58.b58decode_check(value)[4:]
+
+    if prefix == 'edpk':  # noqa: SIM116
+        return b'\x00' + res
+    if prefix == 'sppk':
+        return b'\x01' + res
+    if prefix == 'p2pk':
+        return b'\x02' + res
+    if prefix == 'BLpk':
+        return b'\x03' + res
+
+    raise ValueError(f'Unrecognized key type: #{prefix}')
+
+class OperationForge:
+    """Extends and fix pytezos.operation.forge."""
+    import pytezos.operation.forge as operation
+
+    operation_tags['preattestation'] = 20
+    operation_tags['attestation'] = 21
+    operation_tags['attestation_with_dal'] = 23
+
+    delegation = operation.forge_delegation
+    transaction = operation.forge_transaction
+
+    @staticmethod
+    def reveal(content: Dict[str, Any]) -> bytes:
+        """Forge a tezos reveal."""
+        res = forge_tag(operation_tags[content['kind']])
+        res += forge_address(content['source'], tz_only=True)
+        res += forge_nat(int(content['fee']))
+        res += forge_nat(int(content['counter']))
+        res += forge_nat(int(content['gas_limit']))
+        res += forge_nat(int(content['storage_limit']))
+        res += forge_public_key(content['public_key'])
+        return res
+
+    @staticmethod
+    def preattestation(content: Dict[str, Any]) -> bytes:
+        """Forge a tezos preattestation."""
+        res = forge_tag(operation_tags[content['kind']])
+        res += forge_int16(content['slot'])
+        res += forge_int32(content['level'])
+        res += forge_int32(content['round'])
+        res += forge_base58(content['block_payload_hash'])
+        return res
+
+    @staticmethod
+    def attestation(content: Dict[str, Any]) -> bytes:
+        """Forge a tezos attestation."""
+        res = forge_tag(operation_tags[content['kind']])
+        res += forge_int16(content['slot'])
+        res += forge_int32(content['level'])
+        res += forge_int32(content['round'])
+        res += forge_base58(content['block_payload_hash'])
+        if content.get('dal_attestation'):
+            res += forge_nat(int(content['dal_attestation']))
+        return res
+
+class Operation(Message, OperationBuilder):
+    """Class representing a tezos operation."""
+
+    branch: str
+
+    def __init__(self, branch: str = Default.BLOCK_HASH):
+        self.branch = branch
+
+    @abstractmethod
+    def forge(self) -> bytes:
         """Forge the operation."""
-        watermark = forge_int_fixed(MagicByte.UNSAFE_OP, 1)
-        self.operation.branch = branch
-        raw = watermark + bytes.fromhex(self.operation.forge())
-        return RawMessage(raw)
+        raise NotImplementedError
 
-    def merge(self, unsafe_op: 'UnsafeOp') -> 'UnsafeOp':
-        res = self.operation
-        for content in unsafe_op.operation.contents:
-            res = res.operation(content)
-        return UnsafeOp(res)
+    @property
+    @abstractmethod
+    def watermark(self) -> bytes:
+        """Watermark of the operation."""
+        raise NotImplementedError
 
-class Delegation(UnsafeOp):
-    """Class representing a delegation."""
+    def __bytes__(self) -> bytes:
+        raw = b''
+        raw += self.watermark
+        raw += forge_base58(self.branch)
+        raw += self.forge()
+        return raw
+
+class ManagerOperation(Operation):
+    """Class representing a tezos manager operation."""
+
+    source: str
+    fee: int
+    counter: int
+    gas_limit: int
+    storage_limit: int
+
+    @property
+    def watermark(self) -> bytes:
+        return forge_int_fixed(Watermark.MANAGER_OPERATION, 1)
 
     def __init__(self,
-                 delegate: str,
-                 source: str,
-                 counter: int = 0,
+                 source: str = Default.ED25519_PUBLIC_KEY_HASH,
                  fee: int = 0,
-                 gas_limit: int = 0,
-                 storage_limit: int = 0):
-        ctxt = pytezos.using()
-        delegation = ctxt.delegation(delegate, source, counter, fee, gas_limit, storage_limit)
-        super().__init__(delegation)
-
-class Reveal(UnsafeOp):
-    """Class representing a reveal."""
-
-    def __init__(self,
-                 public_key: str,
-                 source: str,
                  counter: int = 0,
-                 fee: int = 0,
                  gas_limit: int = 0,
-                 storage_limit: int = 0):
-        ctxt = pytezos.using()
-        reveal = ctxt.reveal(public_key, source, counter, fee, gas_limit, storage_limit)
-        super().__init__(reveal)
+                 storage_limit: int = 0,
+                 *args, **kwargs):
+        self.source = source
+        self.fee = fee
+        self.counter = counter
+        self.gas_limit = gas_limit
+        self.storage_limit = storage_limit
+        Operation.__init__(self, *args, **kwargs)
 
-class Preattestation:
-    """Class representing a preattestation."""
+class OperationGroup(Operation):
+    """Class representing a group of tezos manager operation."""
+
+    operations: List[ManagerOperation]
+
+    @property
+    def watermark(self) -> bytes:
+        return forge_int_fixed(Watermark.MANAGER_OPERATION, 1)
+
+    def __init__(self, operations: List[ManagerOperation], *args, **kwargs):
+        self.operations = operations
+        Operation.__init__(self, *args, **kwargs)
+
+    def forge(self) -> bytes:
+        return b''.join(map(lambda op: op.forge(), self.operations))
+
+class Reveal(ManagerOperation):
+    """Class representing a tezos reveal."""
+
+    public_key: str
+
+    def __init__(self,
+                 public_key: str = Default.ED25519_PUBLIC_KEY,
+                 *args, **kwargs):
+        self.public_key = public_key
+        ManagerOperation.__init__(self, *args, **kwargs)
+
+    def forge(self) -> bytes:
+        return OperationForge.reveal(
+            self.reveal(
+                self.public_key,
+                self.source,
+                self.counter,
+                self.fee,
+                self.gas_limit,
+                self.storage_limit
+            )
+        )
+
+class Delegation(ManagerOperation):
+    """Class representing a tezos delegation."""
+
+    delegate: Optional[str]
+
+    def __init__(self,
+                 delegate: Optional[str] = None,
+                 *args, **kwargs):
+        self.delegate = delegate
+        ManagerOperation.__init__(self, *args, **kwargs)
+
+    def forge(self) -> bytes:
+        return OperationForge.delegation(
+            self.delegation(
+                self.delegate,
+                self.source,
+                self.counter,
+                self.fee,
+                self.gas_limit,
+                self.storage_limit
+            )
+        )
+
+class Transaction(ManagerOperation):
+    """Class representing a tezos transaction."""
+
+    destination: str
+    amount: int
+    entrypoint: str
+    parameter: Micheline
+
+    def __init__(self,
+                 destination: str = Default.ED25519_PUBLIC_KEY_HASH,
+                 amount: int = 0,
+                 entrypoint: str = Default.ENTRYPOINT,
+                 parameter: Micheline = Default.Micheline.VALUE,
+                 *args, **kwargs):
+        self.destination = destination
+        self.amount = amount
+        self.entrypoint = entrypoint
+        self.parameter = parameter
+        ManagerOperation.__init__(self, *args, **kwargs)
+
+    def forge(self) -> bytes:
+        parameters = { "entrypoint": self.entrypoint, "value": self.parameter }
+        return OperationForge.transaction(
+            self.transaction(
+                self.destination,
+                self.amount,
+                parameters,
+                self.source,
+                self.counter,
+                self.fee,
+                self.gas_limit,
+                self.storage_limit
+            )
+        )
+
+class Preattestation(Operation):
+    """Class representing a tezos preattestation."""
 
     slot: int
     op_level: int
     op_round: int
     block_payload_hash: str
+    chain_id: str
+
+    @property
+    def watermark(self) -> bytes:
+        return \
+            forge_int_fixed(Watermark.TENDERBAKE_PREATTESTATION, 1) \
+            + forge_base58(self.chain_id)
 
     def __init__(self,
                  slot: int = 0,
                  op_level: int = 0,
                  op_round: int = 0,
-                 block_payload_hash: str = DEFAULT_BLOCK_PAYLOAD_HASH):
-        self.slot               = slot
-        self.op_level           = op_level
-        self.op_round           = op_round
+                 block_payload_hash: str = Default.BLOCK_PAYLOAD_HASH,
+                 chain_id: str = Default.CHAIN_ID,
+                 *args, **kwargs):
+        self.slot = slot
+        self.op_level = op_level
+        self.op_round = op_round
         self.block_payload_hash = block_payload_hash
+        self.chain_id = chain_id
+        Operation.__init__(self, *args, **kwargs)
 
-    def __bytes__(self) -> bytes:
-        raw = b''
-        raw += forge_int_fixed(OperationTag.PREATTESTATION, 1)
-        raw += forge.forge_int16(self.slot)
-        raw += forge.forge_int32(self.op_level)
-        raw += forge.forge_int32(self.op_round)
-        raw += forge.forge_base58(self.block_payload_hash)
-        return raw
+    def forge(self) -> bytes:
+        return OperationForge.preattestation(
+            self.preattestation(
+                self.slot,
+                self.op_level,
+                self.op_round,
+                self.block_payload_hash
+            )
+        )
 
-    def forge(self,
-              chain_id: str = DEFAULT_CHAIN_ID,
-              branch: str = DEFAULT_BLOCK_HASH) -> Message:
-        """Forge the preattestation."""
-        raw_operation = \
-            forge.forge_base58(branch) + \
-            bytes(self)
-        watermark = \
-            forge_int_fixed(MagicByte.TENDERBAKE_PREATTESTATION, 1) + \
-            forge.forge_base58(chain_id)
-        raw = watermark + raw_operation
-        return RawMessage(raw)
-
-class Attestation:
-    """Class representing an attestation."""
+class Attestation(Operation):
+    """Class representing a tezos attestation."""
 
     slot: int
     op_level: int
     op_round: int
     block_payload_hash: str
+    dal_attestation: Optional[int]
+    chain_id: str
+
+    @property
+    def watermark(self) -> bytes:
+        return \
+            forge_int_fixed(Watermark.TENDERBAKE_ATTESTATION, 1) \
+            + forge_base58(self.chain_id)
 
     def __init__(self,
                  slot: int = 0,
                  op_level: int = 0,
                  op_round: int = 0,
-                 block_payload_hash: str = DEFAULT_BLOCK_PAYLOAD_HASH):
-        self.slot               = slot
-        self.op_level           = op_level
-        self.op_round           = op_round
+                 block_payload_hash: str = Default.BLOCK_PAYLOAD_HASH,
+                 dal_attestation: Optional[int] = None,
+                 chain_id: str = Default.CHAIN_ID,
+                 *args, **kwargs):
+        self.slot = slot
+        self.op_level = op_level
+        self.op_round = op_round
         self.block_payload_hash = block_payload_hash
+        self.dal_attestation = dal_attestation
+        self.chain_id = chain_id
+        Operation.__init__(self, *args, **kwargs)
 
-    def __bytes__(self) -> bytes:
-        raw = b''
-        raw += forge_int_fixed(OperationTag.ATTESTATION, 1)
-        raw += forge.forge_int16(self.slot)
-        raw += forge.forge_int32(self.op_level)
-        raw += forge.forge_int32(self.op_round)
-        raw += forge.forge_base58(self.block_payload_hash)
-        return raw
-
-    def forge(self,
-              chain_id: str = DEFAULT_CHAIN_ID,
-              branch: str = DEFAULT_BLOCK_HASH) -> Message:
-        """Forge the attestation."""
-        raw_operation = \
-            forge.forge_base58(branch) + \
-            bytes(self)
-        watermark = \
-            forge_int_fixed(MagicByte.TENDERBAKE_ATTESTATION, 1) + \
-            forge.forge_base58(chain_id)
-        raw = watermark + raw_operation
-        return RawMessage(raw)
-
-class AttestationDal:
-    """Class representing an attestation + DAL."""
-
-    slot: int
-    op_level: int
-    op_round: int
-    block_payload_hash: str
-    dal_attestation: int
-
-    def __init__(self,
-                 slot: int = 0,
-                 op_level: int = 0,
-                 op_round: int = 0,
-                 block_payload_hash: str = DEFAULT_BLOCK_PAYLOAD_HASH,
-                 dal_attestation: int = 0):
-        self.slot               = slot
-        self.op_level           = op_level
-        self.op_round           = op_round
-        self.block_payload_hash = block_payload_hash
-        self.dal_attestation    = dal_attestation
-
-    def __bytes__(self) -> bytes:
-        raw = b''
-        raw += forge_int_fixed(OperationTag.ATTESTATION_WITH_DAL, 1)
-        raw += forge.forge_int16(self.slot)
-        raw += forge.forge_int32(self.op_level)
-        raw += forge.forge_int32(self.op_round)
-        raw += forge.forge_base58(self.block_payload_hash)
-        raw += forge.forge_nat(self.dal_attestation)
-        return raw
-
-    def forge(self,
-              chain_id: str = DEFAULT_CHAIN_ID,
-              branch: str = DEFAULT_BLOCK_HASH) -> Message:
-        """Forge the attestation + DAL."""
-        raw_operation = \
-            forge.forge_base58(branch) + \
-            bytes(self)
-        watermark = \
-            forge_int_fixed(MagicByte.TENDERBAKE_ATTESTATION, 1) + \
-            forge.forge_base58(chain_id)
-        raw = watermark + raw_operation
-        return RawMessage(raw)
+    def forge(self) -> bytes:
+        return OperationForge.attestation(
+            self.attestation(
+                self.slot,
+                self.op_level,
+                self.op_round,
+                self.block_payload_hash,
+                self.dal_attestation
+            )
+        )
 
 class Fitness:
     """Class representing a fitness."""
@@ -296,84 +478,83 @@ class Fitness:
         self.predecessor_round = predecessor_round
         self.current_round     = current_round
 
-    def __bytes__(self) -> bytes:
+    def build(self):
+        """Build a tezos fitness."""
         raw_locked_round = \
             b'' if self.locked_round is None else \
-            forge.forge_int32(self.locked_round)
+            forge_int32(self.locked_round)
         raw_predecessor_round = \
             (-self.predecessor_round-1).to_bytes(4, 'big', signed=True)
-        return forge_fitness(
-            [
-                forge_int_fixed(ConsensusProtocol.TENDERBAKE, 1).hex(),
-                forge.forge_int32(self.level).hex(),
-                raw_locked_round.hex(),
-                raw_predecessor_round.hex(),
-                forge.forge_int32(self.current_round).hex()
-            ]
-        )
+        return [
+            forge_int_fixed(ConsensusProtocol.TENDERBAKE, 1).hex(),
+            forge_int32(self.level).hex(),
+            raw_locked_round.hex(),
+            raw_predecessor_round.hex(),
+            forge_int32(self.current_round).hex()
+        ]
 
 class BlockHeader:
     """Class representing a block header."""
 
     level: int
-    proto_level: int
+    proto: int
     predecessor: str
     timestamp: str
     validation_pass: int
     operations_hash: str
     fitness: Fitness
     context: str
+    protocol_data: str # Hex
 
     def __init__(self,
                  level: int = 0,
-                 proto_level: int = 0,
-                 predecessor: str = DEFAULT_BLOCK_HASH,
-                 timestamp: str = DEFAULT_TIMESTAMP,
+                 proto: int = 0,
+                 predecessor: str = Default.BLOCK_HASH,
+                 timestamp: str = Default.TIMESTAMP,
                  validation_pass: int = 0,
-                 operations_hash: str = DEFAULT_OPERATIONS_HASH,
+                 operations_hash: str = Default.OPERATIONS_HASH,
                  fitness: Fitness = Fitness(),
-                 context: str = DEFAULT_CONTEXT_HASH):
-        self.level           = level
-        self.proto_level     = proto_level
-        self.predecessor     = predecessor
-        self.timestamp       = timestamp
+                 context: str = Default.CONTEXT_HASH,
+                 protocol_data: str = ''):
+        self.level = level
+        self.proto = proto
+        self.predecessor = predecessor
+        self.timestamp = timestamp
         self.validation_pass = validation_pass
         self.operations_hash = operations_hash
-        self.fitness         = fitness
-        self.context         = context
+        self.fitness = fitness
+        self.context = context
+        self.protocol_data = protocol_data
 
-    def __bytes__(self) -> bytes:
-        raw = b''
-        raw += forge_int_fixed(self.level, 4)
-        raw += forge_int_fixed(self.proto_level, 1)
-        raw += forge.forge_base58(self.predecessor)
-        raw += forge_int_fixed(forge.optimize_timestamp(self.timestamp), 8)
-        raw += forge_int_fixed(self.validation_pass, 1)
-        raw += forge.forge_base58(self.operations_hash)
-        raw += bytes(self.fitness)
-        raw += forge.forge_base58(self.context)
-        return raw
+    def build(self):
+        """Build a tezos Block header."""
+        return {
+            'level': self.level,
+            'proto': self.proto,
+            'predecessor': self.predecessor,
+            'timestamp': self.timestamp,
+            'validation_pass': self.validation_pass,
+            'operations_hash': self.operations_hash,
+            'fitness': self.fitness.build(),
+            'context': self.context,
+            'protocol_data': self.protocol_data,
+        }
 
-class Block:
+class Block(Message):
     """Class representing a block."""
 
     header: BlockHeader
-    content: bytes
+    chain_id: str
 
     def __init__(self,
                  header: BlockHeader = BlockHeader(),
-                 content: Union[str, bytes] = b''):
-        self.header  = header
-        self.content = content if isinstance(content, bytes) else \
-            bytes.fromhex(content)
+                 chain_id: str = Default.CHAIN_ID):
+        self.header = header
+        self.chain_id = chain_id
 
     def __bytes__(self) -> bytes:
-        return bytes(self.header) + self.content
-
-    def forge(self, chain_id: str = DEFAULT_CHAIN_ID) -> Message:
-        """Forge the block."""
-        watermark = \
-            forge_int_fixed(MagicByte.TENDERBAKE_BLOCK, 1) + \
-            forge.forge_base58(chain_id)
-        raw = watermark + bytes(self)
-        return RawMessage(raw)
+        raw = b''
+        raw += forge_int_fixed(Watermark.TENDERBAKE_BLOCK, 1)
+        raw += forge_base58(self.chain_id)
+        raw += forge_block_header(self.header.build())
+        return raw
