@@ -72,13 +72,15 @@ int handle_setup(buffer_t *cdata, derivation_type_t derivation_type) {
 
     TZ_ASSERT_NOT_NULL(cdata);
 
-    global.path_with_curve.derivation_type = derivation_type;
-
     TZ_ASSERT(buffer_read_u32(cdata, &G.main_chain_id.v, BE) &&  // chain id
                   buffer_read_u32(cdata, &G.hwm.main, BE) &&     // main hwm level
-                  buffer_read_u32(cdata, &G.hwm.test, BE) &&     // test hwm level
-                  read_bip32_path(cdata, &global.path_with_curve.bip32_path),
+                  buffer_read_u32(cdata, &G.hwm.test, BE),       // test hwm level
               EXC_WRONG_VALUES);
+
+    TZ_CHECK(read_path_with_curve(derivation_type,
+                                  cdata,
+                                  &global.path_with_curve,
+                                  (cx_ecfp_public_key_t *) &global.public_key));
 
     TZ_ASSERT(cdata->size == cdata->offset, EXC_WRONG_LENGTH);
 

@@ -161,11 +161,12 @@ int select_signing_key(buffer_t *cdata, derivation_type_t derivation_type) {
 
     clear_data();
 
-    TZ_ASSERT(read_bip32_path(cdata, &global.path_with_curve.bip32_path), EXC_WRONG_VALUES);
+    TZ_CHECK(read_path_with_curve(derivation_type,
+                                  cdata,
+                                  &global.path_with_curve,
+                                  (cx_ecfp_public_key_t *) &global.public_key));
 
     TZ_ASSERT(cdata->size == cdata->offset, EXC_WRONG_LENGTH);
-
-    global.path_with_curve.derivation_type = derivation_type;
 
     return io_send_sw(SW_OK);
 

@@ -88,6 +88,20 @@ static inline int io_send_apdu_err(uint16_t sw) {
 }
 
 /**
+ * @brief Reads a path with curve and derive the public key.
+ *
+ * @param[in]  derivation_type: Derivation type of the key.
+ * @param[in]  buf: Buffer that should contains a bip32 path.
+ * @param[out] path_with_curve: Buffer to store the path with curve.
+ * @param[out] pubkey: Buffer to store the pubkey.
+ * @return tz_exc: exception, SW_OK if none
+ */
+tz_exc read_path_with_curve(derivation_type_t derivation_type,
+                            buffer_t* buf,
+                            bip32_path_with_curve_t* path_with_curve,
+                            cx_ecfp_public_key_t* pubkey);
+
+/**
  * @brief Provides the public key in the apdu response
  *
  *        Expects validated pin

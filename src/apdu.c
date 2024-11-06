@@ -33,6 +33,26 @@
 #include <stdint.h>
 #include <string.h>
 
+tz_exc read_path_with_curve(derivation_type_t derivation_type,
+                            buffer_t* buf,
+                            bip32_path_with_curve_t* path_with_curve,
+                            cx_ecfp_public_key_t* pubkey) {
+    tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
+
+    TZ_ASSERT_NOT_NULL(buf);
+    TZ_ASSERT_NOT_NULL(path_with_curve);
+    TZ_ASSERT_NOT_NULL(pubkey);
+
+    path_with_curve->derivation_type = derivation_type;
+    TZ_ASSERT(read_bip32_path(buf, &path_with_curve->bip32_path), EXC_WRONG_VALUES);
+    CX_CHECK(generate_public_key(pubkey, path_with_curve));
+
+end:
+    TZ_CONVERT_CX();
+    return exc;
+}
+
 int provide_pubkey(bip32_path_with_curve_t const* const path_with_curve) {
     tz_exc exc = SW_OK;
     cx_err_t error = CX_OK;

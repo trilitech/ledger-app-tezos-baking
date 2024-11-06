@@ -69,15 +69,20 @@ int handle_get_public_key(buffer_t *cdata,
                           bool authorize,
                           bool prompt) {
     tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
 
     TZ_ASSERT_NOT_NULL(cdata);
 
-    global.path_with_curve.derivation_type = derivation_type;
     if ((cdata->size == 0u) && authorize) {
         TZ_ASSERT(copy_bip32_path_with_curve(&global.path_with_curve, &(g_hwm.baking_key)),
                   EXC_MEMORY_ERROR);
+        CX_CHECK(generate_public_key((cx_ecfp_public_key_t *) &global.public_key,
+                                     &global.path_with_curve));
     } else {
-        TZ_ASSERT(read_bip32_path(cdata, &global.path_with_curve.bip32_path), EXC_WRONG_VALUES);
+        TZ_CHECK(read_path_with_curve(derivation_type,
+                                      cdata,
+                                      &global.path_with_curve,
+                                      (cx_ecfp_public_key_t *) &global.public_key));
     }
 
     TZ_ASSERT(cdata->size == cdata->offset, EXC_WRONG_LENGTH);
@@ -100,5 +105,6 @@ int handle_get_public_key(buffer_t *cdata,
     }
 
 end:
+    TZ_CONVERT_CX();
     return io_send_apdu_err(exc);
 }
