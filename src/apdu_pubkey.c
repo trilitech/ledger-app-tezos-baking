@@ -74,10 +74,13 @@ int handle_get_public_key(buffer_t *cdata,
     TZ_ASSERT_NOT_NULL(cdata);
 
     if ((cdata->size == 0u) && authorize) {
-        TZ_ASSERT(copy_bip32_path_with_curve(&global.path_with_curve, &(g_hwm.baking_key)),
-                  EXC_MEMORY_ERROR);
-        CX_CHECK(generate_public_key((cx_ecfp_public_key_t *) &global.public_key,
-                                     &global.path_with_curve));
+        // Do not derive the public key if the two path_with_curve are equal
+        if (!bip32_path_with_curve_eq(&global.path_with_curve, &g_hwm.baking_key)) {
+            TZ_ASSERT(copy_bip32_path_with_curve(&global.path_with_curve, &g_hwm.baking_key),
+                      EXC_MEMORY_ERROR);
+            CX_CHECK(generate_public_key((cx_ecfp_public_key_t *) &global.public_key,
+                                         &global.path_with_curve));
+        }
     } else {
         TZ_CHECK(read_path_with_curve(derivation_type,
                                       cdata,

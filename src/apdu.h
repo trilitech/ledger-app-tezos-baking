@@ -89,11 +89,14 @@ static inline int io_send_apdu_err(uint16_t sw) {
 
 /**
  * @brief Reads a path with curve and derive the public key.
+ *        Set [pubkey] to NULL to not deriving the public key.
+ *        Will not derive the public key if the path with curve read
+ *        is the same as the one provided.
  *
- * @param[in]  derivation_type: Derivation type of the key.
- * @param[in]  buf: Buffer that should contains a bip32 path.
- * @param[out] path_with_curve: Buffer to store the path with curve.
- * @param[out] pubkey: Buffer to store the pubkey.
+ * @param[in]     derivation_type: Derivation type of the key.
+ * @param[in]     buf: Buffer that should contains a bip32 path.
+ * @param[in/out] path_with_curve: Buffer to store the path with curve.
+ * @param[out]    pubkey: Buffer to store the pubkey. Can be NULL
  * @return tz_exc: exception, SW_OK if none
  */
 tz_exc read_path_with_curve(derivation_type_t derivation_type,

@@ -39,14 +39,21 @@ tz_exc read_path_with_curve(derivation_type_t derivation_type,
                             cx_ecfp_public_key_t* pubkey) {
     tz_exc exc = SW_OK;
     cx_err_t error = CX_OK;
+    bip32_path_with_curve_t tmp_path_with_curve = {0};
 
     TZ_ASSERT_NOT_NULL(buf);
     TZ_ASSERT_NOT_NULL(path_with_curve);
-    TZ_ASSERT_NOT_NULL(pubkey);
 
-    path_with_curve->derivation_type = derivation_type;
-    TZ_ASSERT(read_bip32_path(buf, &path_with_curve->bip32_path), EXC_WRONG_VALUES);
-    CX_CHECK(generate_public_key(pubkey, path_with_curve));
+    tmp_path_with_curve.derivation_type = derivation_type;
+    TZ_ASSERT(read_bip32_path(buf, &tmp_path_with_curve.bip32_path), EXC_WRONG_VALUES);
+
+    // Do not derive the public key if the two path_with_curve are equal
+    if (!bip32_path_with_curve_eq(path_with_curve, &tmp_path_with_curve)) {
+        memmove(path_with_curve, &tmp_path_with_curve, sizeof(bip32_path_with_curve_t));
+        if (pubkey != NULL) {
+            CX_CHECK(generate_public_key(pubkey, path_with_curve));
+        }
+    }
 
 end:
     TZ_CONVERT_CX();

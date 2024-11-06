@@ -224,7 +224,13 @@ tz_exc calculate_idle_screen_authorized_key(void) {
                               "No Key Authorized"),
                   EXC_WRONG_LENGTH);
     } else {
-        CX_CHECK(generate_public_key(authorized_pk, &g_hwm.baking_key));
+        // Do not derive the public key if the two path_with_curve are equal
+        if (!bip32_path_with_curve_eq(&global.path_with_curve, &g_hwm.baking_key)) {
+            CX_CHECK(generate_public_key((cx_ecfp_public_key_t *) authorized_pk,
+                                         &global.path_with_curve));
+        } else {
+            memmove(authorized_pk, &global.public_key, sizeof(tz_ecfp_public_key_t));
+        }
 
         TZ_CHECK(pk_to_pkh_string(home_context.authorized_key,
                                   sizeof(home_context.authorized_key),
