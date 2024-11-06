@@ -100,24 +100,10 @@ end:
     return error;
 }
 
-/**
- * @brief Extract the public key hash from a public key and a curve
- *
- *        Is non-reentrant
- *
- * @param hash_out: public key hash output
- * @param hash_out_size: output size
- * @param compressed_out: compressed public key output
- *                        pass NULL if this value is not desired
- * @param derivation_type: curve
- * @param param public_key: public key
- * @return cx_err_t: error, CX_OK if none
- */
-static cx_err_t public_key_hash(uint8_t *const hash_out,
-                                size_t const hash_out_size,
-                                cx_ecfp_compressed_public_key_t *compressed_out,
-                                derivation_type_t const derivation_type,
-                                cx_ecfp_public_key_t const *const public_key) {
+cx_err_t public_key_hash(uint8_t *const hash_out,
+                         size_t const hash_out_size,
+                         cx_ecfp_compressed_public_key_t *compressed_out,
+                         cx_ecfp_public_key_t const *const public_key) {
     if ((hash_out == NULL) || (public_key == NULL)) {
         return CX_INVALID_PARAMETER;
     }
@@ -129,16 +115,15 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
     cx_ecfp_compressed_public_key_t *compressed =
         (cx_ecfp_compressed_public_key_t *) &(tz_ecfp_compressed_public_key_t){0};
 
-    switch (derivation_type) {
-        case DERIVATION_TYPE_ED25519:
-        case DERIVATION_TYPE_BIP32_ED25519: {
+    switch (public_key->curve) {
+        case CX_CURVE_Ed25519: {
             compressed->curve = public_key->curve;
             compressed->W_len = TZ_EDPK_LEN;
             memcpy(compressed->W, public_key->W + 1, compressed->W_len);
             break;
         }
-        case DERIVATION_TYPE_SECP256K1:
-        case DERIVATION_TYPE_SECP256R1: {
+        case CX_CURVE_SECP256K1:
+        case CX_CURVE_SECP256R1: {
             compressed->curve = public_key->curve;
             compressed->W_len = COMPRESSED_PK_LEN;
             memcpy(compressed->W, public_key->W, compressed->W_len);
@@ -146,7 +131,7 @@ static cx_err_t public_key_hash(uint8_t *const hash_out,
             break;
         }
 #ifndef TARGET_NANOS
-        case DERIVATION_TYPE_BLS12_381: {
+        case CX_CURVE_BLS12_381_G1: {
             compressed->curve = public_key->curve;
             compressed->W_len = BLS_COMPRESSED_PK_LEN;
             memcpy(compressed->W, public_key->W + 1, compressed->W_len);
@@ -177,34 +162,15 @@ end:
     return error;
 }
 
-cx_err_t generate_public_key_hash(uint8_t *const hash_out,
-                                  size_t const hash_out_size,
-                                  cx_ecfp_compressed_public_key_t *compressed_out,
-                                  bip32_path_with_curve_t const *const path_with_curve) {
-    if ((hash_out == NULL) || (path_with_curve == NULL)) {
-        return CX_INVALID_PARAMETER;
-    }
-
-    cx_ecfp_public_key_t *pubkey = (cx_ecfp_public_key_t *) &(tz_ecfp_public_key_t){0};
-    cx_err_t error = CX_OK;
-
-    CX_CHECK(generate_public_key(pubkey, path_with_curve));
-
-    CX_CHECK(public_key_hash(hash_out,
-                             hash_out_size,
-                             compressed_out,
-                             path_with_curve->derivation_type,
-                             pubkey));
-
-end:
-    return error;
-}
-
 cx_err_t sign(uint8_t *const out,
               size_t *out_size,
               bip32_path_with_curve_t const *const path_with_curve,
+              cx_ecfp_public_key_t *public_key,
               uint8_t const *const in,
               size_t const in_size) {
+#ifdef TARGET_NANOS
+    UNUSED(public_key);
+#endif
     if ((out == NULL) || (out_size == NULL) || (path_with_curve == NULL) || (in == NULL)) {
         return CX_INVALID_PARAMETER;
     }
@@ -257,6 +223,7 @@ cx_err_t sign(uint8_t *const out,
         case DERIVATION_TYPE_BLS12_381: {
             CX_CHECK(bip32_derive_with_seed_bls_sign_hash(bip32_path->components,
                                                           bip32_path->length,
+                                                          (cx_ecfp_384_public_key_t *) public_key,
                                                           (uint8_t const *) PIC(in),
                                                           in_size,
                                                           out,

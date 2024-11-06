@@ -61,9 +61,9 @@ int prompt_delegation(ui_callback_t const ok_cb, ui_callback_t const cxl_cb) {
 
     memset(&delegation_context, 0, sizeof(delegation_context));
 
-    TZ_CHECK(bip32_path_with_curve_to_pkh_string(delegation_context.address,
-                                                 sizeof(delegation_context.address),
-                                                 &global.path_with_curve));
+    TZ_CHECK(pk_to_pkh_string(delegation_context.address,
+                              sizeof(delegation_context.address),
+                              (cx_ecfp_public_key_t *) &global.public_key));
 
     TZ_ASSERT(microtez_to_string(delegation_context.fee,
                                  sizeof(delegation_context.fee),

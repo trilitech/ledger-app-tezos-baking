@@ -145,17 +145,16 @@ struct parse_state {
  *        operation of any other type, which is the one it puts into
  *        the group.
  *
- *        Some checks are carried out during the parsing using a key using a key
+ *        Some checks are carried out during the parsing using a key
  *
  * @param buf: input operation
  * @param out: parsing output
- * @param curve: curve of the key
- * @param path_with_curve: bip32 path and curve of the key
+ * @param public_key: public key
  * @return tz_exc: exception, SW_OK if none
  */
 tz_exc parse_operations(buffer_t *buf,
                         struct parsed_operation_group *const out,
-                        bip32_path_with_curve_t const *const path_with_curve);
+                        cx_ecfp_public_key_t const *const public_key);
 
 /**
  * @brief Checks parsing has been completed successfully

@@ -161,11 +161,12 @@ int select_signing_key(buffer_t *cdata, derivation_type_t derivation_type) {
 
     clear_data();
 
-    TZ_ASSERT(read_bip32_path(cdata, &global.path_with_curve.bip32_path), EXC_WRONG_VALUES);
+    TZ_CHECK(read_path_with_curve(derivation_type,
+                                  cdata,
+                                  &global.path_with_curve,
+                                  (cx_ecfp_public_key_t *) &global.public_key));
 
     TZ_ASSERT(cdata->size == cdata->offset, EXC_WRONG_LENGTH);
-
-    global.path_with_curve.derivation_type = derivation_type;
 
     return io_send_sw(SW_OK);
 
@@ -214,14 +215,28 @@ int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
             break;
         case MAGIC_BYTE_UNSAFE_OP:
             // Parse the operation. It will be verified in `baking_sign_complete`.
-            TZ_CHECK(parse_operations(cdata, &G.maybe_ops.v, &global.path_with_curve));
+            TZ_CHECK(parse_operations(cdata,
+                                      &G.maybe_ops.v,
+                                      (cx_ecfp_public_key_t *) &global.public_key));
             break;
         default:
             TZ_FAIL(EXC_PARSE_ERROR);
     }
 
-    CX_CHECK(
-        cx_hash_no_throw((cx_hash_t *) &G.hash_state.state, 0, cdata->ptr, cdata->size, NULL, 0));
+#ifndef TARGET_NANOS
+    // There is no need to hash the message if it is not used for signing or if it is not sent at
+    // the end.
+    if (with_hash || (global.path_with_curve.derivation_type != DERIVATION_TYPE_BLS12_381)) {
+#endif
+        CX_CHECK(cx_hash_no_throw((cx_hash_t *) &G.hash_state.state,
+                                  0,
+                                  cdata->ptr,
+                                  cdata->size,
+                                  NULL,
+                                  0));
+#ifndef TARGET_NANOS
+    }
+#endif
 
 #ifndef TARGET_NANOS
     memmove(G.message, cdata->ptr, cdata->size);
@@ -229,12 +244,20 @@ int handle_sign(buffer_t *cdata, const bool last, const bool with_hash) {
 #endif
 
     if (last) {
-        CX_CHECK(cx_hash_no_throw((cx_hash_t *) &G.hash_state.state,
-                                  CX_LAST,
-                                  NULL,
-                                  0,
-                                  G.final_hash,
-                                  sizeof(G.final_hash)));
+#ifndef TARGET_NANOS
+        // There is no need to hash the message if it is not used for signing or if it is not sent
+        // at the end.
+        if (with_hash || (global.path_with_curve.derivation_type != DERIVATION_TYPE_BLS12_381)) {
+#endif
+            CX_CHECK(cx_hash_no_throw((cx_hash_t *) &G.hash_state.state,
+                                      CX_LAST,
+                                      NULL,
+                                      0,
+                                      G.final_hash,
+                                      sizeof(G.final_hash)));
+#ifndef TARGET_NANOS
+        }
+#endif
 
         G.maybe_ops.is_valid = parse_operations_final(&G.parse_state, &G.maybe_ops.v);
 
@@ -288,7 +311,12 @@ static int perform_signature(bool const send_hash) {
 
     size_t signature_size = MAX_SIGNATURE_SIZE;
 
-    CX_CHECK(sign(resp + offset, &signature_size, &global.path_with_curve, message, message_len));
+    CX_CHECK(sign(resp + offset,
+                  &signature_size,
+                  &global.path_with_curve,
+                  (cx_ecfp_public_key_t *) &global.public_key,
+                  message,
+                  message_len));
 
     offset += signature_size;
 

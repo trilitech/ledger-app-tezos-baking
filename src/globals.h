@@ -123,6 +123,7 @@ typedef struct {
     } dynamic_display;
 
     bip32_path_with_curve_t path_with_curve;  ///< holds the bip32 path and curve of the current key
+    tz_ecfp_public_key_t public_key;          ///< holds the current public key
 
     /// apdu handling state
     struct {

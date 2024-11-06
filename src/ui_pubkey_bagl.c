@@ -58,9 +58,9 @@ int prompt_pubkey(bool authorize, ui_callback_t ok_cb, ui_callback_t cxl_cb) {
 
     memset(&address_context, 0, sizeof(address_context));
 
-    TZ_CHECK(bip32_path_with_curve_to_pkh_string(address_context.public_key_hash,
-                                                 sizeof(address_context.public_key_hash),
-                                                 &global.path_with_curve));
+    TZ_CHECK(pk_to_pkh_string(address_context.public_key_hash,
+                              sizeof(address_context.public_key_hash),
+                              (cx_ecfp_public_key_t *) &global.public_key));
 
     ux_prepare_confirm_callbacks(ok_cb, cxl_cb);
     if (authorize) {

@@ -36,22 +36,19 @@ static int pkh_to_string(char *const dest,
                          signature_type_t const signature_type,
                          uint8_t const hash[KEY_HASH_SIZE]);
 
-tz_exc bip32_path_with_curve_to_pkh_string(char *const out,
-                                           size_t const out_size,
-                                           bip32_path_with_curve_t const *const key) {
+tz_exc pk_to_pkh_string(char *const out,
+                        size_t const out_size,
+                        cx_ecfp_public_key_t const *const public_key) {
     tz_exc exc = SW_OK;
     cx_err_t error = CX_OK;
     uint8_t hash[KEY_HASH_SIZE];
 
     TZ_ASSERT_NOT_NULL(out);
-    TZ_ASSERT_NOT_NULL(key);
+    TZ_ASSERT_NOT_NULL(public_key);
 
-    CX_CHECK(generate_public_key_hash(hash, sizeof(hash), NULL, key));
+    CX_CHECK(public_key_hash(hash, sizeof(hash), NULL, public_key));
 
-    TZ_ASSERT(pkh_to_string(out,
-                            out_size,
-                            derivation_type_to_signature_type(key->derivation_type),
-                            hash) >= 0,
+    TZ_ASSERT(pkh_to_string(out, out_size, signature_type_of_public_key(public_key), hash) >= 0,
               EXC_WRONG_LENGTH);
 
 end:

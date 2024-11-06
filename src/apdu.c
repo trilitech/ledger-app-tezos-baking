@@ -33,21 +33,41 @@
 #include <stdint.h>
 #include <string.h>
 
-int provide_pubkey(bip32_path_with_curve_t const* const path_with_curve) {
+tz_exc read_path_with_curve(derivation_type_t derivation_type,
+                            buffer_t* buf,
+                            bip32_path_with_curve_t* path_with_curve,
+                            cx_ecfp_public_key_t* pubkey) {
+    tz_exc exc = SW_OK;
+    cx_err_t error = CX_OK;
+    bip32_path_with_curve_t tmp_path_with_curve = {0};
+
+    TZ_ASSERT_NOT_NULL(buf);
+    TZ_ASSERT_NOT_NULL(path_with_curve);
+
+    tmp_path_with_curve.derivation_type = derivation_type;
+    TZ_ASSERT(read_bip32_path(buf, &tmp_path_with_curve.bip32_path), EXC_WRONG_VALUES);
+
+    // Do not derive the public key if the two path_with_curve are equal
+    if (!bip32_path_with_curve_eq(path_with_curve, &tmp_path_with_curve)) {
+        memmove(path_with_curve, &tmp_path_with_curve, sizeof(bip32_path_with_curve_t));
+        if (pubkey != NULL) {
+            CX_CHECK(generate_public_key(pubkey, path_with_curve));
+        }
+    }
+
+end:
+    TZ_CONVERT_CX();
+    return exc;
+}
+
+int provide_pubkey(cx_ecfp_public_key_t const* const pubkey) {
     tz_exc exc = SW_OK;
     cx_err_t error = CX_OK;
 
-    TZ_ASSERT_NOT_NULL(path_with_curve);
+    TZ_ASSERT_NOT_NULL(pubkey);
 
     uint8_t resp[1u + MAX_SIGNATURE_SIZE] = {0};
     size_t offset = 0;
-
-    // Application could be PIN-locked, and pubkey->W_len would then be 0,
-    // so throwing an error rather than returning an empty key
-    TZ_ASSERT(os_global_pin_is_validated() == BOLOS_UX_OK, EXC_SECURITY);
-
-    cx_ecfp_public_key_t* pubkey = (cx_ecfp_public_key_t*) &(tz_ecfp_public_key_t){0};
-    CX_CHECK(generate_public_key(pubkey, path_with_curve));
 
     resp[offset] = pubkey->W_len;
     offset++;

@@ -33,16 +33,16 @@
 #define TICKER_WITH_SPACE " XTZ"
 
 /**
- * @brief Converts a key to a public key hash string using its bip32 path and curve
+ * @brief Converts a key to a public key hash string using its public key
  *
  * @param out: result output
  * @param out_size: output size
- * @param key: bip32 path and curve of the key
+ * @param public_key: public key
  * @return tz_exc: exception, SW_OK if none
  */
-tz_exc bip32_path_with_curve_to_pkh_string(char *const out,
-                                           size_t const out_size,
-                                           bip32_path_with_curve_t const *const key);
+tz_exc pk_to_pkh_string(char *const out,
+                        size_t const out_size,
+                        cx_ecfp_public_key_t const *const public_key);
 
 /**
  * @brief Converts a chain id to string
