@@ -27,7 +27,7 @@ You also will need to install `tezos-wallet` app for initial setup to stake tez 
   - `IMPORTANT` Make sure to `enable screensaver` and `disable global PIN lock` in ledger settings. Make also sure to disable `Battery saver` on NanoX, Stax and Flex devices.
   - Open the baking app and start baking with octez client.
 
-Disabling global PIN lock makes it possible for baking app to continue respond to signing requests even when screensaver is running on the screen of the ledger. Baking app uses Ledger screensaver (custom screensaver for nanos) to avoid screen burn.
+Disabling global PIN lock makes it possible for baking app to continue respond to signing requests even when screensaver is running on the screen of the ledger. Baking app uses Ledger screensaver to avoid screen burn.
 
 The baking app once opened can not be exited until you enter PIN again so disabling global PIN lock while baking does not pose any risk.
 
@@ -57,10 +57,6 @@ Even when HWM is disabled, the `baking_app` keeps track of HWM in RAM thus in no
 ## Screensaver
 
 The screen saver is the one provided by Ledger ([Configure screen saver timeout](https://support.ledger.com/hc/en-us/articles/360017152034-Configure-PIN-lock-and-screen-saver?docs=true)).
-
-On Nanos devices, the Ledger screensaver can slow down the baking app. This is why it is deactivated during signings.
-After a signature, a low-cost screensaver will take over. It will switch the screen off after 20 seconds of inactivity.
-Press any button to exit sleep mode. When the sleep mode is exited, the Ledger screen saver will take over again if there are no more signatures.
 
 ## Hacking
 
@@ -133,13 +129,13 @@ docker run --rm -ti -v $(pwd):/app ghcr.io/ledgerhq/ledger-app-builder/ledger-ap
 Then build the baking app inside the docker container shell as follows :
 
 ```
-BOLOS_SDK=$NANOS_SDK make
+BOLOS_SDK=$NANOSP_SDK make
 ```
 To enable debugging and log output, use
 ```
-BOLOS_SDK=$NANOS_SDK make DEBUG=1
+BOLOS_SDK=$NANOSP_SDK make DEBUG=1
 ```
-You can replace `NANOS` with `NANOSP`, `NANOX`, `STAX`, `FLEX` for the other devices in BOLOS_SDK environmental variable.
+You can replace `NANOSP` with `NANOX`, `STAX`, `FLEX` for the other devices in BOLOS_SDK environmental variable.
 
 ### Testing
 The application tests are run using same docker container used for building. Inside the docker container run following script,
@@ -153,7 +149,7 @@ Now you can run ragger tests for any perticular ledger device. Please make sure 
 ```
 (tezos_test_env)$ python3 -m pytest test --device nanosp
 ```
-Replace nanosp with any of the following for respective device: nanos, nanosp, nanox , stax , flex.
+Replace nanosp with any of the following for respective device: nanosp, nanox , stax , flex.
 
 These tests are run on Ledger emulator called speculos which emulates the actual ledger device. To run theese test on actual device you have to choose a backend. Run following commands to run these test on device:
 ```
@@ -225,7 +221,7 @@ as you continue. You may want to read the rest of these instructions before you
 begin installing, as you will need to confirm and verify a few things during the
 process.
 
-Make sure you have built the appropriate device files by following the 'Building' section. We will be using the `app.apdu` and `app.elf` from `build/<device>` directory.  Here `<device>` can take values nanos, nanos2 (for Nanosp), nanox, stax and flex.
+Make sure you have built the appropriate device files by following the 'Building' section. We will be using the `app.apdu` and `app.elf` from `build/<device>` directory.  Here `<device>` can take values nanos2 (for Nanosp), nanox, stax and flex.
 ```
 $ python3 -m ledgerblue.runScript  --scp --fileName build/<device>/bin/app.apdu --elfFile build/<device>/bin/app.elf
 ```
@@ -500,13 +496,13 @@ To benchmark signing time on a ledger device, run following commands: (assuming 
 Now run either of the following commands
 
 ```
-(env)$ python3 -m pytest test --device nanos --backend ledgercomm -k "test_benchmark_attestation_time"
+(env)$ python3 -m pytest test --device nanosp --backend ledgercomm -k "test_benchmark_attestation_time"
 or
-(env)$ python3 -m pytest test --device nanos --backend ledgerwallet -k "test_benchmark_attestation_time"
+(env)$ python3 -m pytest test --device nanosp --backend ledgerwallet -k "test_benchmark_attestation_time"
 ```
 The result will be printed in       `Avg_time_for_100_attestations.txt`.
 
-Following is a sample of measurements obtained with this app (Tezos Baking app v2.4.7, Ledger devices - Nanos, Nanos+, System : Ubunut 22.04)
+Following is a sample of measurements obtained with this app (Tezos Baking app v2.4.7, Ledger devices - Nanos+, System : Ubunut 22.04)
 
 | Device | Derivation Type   | Avg time/signature(milliseconds) |
 |--------|-------------------|----------------------------------|
@@ -519,11 +515,6 @@ Following is a sample of measurements obtained with this app (Tezos Baking app v
 | Nanos+ | SECP256R1_tz3     | 226                              |
 | Nanos+ | ED25519_tz1       | 465                              |
 | Nanos+ | BIP32_ED25519_tz1 | 787                              |
-|        |                   |                                  |
-| Nanos  | SECP256K1_tz2     | 876                              |
-| Nanos  | SECP256R1_tz3     | 670                              |
-| Nanos  | ED25519_tz1       | 670                              |
-| Nanos  | BIP32_ED25519_tz1 | 878                              |
 
 ## Troubleshooting
 
