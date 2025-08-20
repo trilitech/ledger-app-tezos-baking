@@ -86,13 +86,8 @@ def test_review_home(account: Optional[Account],
         tezos_navigator.right()
         tezos_navigator.assert_screen("chain_id", snap_path)
         tezos_navigator.right()
-        if account is not None and device.type == DeviceType.NANOS:
-            for i in range(1, account.nanos_screens + 1):
-                tezos_navigator.assert_screen("public_key_hash_" + str(i), snap_path)
-                tezos_navigator.right()
-        else:
-            tezos_navigator.assert_screen("public_key_hash", snap_path)
-            tezos_navigator.right()
+        tezos_navigator.assert_screen("public_key_hash", snap_path)
+        tezos_navigator.right()
         tezos_navigator.assert_screen("high_watermark", snap_path)
         tezos_navigator.right()
         tezos_navigator.assert_screen(NanoFixedScreen.HOME_SETTINGS)
@@ -107,13 +102,8 @@ def test_review_home(account: Optional[Account],
         tezos_navigator.left()
         tezos_navigator.assert_screen("high_watermark", snap_path)
         tezos_navigator.left()
-        if account is not None and device.type == DeviceType.NANOS:
-            for i in reversed(range(1, account.nanos_screens + 1)):
-                tezos_navigator.assert_screen("public_key_hash_" + str(i), snap_path)
-                tezos_navigator.left()
-        else:
-            tezos_navigator.assert_screen("public_key_hash", snap_path)
-            tezos_navigator.left()
+        tezos_navigator.assert_screen("public_key_hash", snap_path)
+        tezos_navigator.left()
         tezos_navigator.assert_screen("chain_id", snap_path)
         tezos_navigator.left()
         tezos_navigator.assert_screen(NanoFixedScreen.HOME_VERSION)
@@ -239,197 +229,6 @@ def test_review_home(account: Optional[Account],
         tezos_navigator.assert_screen(TouchFixedScreen.HOME)
 
 
-def test_low_cost_screensaver(device: Device,
-                              backend: BackendInterface,
-                              tezos_navigator: TezosNavigator) -> None:
-    """Test if the low-cost screensaver work as intended."""
-
-    if device.type != DeviceType.NANOS:
-        pytest.skip("Only on nanos devices")
-
-    all_click = [
-        backend.both_click,
-        backend.left_click,
-        backend.right_click,
-    ]
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-    for click in all_click:
-        backend.both_click()
-        backend.wait_for_screen_change()
-        tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
-        click()
-        backend.wait_for_screen_change()
-        tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-
-def test_automatic_low_cost_screensaver(device: Device,
-                                        backend: BackendInterface,
-                                        client: TezosClient,
-                                        tezos_navigator: TezosNavigator) -> None:
-    """Test the low-cost screensaver activate at sign."""
-
-    if device.type != DeviceType.NANOS:
-        pytest.skip("Only on nanos devices")
-
-    account = DEFAULT_ACCOUNT
-
-    tezos_navigator.setup_app_context(
-        account,
-        Default.CHAIN_ID,
-        Hwm(0, 0),
-        Hwm(0, 0)
-    )
-
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-
-    time.sleep(30)
-
-    # Low-cost screensaver activate only after signing
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-
-    attestation = build_attestation(
-        op_level=1,
-        op_round=0,
-        chain_id=Default.CHAIN_ID
-    )
-
-    client.sign_message(account, attestation)
-
-    time.sleep(5)
-
-    # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-
-    time.sleep(30)
-
-    # Low-cost screensaver has been activated
-    backend.wait_for_screen_change()
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
-
-    backend.both_click()
-    backend.wait_for_screen_change()
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-
-    time.sleep(30)
-
-    # Low-cost screensaver deactivate after button push
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-
-def test_automatic_low_cost_screensaver_cancelled_by_display(
-        device: Device,
-        backend: BackendInterface,
-        client: TezosClient,
-        tezos_navigator: TezosNavigator) -> None:
-    """Test that low-cost screensaver is cancelled by display"""
-
-    if device.type != DeviceType.NANOS:
-        pytest.skip("Only on nanos devices")
-
-    account = DEFAULT_ACCOUNT
-
-    tezos_navigator.setup_app_context(
-        account,
-        Default.CHAIN_ID,
-        Hwm(0, 0),
-        Hwm(0, 0)
-    )
-
-    attestation = build_attestation(
-        op_level=1,
-        op_round=0,
-        chain_id=Default.CHAIN_ID
-    )
-
-    client.sign_message(account, attestation)
-
-    time.sleep(5)
-
-    # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-
-    def delayed_authorize_navigate(**kwargs):
-        time.sleep(30)
-
-        # Low-cost screensaver deactivate after something is displayed.
-        backend.wait_for_screen_change()
-        tezos_navigator.assert_screen("first_authorize_screen")
-
-        tezos_navigator.accept_key_navigate(
-            screen_change_before_first_instruction=False,
-            **kwargs
-        )
-
-    tezos_navigator.authorize_baking(
-        account,
-        navigate=delayed_authorize_navigate
-    )
-
-def test_automatic_low_cost_screensaver_exited_by_display(
-        device: Device,
-        backend: BackendInterface,
-        client: TezosClient,
-        tezos_navigator: TezosNavigator) -> None:
-    """Test that low-cost screensaver is exited by display"""
-
-    if device.type != DeviceType.NANOS:
-        pytest.skip("Only on nanos devices")
-
-    account = DEFAULT_ACCOUNT
-
-    tezos_navigator.setup_app_context(
-        account,
-        Default.CHAIN_ID,
-        Hwm(0, 0),
-        Hwm(0, 0)
-    )
-
-    attestation = build_attestation(
-        op_level=1,
-        op_round=0,
-        chain_id=Default.CHAIN_ID
-    )
-
-    client.sign_message(account, attestation)
-
-    time.sleep(5)
-
-    # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-
-    time.sleep(30)
-
-    # Low-cost screensaver has been activated
-    backend.wait_for_screen_change()
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
-
-    # Exit the low-cost screensaver by display
-    tezos_navigator.authorize_baking(account, snap_path=Path("authorize"))
-
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-
-    time.sleep(30)
-
-    # Low-cost screensaver deactivate after display
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-
-    attestation = build_attestation(
-        op_level=2,
-        op_round=0,
-        chain_id=Default.CHAIN_ID
-    )
-
-    client.sign_message(account, attestation)
-
-    time.sleep(5)
-
-    # Low-cost screensaver activate after 20s after signing
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_WELCOME)
-
-    time.sleep(30)
-
-    # Low-cost screensaver has been activated
-    backend.wait_for_screen_change()
-    tezos_navigator.assert_screen(NanoFixedScreen.HOME_BLACK)
-
 
 def test_version(client: TezosClient) -> None:
     """Test the VERSION instruction."""
@@ -496,10 +295,7 @@ def test_ledger_screensaver(device: Device,
         time.sleep(1)
 
     res = input("Has the Ledger screensaver been activated?")
-    if device.type == DeviceType.NANOS:
-        assert (res.find("y") == -1), "Ledger screensaver should not have been activated"
-    else:
-        assert (res.find("y") != -1), "Ledger screensaver should have activated"
+    assert (res.find("y") != -1), "Ledger screensaver should have activated"
 
 
 @pytest.mark.parametrize("account", ZEBRA_ACCOUNTS)
@@ -587,9 +383,6 @@ def test_deauthorize(device: Device,
         if device.is_nano:
             # No update for Stax or flex
             backend.wait_for_screen_change()
-        if device.type == DeviceType.NANOS:
-            # Wait blink
-            time.sleep(0.5)
         tezos_navigator.assert_screen("authorized_key_after_authorize")
 
     tezos_navigator.check_app_context(
