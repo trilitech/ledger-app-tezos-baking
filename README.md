@@ -24,7 +24,7 @@ You also will need to install `tezos-wallet` app for initial setup to stake tez 
   - Setup ledger for baking using instructions given in this file in section [Baking](./README.md#setup-tezos-baking-using-ledger) upto [Staking tez](./README.md#stake-tez-to-get-baking-rights).
   - Exit the Tezos wallet app.
 ### STEP 3
-  - `IMPORTANT` Make sure to `enable screensaver` and `disable global PIN lock` in ledger settings.
+  - `IMPORTANT` Make sure to `enable screensaver` and `disable global PIN lock` in ledger settings. Make also sure to disable `Battery saver` on NanoX, Stax and Flex devices.
   - Open the baking app and start baking with octez client.
 
 Disabling global PIN lock makes it possible for baking app to continue respond to signing requests even when screensaver is running on the screen of the ledger. Baking app uses Ledger screensaver (custom screensaver for nanos) to avoid screen burn.
