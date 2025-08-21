@@ -446,7 +446,6 @@ static inline tz_parser_result parse_byte(uint8_t byte,
                                      klen) == 0);
 
                 out->has_reveal = true;
-
             }
 
             OP_STEP
