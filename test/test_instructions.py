@@ -210,12 +210,6 @@ def test_review_home(account: Optional[Account],
         tezos_navigator.settings.next()
         backend.wait_for_screen_change()
         tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_DESCRIPTION)
-        tezos_navigator.settings.next()
-        backend.wait_for_screen_change()
-        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_DESCRIPTION_2)
-        tezos_navigator.settings.previous()
-        backend.wait_for_screen_change()
-        tezos_navigator.assert_screen(TouchFixedScreen.SETTINGS_DESCRIPTION)
         tezos_navigator.settings.previous()
         backend.wait_for_screen_change()
         if device.type == DeviceType.STAX:
