@@ -337,6 +337,8 @@ $ ./octez-client import secret key ledger_username "ledger://masculine-pig-stupe
 ```
 Here we have chosen the last key type bip25519. You can choose any one of the available keys.
 
+It is important to note that BLS signing is not supported on this baking app. 
+
 You can verify that you have successfully setup ledger with following command:
 ```
 $ ./octez-client list known addresses
