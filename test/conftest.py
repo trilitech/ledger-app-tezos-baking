@@ -16,9 +16,10 @@
 """Pytest configuration file."""
 
 import pytest
+
+from ledgered.devices import Device
 from ragger.backend import BackendInterface
 from ragger.conftest import configuration
-from ragger.firmware import Firmware
 from ragger.navigator import Navigator
 from utils.client import TezosClient
 from utils.navigator import TezosNavigator
@@ -37,10 +38,10 @@ def client(backend: BackendInterface) -> TezosClient:
 @pytest.fixture(scope="function")
 def tezos_navigator(
         backend: BackendInterface,
-        firmware: Firmware,
+        device: Device,
         client: TezosClient,
         navigator: Navigator,
         golden_run: bool,
         test_name: str) -> TezosNavigator:
     """Get a tezos navigator."""
-    return TezosNavigator(backend, firmware, client, navigator, golden_run, test_name)
+    return TezosNavigator(backend, device, client, navigator, golden_run, test_name)

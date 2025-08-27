@@ -1,5 +1,6 @@
 base58
 bip32
 GitPython
-pytezos==3.11.3
-ragger>=1.18.1
+secp256k1
+pytezos==3.13.5
+ragger[speculos,ledgerwallet]==1.39.0

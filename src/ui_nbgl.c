@@ -92,10 +92,12 @@ static void initInfo(void) {
     TZ_ASSERT(copy_string(infoContentsBridge[VERSION_IDX], MAX_LENGTH, APPVERSION) >= 0,
               EXC_WRONG_LENGTH);
 
-    TZ_ASSERT(copy_string(infoContentsBridge[DEVELOPER_IDX], MAX_LENGTH, "Ledger") >= 0,
-              EXC_WRONG_LENGTH);
+    TZ_ASSERT(
+        copy_string(infoContentsBridge[DEVELOPER_IDX], MAX_LENGTH, "Trilitech Kanvas Ltd. et al") >=
+            0,
+        EXC_WRONG_LENGTH);
 
-    TZ_ASSERT(copy_string(infoContentsBridge[COPYRIGHT_IDX], MAX_LENGTH, "(c) 2023 Ledger") >= 0,
+    TZ_ASSERT(copy_string(infoContentsBridge[COPYRIGHT_IDX], MAX_LENGTH, "(c) 2024 Trilitech") >= 0,
               EXC_WRONG_LENGTH);
 
 end:

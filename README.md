@@ -24,7 +24,7 @@ You also will need to install `tezos-wallet` app for initial setup to stake tez 
   - Setup ledger for baking using instructions given in this file in section [Baking](./README.md#setup-tezos-baking-using-ledger) upto [Staking tez](./README.md#stake-tez-to-get-baking-rights).
   - Exit the Tezos wallet app.
 ### STEP 3
-  - `IMPORTANT` Make sure to `enable screensaver` and `disable global PIN lock` in ledger settings.
+  - `IMPORTANT` Make sure to `enable screensaver` and `disable global PIN lock` in ledger settings. Make also sure to disable `Battery saver` on NanoX, Stax and Flex devices.
   - Open the baking app and start baking with octez client.
 
 Disabling global PIN lock makes it possible for baking app to continue respond to signing requests even when screensaver is running on the screen of the ledger. Baking app uses Ledger screensaver (custom screensaver for nanos) to avoid screen burn.
@@ -337,6 +337,8 @@ $ ./octez-client import secret key ledger_username "ledger://masculine-pig-stupe
 ```
 Here we have chosen the last key type bip25519. You can choose any one of the available keys.
 
+It is important to note that BLS signing is not supported on this baking app.
+
 You can verify that you have successfully setup ledger with following command:
 ```
 $ ./octez-client list known addresses
@@ -510,6 +512,11 @@ Following is a sample of measurements obtained with this app (Tezos Baking app v
 
 | Device | Derivation Type   | Avg time/signature(milliseconds) |
 |--------|-------------------|----------------------------------|
+| Flex   | SECP256K1_tz2     | 214                              |
+| Flex   | SECP256R1_tz3     | 215                              |
+| Flex   | ED25519_tz1       | 456                              |
+| Flex   | BIP32_ED25519_tz1 | 783                              |
+|        |                   |                                  |
 | Nanos+ | SECP256K1_tz2     | 229                              |
 | Nanos+ | SECP256R1_tz3     | 226                              |
 | Nanos+ | ED25519_tz1       | 465                              |

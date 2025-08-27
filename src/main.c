@@ -32,6 +32,7 @@ void app_main(void) {
     // Structured APDU command
     command_t cmd;
 
+    io_init();
     init_globals();
     ui_initial_screen();
 

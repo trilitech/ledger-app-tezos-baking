@@ -446,8 +446,19 @@ static inline tz_parser_result parse_byte(uint8_t byte,
                                      klen) == 0);
 
                 out->has_reveal = true;
+            }
 
-                JMP_TO_TOP;
+            OP_STEP
+
+            {
+                // Read Proof
+                bool reveal_proof = NEXT_BYTE != 0u;
+                if (!reveal_proof) {
+                    JMP_TO_TOP
+                }
+
+                // Proof only supported for BLS keys
+                PARSER_FAIL();
             }
 
         case STEP_AFTER_MANAGER_FIELDS:  // Anything but a reveal
