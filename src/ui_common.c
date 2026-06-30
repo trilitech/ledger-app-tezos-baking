@@ -20,7 +20,7 @@
 */
 
 #include "ui.h"
-#include "os_pin.h"
+#include "os_identity.h"
 
 #include <globals.h>
 
@@ -29,7 +29,7 @@
  *
  */
 static void require_pin(void) {
-    os_global_pin_invalidate();
+    sys_identity_log_out();
 }
 
 void __attribute__((noreturn)) app_exit(void) {
